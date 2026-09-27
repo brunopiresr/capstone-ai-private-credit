@@ -1,0 +1,19 @@
+case_id,borrower_id,period_end,covenant_id,expected_metric,expected_status,expected_headroom,early_warning_expected,next_event_date,next_event,expected_evidence_issue,rationale
+SYN001_Q3_LEV,SYN001,2025-09-30,LEV,3.125,COMPLIANT,2.375,False,,,,Wide headroom.
+SYN002_Q3_LEV_EW,SYN002,2025-09-30,LEV,5.1923,COMPLIANT_EARLY_WARNING,0.3077,True,2025-12-31,BREACH,,Headroom is small and has deteriorated for three quarters.
+SYN002_Q4_LEV,SYN002,2025-12-31,LEV,5.6,BREACH,-0.1,False,,,,Subsequent breach used as early-warning outcome.
+SYN003_Q2_LEV,SYN003,2025-06-30,LEV,4.8462,BREACH,-0.3462,False,,,,Simple deterministic breach.
+SYN004_Q3_LEV,SYN004,2025-09-30,LEV,5.4,COMPLIANT,0.1,False,,,,Later amendment makes 5.50x applicable; using 4.75x would be a false breach.
+SYN005_Q3_LEV,SYN005,2025-09-30,LEV,5.2,WAIVED,,False,,,,Do not test during covenant holiday.
+SYN005_Q4_LEV,SYN005,2025-12-31,LEV,5.0,BREACH,-0.5,False,,,,Testing resumes after holiday.
+SYN006_Q3_LEV,SYN006,2025-09-30,LEV,5.0,COMPLIANT,0.25,False,,,,"Eligible addbacks capped at 5, so covenant EBITDA = 30."
+SYN007_Q3_LEV,SYN007,2025-09-30,LEV,,DATA_CONFLICT_ABSTAIN,,False,,,DEBT_SOURCE_CONFLICT,Financials imply 4.00x while certificate implies 4.40x; material conflict crosses covenant threshold.
+SYN008_Q3_ICR,SYN008,2025-09-30,ICR,2.7273,BREACH,-0.2727,False,,,,Interest coverage below 3.00x.
+SYN009_20250331_FCCR,SYN009,2025-03-31,FCCR,1.3889,COMPLIANT,0.1389,False,,,,FCCR trend scenario.
+SYN009_20250630_FCCR,SYN009,2025-06-30,FCCR,1.3333,COMPLIANT,0.0833,False,,,,FCCR trend scenario.
+SYN009_20250930_FCCR,SYN009,2025-09-30,FCCR,1.2778,COMPLIANT_EARLY_WARNING,0.0278,True,2025-12-31,BREACH,,FCCR trend scenario.
+SYN009_20251231_FCCR,SYN009,2025-12-31,FCCR,1.1667,BREACH,-0.0833,False,,,,FCCR trend scenario.
+SYN010_Q2_FCCR,SYN010,2025-06-30,FCCR,1.1,NOT_TESTED,,False,,,,Availability 40% >= 25%; springing covenant does not apply.
+SYN010_Q3_FCCR,SYN010,2025-09-30,FCCR,1.1,BREACH,-0.05,False,,,,Availability 20% < 25%; covenant applies and 1.10x < 1.15x.
+SYN011_Q3_LEV,SYN011,2025-09-30,LEV,5.0,COMPLIANT,0.25,False,,,,Cash deduction capped at 25.
+SYN012_Q3_LEV,SYN012,2025-09-30,LEV,4.5714,COMPLIANT,0.4286,False,,,,Include acquired EBITDA and cap synergy addback at 3.

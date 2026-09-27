@@ -1,0 +1,23 @@
+borrower_id,period_end,total_debt,cash,reported_ebitda,eligible_addbacks,cash_interest,capex,cash_taxes,scheduled_principal,rent,revolver_availability_pct,acquired_ebitda,synergy_addback,financials_debt,compliance_certificate_debt,notes
+SYN001,2025-03-31,120,10,30,0,,,,,,,,,,,
+SYN001,2025-06-30,118,12,31,0,,,,,,,,,,,
+SYN001,2025-09-30,115,15,32,0,,,,,,,,,,,
+SYN002,2025-03-31,135,10,30,0,,,,,,,,,,,
+SYN002,2025-06-30,140,10,28,0,,,,,,,,,,,
+SYN002,2025-09-30,145,10,26,0,,,,,,,,,,,Early-warning quarter
+SYN002,2025-12-31,150,10,25,0,,,,,,,,,,,Subsequent breach
+SYN003,2025-06-30,126,8,26,0,,,,,,,,,,,
+SYN004,2025-09-30,135,5,25,0,,,,,,,,,,,Amendment effective before test date
+SYN005,2025-09-30,130,5,25,0,,,,,,,,,,,"Ratio would be 5.20x, but covenant is waived"
+SYN005,2025-12-31,125,5,25,0,,,,,,,,,,,Testing resumes; ratio 5.00x
+SYN006,2025-09-30,150,0,25,8,,,,,,,,,,,Addback cap = 20% of 25 = 5; covenant EBITDA = 30
+SYN007,2025-09-30,,5,25,0,,,,,,,,,100,110,Material debt conflict between source documents
+SYN008,2025-09-30,80,5,30,0,11,,,,,,,,,,
+SYN009,2025-03-31,,,32,0,8,5,2,4,6,,,,,,FCCR = 25/18 = 1.389x
+SYN009,2025-06-30,,,31,0,8,5,2,4,6,,,,,,FCCR = 24/18 = 1.333x
+SYN009,2025-09-30,,,30,0,8,5,2,4,6,,,,,,FCCR = 23/18 = 1.278x; early warning
+SYN009,2025-12-31,,,28,0,8,5,2,4,6,,,,,,FCCR = 21/18 = 1.167x; breach
+SYN010,2025-06-30,,,,0,,,,,,40,,,,,"FCCR 1.10x, but availability 40% means no test"
+SYN010,2025-09-30,,,,0,,,,,,20,,,,,FCCR 1.10x and availability 20% means covenant springs
+SYN011,2025-09-30,150,40,25,0,,,,,,,,,,,Cash deduction capped at 25
+SYN012,2025-09-30,160,5,26,0,,,,,,,6,4,,,"Covenant EBITDA = 26 + 6 + min(4,3) = 35"

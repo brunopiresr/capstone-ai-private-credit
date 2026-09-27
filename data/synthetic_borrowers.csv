@@ -1,0 +1,13 @@
+borrower_id,borrower_name,scenario,industry,description
+SYN001,Harbor Components,healthy,Industrial components,Stable performance and wide covenant headroom.
+SYN002,Northstar Packaging,declining_headroom,Packaging,Leverage deteriorates each quarter and breaches after an early-warning quarter.
+SYN003,Elmwood Services,outright_breach,Business services,Simple total-leverage breach.
+SYN004,Cedar Logistics,amendment_precedence,Logistics,Later amendment raises leverage threshold; stale threshold would create a false breach.
+SYN005,Summit Retail,covenant_holiday,Retail,"Leverage test waived for Q2-Q3, then resumes."
+SYN006,Beacon Software,addback_cap,Software,Eligible EBITDA addbacks exceed a contractual cap.
+SYN007,Riverside Foods,conflicting_data,Food manufacturing,Debt differs between financial package and compliance certificate; agent should abstain/flag conflict.
+SYN008,Atlas Manufacturing,coverage_breach,Manufacturing,Interest coverage ratio below minimum.
+SYN009,Juniper Healthcare,fccr_early_warning,Healthcare services,Fixed-charge coverage deteriorates from compliant to breach.
+SYN010,Orion Distribution,springing_covenant,Distribution,FCCR only tested when revolver availability falls below 25%.
+SYN011,Meadow Telecom,cash_netting_cap,Telecom,Net leverage cash deduction is contractually capped.
+SYN012,Pioneer Security,pro_forma_acquisition,Security services,Acquired EBITDA and capped synergies must be included in covenant EBITDA.

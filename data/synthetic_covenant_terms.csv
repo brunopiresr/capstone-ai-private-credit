@@ -1,0 +1,14 @@
+borrower_id,covenant_id,covenant_name,effective_start,effective_end,metric_formula,operator,threshold,unit,testing_condition,cash_netting_rule,addback_rule,waiver_or_special_rule
+SYN001,LEV,Maximum Net Leverage,2025-01-01,,"(total_debt - min(cash,20)) / adjusted_ebitda",<=,5.5,x,quarterly,cash netting capped at 20,none,none
+SYN002,LEV,Maximum Net Leverage,2025-01-01,,"(total_debt - min(cash,15)) / adjusted_ebitda",<=,5.5,x,quarterly,cash netting capped at 15,none,none
+SYN003,LEV,Maximum Total Leverage,2025-01-01,,total_debt / adjusted_ebitda,<=,4.5,x,quarterly,none,none,none
+SYN004,LEV,Maximum Total Leverage,2025-01-01,2025-06-30,total_debt / adjusted_ebitda,<=,4.75,x,quarterly,none,none,Original agreement
+SYN004,LEV,Maximum Total Leverage,2025-07-01,,total_debt / adjusted_ebitda,<=,5.5,x,quarterly,none,none,Amendment effective 2025-07-01 supersedes original threshold
+SYN005,LEV,Maximum Total Leverage,2025-01-01,,total_debt / adjusted_ebitda,<=,4.5,x,quarterly,none,none,Testing waived for quarters ending 2025-06-30 and 2025-09-30
+SYN006,LEV,Maximum Total Leverage,2025-01-01,,total_debt / covenant_ebitda,<=,5.25,x,quarterly,none,eligible_addbacks capped at 20% of reported EBITDA,none
+SYN007,LEV,Maximum Total Leverage,2025-01-01,,total_debt / adjusted_ebitda,<=,4.25,x,quarterly,none,none,"If material source conflict exists, do not issue compliance conclusion until reconciled"
+SYN008,ICR,Minimum Interest Coverage,2025-01-01,,adjusted_ebitda / cash_interest,>=,3.0,x,quarterly,none,none,none
+SYN009,FCCR,Minimum Fixed Charge Coverage,2025-01-01,,(adjusted_ebitda - capex - cash_taxes) / (cash_interest + scheduled_principal + rent),>=,1.25,x,quarterly,none,none,none
+SYN010,FCCR,Springing Minimum Fixed Charge Coverage,2025-01-01,,fccr,>=,1.15,x,only if revolver_availability_pct < 25,none,none,No test when availability is 25% or higher
+SYN011,LEV,Maximum Net Leverage,2025-01-01,,"(total_debt - min(cash,25)) / adjusted_ebitda",<=,5.25,x,quarterly,cash netting capped at 25,none,none
+SYN012,LEV,Maximum Pro Forma Total Leverage,2025-01-01,,"total_debt / (reported_ebitda + acquired_ebitda + min(synergy_addback,0.5*acquired_ebitda))",<=,5.0,x,quarterly,none,synergy addback capped at 50% of acquired EBITDA,Include acquired EBITDA on a pro forma basis

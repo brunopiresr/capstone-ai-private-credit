@@ -1,0 +1,9 @@
+file,field,type,description
+public_sec_gold_cases.csv,evidence_grade,A/B/C/EW,Strength/type of public ground truth.
+public_sec_gold_cases.csv,evaluation_mode,text,"Intended evaluation: extraction, amendment precedence, reconstruction, waiver handling, temporal EW, etc."
+public_sec_gold_cases.csv,headroom,numeric,For max covenants: threshold - actual. For min covenants: actual - threshold. Positive means compliant headroom.
+public_sec_gold_cases.csv,gold_status,category,"Expected benchmark conclusion; includes COMPLIANT, BREACH_WAIVED, NOT_TESTED, THRESHOLD_ONLY, etc."
+synthetic_covenant_terms.csv,metric_formula,text,Deterministic formula the calculator should implement.
+synthetic_covenant_terms.csv,testing_condition,text,Quarterly or springing condition controlling whether a covenant is tested.
+synthetic_gold_labels.csv,expected_evidence_issue,category,"Expected verifier flag, e.g. material conflicting debt values."
+evaluation_tasks.jsonl,gold,JSON object,Expected structured answer for automated scoring.
