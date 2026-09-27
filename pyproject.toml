@@ -1,9 +1,9 @@
 [project]
-name = "ai-buildcamp-project"
+name = "ai-credit-monitoring"
 version = "0.1.0"
-description = "My AI Engineering Buildcamp project"
+description = "Evidence-backed private-credit monitoring of net leverage covenant compliance, headroom, trends, and early risk signals."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "jupyter>=1.0.0",
     "minsearch>=0.0.5",

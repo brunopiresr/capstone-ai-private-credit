@@ -1,6 +1,4 @@
-# Your Project Name
-
-AI Credit Monitoring - Private Credit Covenant & Early-Warning Agent
+# AI Credit Monitoring - Private Credit Covenant & Early-Warning Agent
 
 ## The Problem
 
@@ -12,10 +10,12 @@ AI Credit Monitoring brings together loan agreements, borrower financial data, a
 
 ### Capstone Project Scope
 
-This project addresses on one part of the problem: monitoring a net leverage covenant and its trend
+This project focuses on one part of the problem: monitoring a net leverage covenant and its trend. The POC demonstrates a credit analyst’s quarterly review, including compliance, headroom, trend, citations, and a simple risk signal.
 
 
 ### Capstone System Interaction
+
+A credit analyst selects a borrower and triggers a quarterly assessment using loan documents, borrower financial data, and historical results. The analyst reviews the evidence-backed findings and investigates exceptions. Portfolio managers use the results to prioritize borrowers showing increased risk; operations teams track missing reports or data; and risk teams inspect the evidence and calculations behind each assessment.
 
 ## Setup
 
