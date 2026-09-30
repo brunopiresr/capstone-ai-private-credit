@@ -1,45 +1,73 @@
-# AI Credit Monitoring - Private Credit Covenant & Early-Warning Agent
+# AI Credit Monitoring POC
 
-## The Problem
+## Objective
 
-Private-credit teams must piece together loan terms, borrower financials, and historical performance to understand whether a borrower is meeting its obligations and whether its credit risk is increasing. Manual monitoring takes time and can delay the discovery of emerging problems. AI Credit Monitoring aims to produce evidence-backed assessments and early warnings, helping analysts focus on the borrowers that need attention while allowing firms to oversee larger portfolios efficiently
+Prove that legal and public evidence retrieval, structured financial data, deterministic calculations, and an agent workflow can support a traceable covenant and early-warning assessment for a credit analyst.
 
-## What It Does
+## Architecture
 
-AI Credit Monitoring brings together loan agreements, borrower financial data, and historical results to assess a borrower’s covenant compliance and identify signs of increasing credit risk. It calculates key measures, tracks changes over time, and produces an evidence-backed assessment that analysts can review, portfolio managers can use to prioritize attention, and risk teams can verify. 
+```text
+Credit Analyst Web App
+          │ trigger / inspect / ask
+          ▼
+Monitoring Orchestrator
+     ┌────┴────┐
+     ▼         ▼
+Legal and   Financial
+Public RAG  Repository
+     │         │
+     │         ▼
+     │   Deterministic
+     │   Calculations
+     └────┬────┘
+          ▼
+Assessment and Trend Synthesis
+          ▼
+Verification
+          ▼
+Traceable Analyst Result
+```
 
-### Capstone Project Scope
+See [docs/architecture.md](docs/architecture.md) for layer boundaries.
 
-This project focuses on one part of the problem: monitoring a net leverage covenant and its trend. The POC demonstrates a credit analyst’s quarterly review, including compliance, headroom, trend, citations, and a simple risk signal.
+## Scope
 
+The capstone POC focuses on covenant monitoring, deterministic financial calculations, headroom and trend analysis, legal and public evidence, verification, and analyst review. It does not make autonomous lending, investment, or escalation decisions. The longer-term platform may add portfolio prioritization, private-data integrations, specialized agents, and production workflows.
 
-### Capstone System Interaction
+## Development philosophy
 
-A credit analyst selects a borrower and triggers a quarterly assessment using loan documents, borrower financial data, and historical results. The analyst reviews the evidence-backed findings and investigates exceptions. Portfolio managers use the results to prioritize borrowers showing increased risk; operations teams track missing reports or data; and risk teams inspect the evidence and calculations behind each assessment.
+- Financial calculations and threshold comparisons stay deterministic.
+- Material claims must be backed by evidence with source provenance.
+- Missing information remains explicitly missing.
+- Layers are independently testable.
+- One orchestrator coordinates services; the analyst remains responsible for interpretation and decisions.
+
+## Current implementation status
+
+Status: Project scaffold plus an analyst-facing Streamlit cockpit. The portfolio view filters and prioritizes pre-labeled synthetic borrower cases, then opens a borrower-specific assessment. The assistant uses fixed response templates. Live retrieval, financial calculation services, model calls, and verification are not connected. Existing notebooks and data assets are retained as capstone research materials.
 
 ## Setup
 
-1. Install uv if you don't have it yet: https://docs.astral.sh/uv/getting-started/installation/
+Requires Python 3.14 and [uv](https://docs.astral.sh/uv/).
 
-2. Clone this repository (or download the zip and extract it).
+```bash
+uv sync --group dev
+uv run pytest
+uv run ruff check .
+uv run streamlit run src/credit_monitoring/web/app.py
+```
 
-3. Create a `.env` file from the template and add your API key:
+The scaffold import test and demo app do not need credentials or external services. Configuration names are listed in `.env.example` for future use.
 
-       cp .env.example .env
+## Repository map
 
-4. Install dependencies:
+- `src/credit_monitoring/` — package boundaries for the planned application layers
+- `tests/` — unit, integration, evaluation, and fixture locations
+- `data/` — existing capstone materials plus raw, processed, and benchmark locations
+- `docs/` — architecture, scope, sources, evaluation, and decision notes
+- `notebooks/` — existing exploratory setup and retrieval notebooks
+- `scripts/` — future command entry points
 
-       uv sync
+## Next implementation step
 
-5. Start Jupyter:
-
-       uv run jupyter notebook
-
-## Notebooks
-
-- `notebooks/01-setup.ipynb` - smoke test that confirms your environment works
-- `notebooks/02-rag.ipynb` - a minimal RAG baseline you can adapt to your own data
-
-## Data
-
-Put your project data in the `data/` folder. See `notebooks/02-rag.ipynb` for how to load it.
+Finalize the typed domain schemas and contracts before implementing ingestion or retrieval.

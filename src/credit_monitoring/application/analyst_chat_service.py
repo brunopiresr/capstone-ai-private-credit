@@ -1,0 +1,3 @@
+"""Optional grounded analyst chat service interface belongs here."""
+
+# TODO: Define this boundary in a later implementation step.
