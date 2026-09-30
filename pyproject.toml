@@ -5,6 +5,7 @@ description = "Evidence-backed private-credit monitoring of net leverage covenan
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "beautifulsoup4>=4.14.0",
     "gitsource>=0.0.5",
     "jupyter>=1.0.0",
     "markitdown>=0.1.0",
