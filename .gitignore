@@ -10,3 +10,5 @@ build/
 dist/
 *.egg-info/
 /data/sec_documents/*
+/data/processed/*.sqlite3
+/data/processed/*.sqlite3-*

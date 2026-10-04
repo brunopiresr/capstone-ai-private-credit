@@ -44,7 +44,7 @@ The capstone POC focuses on covenant monitoring, deterministic financial calcula
 
 ## Current implementation status
 
-Status: Project scaffold plus an analyst-facing Streamlit cockpit. The portfolio view filters and prioritizes pre-labeled synthetic borrower cases, then opens a borrower-specific assessment. The assistant uses fixed response templates. Live retrieval, financial calculation services, model calls, and verification are not connected. Existing notebooks and data assets are retained as capstone research materials.
+Status: Project scaffold plus an analyst-facing Streamlit cockpit and a CSV-to-SQLite financial loader. The portfolio view filters and prioritizes pre-labeled synthetic borrower cases, then opens a borrower-specific assessment. The assistant uses fixed response templates. The SQLite repository is available independently; the cockpit, live retrieval, financial calculation services, model calls, and verification are not connected to it. Existing notebooks and data assets are retained as capstone research materials.
 
 ## Setup
 
@@ -58,6 +58,65 @@ uv run streamlit run src/credit_monitoring/web/app.py
 ```
 
 The scaffold import test and demo app do not need credentials or external services. Configuration names are listed in `.env.example` for future use.
+
+## Load quarterly financials
+
+The loader runs entirely in `src` and uses Python's built-in SQLite engine:
+
+```bash
+uv run python -m credit_monitoring.ingestion.loaders.financials \
+  --csv data/synthetic_quarterly_financials.csv \
+  --db data/processed/financials.sqlite3
+```
+
+Use the same entry point from a notebook, with paths relative to the repository root:
+
+```python
+from pathlib import Path
+
+from credit_monitoring.financials.repositories import FinancialRepository
+from credit_monitoring.ingestion.loaders.financials import load_financials
+
+# Works when the notebook kernel starts in the root or in notebooks/.
+root = Path.cwd()
+if root.name == "notebooks":
+    root = root.parent
+database_path = root / "data/processed/financials.sqlite3"
+result = load_financials(root / "data/synthetic_quarterly_financials.csv", database_path)
+repository = FinancialRepository(database_path)
+quarter = repository.get_quarter("SYN001", "2025-09-30")
+history = repository.get_history("SYN002", as_of="2025-09-30")
+facts = repository.get_facts("SYN007", "2025-09-30")
+```
+
+The `quarterly_financials` table stores one current snapshot per borrower and period,
+including source path, CSV line number, notes, and load time. Reloading a matching
+borrower/period replaces that snapshot; it does not retain restatement history.
+All rows are validated before writing and upserted in one transaction. CSVs require
+`borrower_id`, an ISO `period_end`, and at least one recognized metric column;
+omitted metrics and blank values become SQL `NULL`, while zero remains zero.
+
+The `financial_facts` view exposes one row per metric with provenance and
+`provided`/`missing` status, including separate financial-package and certificate
+debt figures. Monetary values use SQLite `REAL` for this POC; currency and scale
+remain unspecified because the source does not declare them. Revolver availability
+uses percentage points. The period cutoff filters reporting dates, not source
+availability dates. Source notes can contain benchmark answers; exclude them from
+agent prompts. Calculated ratios and gold labels are not imported.
+
+For direct SQL or pandas queries:
+
+```python
+import sqlite3
+import pandas as pd
+
+with sqlite3.connect(database_path) as connection:
+    frame = pd.read_sql_query(
+        "SELECT * FROM financial_facts WHERE borrower_id = ? AND period_end <= ?",
+        connection,
+        params=("SYN002", "2025-09-30"),
+    )
+```
 
 ## Repository map
 
