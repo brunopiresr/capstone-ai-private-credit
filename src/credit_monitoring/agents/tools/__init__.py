@@ -1,1 +1,1 @@
-"""Scaffold package boundary; implementation is planned for a later step."""
+"""Allowlisted document research, covenant calculation and risk prediction tools."""

@@ -1,8 +1,10 @@
 # Quarterly assessment and ML service
 
 The assessment service resolves existing terms for each reporting period, calculates covenant
-metrics, and stores the results before building optional risk features. It works independently of
-the document agent and mocked Streamlit app. Built-in models include the integration stub and a
+metrics, and stores the results before building optional risk features. The
+`CreditAssessmentAgent` can invoke it through calculation and prediction tools;
+the mocked Streamlit app remains separate. See [agent configuration](document_processing.md#calculation-and-prediction-tools).
+Built-in models include the integration stub and a
 Logistic Regression adapter for locally trained synthetic artifacts. ML remains disabled by default.
 The stub returns unknown risk and null probabilities.
 

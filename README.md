@@ -44,12 +44,12 @@ The capstone POC focuses on covenant monitoring, deterministic financial calcula
 
 ## Current implementation status
 
-Status: Analyst-facing Streamlit demo, CSV-to-SQLite financial loading, complete SEC document extraction with SQLite reuse, and a RAG agent with document tools. The Streamlit cockpit still uses synthetic cases and fixed assistant responses; document processing and the agent are available through application services and the RAG notebook. Automatic post-extraction verification is temporarily disabled, with its implementation retained.
+Status: Analyst-facing Streamlit demo, CSV-to-SQLite financial loading, complete SEC document extraction with SQLite reuse, and a `CreditAssessmentAgent` with document tools plus optional borrower-scoped financial, calculation and ML prediction tools. The Streamlit cockpit still uses synthetic cases and fixed assistant responses; document processing and the agent are available through application services and the RAG notebook. Automatic post-extraction verification is temporarily disabled, with its implementation retained. Structured assessment verification remains active.
 
 See [document processing and agent usage](docs/document_processing.md) for the service
 interfaces, cache behavior, tool loop, and verification migration notes.
 
-The monitoring agent uses the OpenAI Agents SDK while retaining the document
+The credit assessment agent uses the OpenAI Agents SDK while retaining the document
 service and evidence trace. Use `agent.ask()` in synchronous application code or
 `await agent.ask_async()` in notebooks and asynchronous applications.
 
@@ -174,4 +174,4 @@ for the required input paths. Evaluation measures performance on the simulation.
 
 ## Next implementation step
 
-Connect financial calculation tools and the document-backed agent to the analyst UI.
+Connect the credit assessment agent and its document, calculation and prediction tools to the analyst UI.

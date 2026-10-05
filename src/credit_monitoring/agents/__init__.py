@@ -1,1 +1,1 @@
-"""Agent orchestration, prompts, and document tools."""
+"""Credit assessment orchestration, prompts, document and financial tools."""

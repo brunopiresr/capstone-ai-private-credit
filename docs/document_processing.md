@@ -1,4 +1,4 @@
-# Complete document processing and the monitoring agent
+# Complete document processing and the credit assessment agent
 
 The application invokes a synchronous service. It reads complete filing Markdown,
 extracts supported facts with the existing LLM, stores them in SQLite, and returns
@@ -10,7 +10,7 @@ flowchart LR
     D[Catalog document] --> P[Complete Markdown extraction]
     P --> DB[SQLite facts and section cache]
     D --> I[Local Markdown search index]
-    Q[Analyst question] --> A[Monitoring agent]
+    Q[Analyst question] --> A[Credit assessment agent]
     A --> T[Read facts / search passages / process document]
     DB --> T
     I --> T
@@ -24,7 +24,7 @@ flowchart LR
 from pathlib import Path
 from openai import OpenAI
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.agents.monitoring import MonitoringAgent
+from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.observability.logging import configure_logging
 
 # Show timestamped progress in the console or notebook cell output.
@@ -55,7 +55,7 @@ failures = [(item.document_id, item.error) for item in outcomes if item.status =
 documents = service.list_document_extractions(ticker="FMC")
 passages = service.search_evidence("interest coverage", ticker="FMC")
 
-agent = MonitoringAgent(client=service.client, service=service)
+agent = CreditAssessmentAgent(client=service.client, service=service)
 answer = agent.ask("Show FMC's complete covenant schedules with filing evidence.", ticker="FMC")
 print(answer.answer)
 print(answer.sources)
@@ -84,7 +84,7 @@ answer = await agent.ask_async("Show FMC's covenant schedules with filing eviden
 
 `ask()` uses a synchronous entry point and raises a usage error when an event loop
 is already running. The agent accepts the existing synchronous `OpenAI` client;
-model requests and document tools run in worker threads as needed. For asynchronous
+model requests and tools run in worker threads as needed. For asynchronous
 applications, an `AsyncOpenAI` client can instead be supplied to the agent and reused
 within the application's event loop. The extraction service still uses its own
 synchronous client.
@@ -138,11 +138,13 @@ question; the agent chooses tools, not which sections ingestion should read.
 ## Agent behavior
 
 The loop uses the OpenAI Agents SDK (`openai-agents`, imported as `agents`).
-`MonitoringAgent` configures an SDK `Agent` and invokes `Runner.run()` using the
-Responses model adapter and four allowlisted function tools:
+`CreditAssessmentAgent` configures an SDK `Agent` and invokes `Runner.run()` using the
+Responses model adapter and four document tools:
 `list_documents`, `get_document_extraction`, `search_evidence`, and `process_document`.
+With an injected `AssessmentService` and an explicit `borrower_id` on the question,
+it also exposes `get_financials`, `assess_covenants`, and `predict_risk`.
 The SDK manages conversation history and tool continuation. The application retains
-argument validation, issuer scope, document processing, source collection, and the
+argument validation, issuer/borrower scope, document processing, assessments, source collection, and the
 public `AgentAnswer` contract. Tool execution is sequential even if a response
 contains several calls. Each question has separate context, sources, and trace.
 See the [official OpenAI Agents SDK quickstart](https://developers.openai.com/api/docs/guides/agents/quickstart?lang=python).
@@ -165,7 +167,7 @@ is retained only as needed for model continuation and is excluded from public ou
 a semantic verification of every claim in the generated answer.
 
 SDK dashboard tracing is disabled by default. Set `tracing_enabled=True` on
-`MonitoringAgent` to enable tracing with sensitive input/output data excluded.
+`CreditAssessmentAgent` to enable tracing with sensitive input/output data excluded.
 The application-owned `tool_trace` remains available with either setting. The
 current agent starts a fresh conversation per question; persistent sessions,
 streaming, and specialist handoffs are separate extensions.
@@ -185,10 +187,75 @@ The LLM's V2 fact schema and required evidence are unchanged. Pydantic parsing a
 SDK error handling remain active. Prompt versions are now extraction/batch `v2.1`;
 the old `v2.0` prompt snapshot is retained alongside the new snapshot.
 
-The agent reports source-supported facts and gaps. Financial calculations, legal
-applicability, inferred compliance, automatic post-extraction verification, and
-Streamlit integration remain outside this implementation. Mocked tests establish
+The agent reports source-supported facts and gaps. Calculations and configured-term
+applicability are delegated to the assessment service; the agent never infers them
+from filing prose. Automatic post-extraction verification and Streamlit integration
+remain outside this implementation. Mocked tests establish
 pipeline behavior, not live LLM completeness or resistance to injected instructions.
+
+## Calculation and prediction tools
+
+The renamed class lives in `credit_monitoring.agents.credit_assessment`; update
+imports formerly using `credit_monitoring.agents.monitoring.MonitoringAgent`.
+Document-only construction continues to work. To enable assessments, inject the
+existing service; its repositories, covenant reader, calculation rules and model
+configuration stay application-owned:
+
+```python
+from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
+from credit_monitoring.covenants.structured import SyntheticCovenantReader
+from credit_monitoring.financials.repositories import FinancialRepository
+
+assessment_service = AssessmentService(
+    financial_repository=FinancialRepository(Path("data/processed/financials.sqlite3")),
+    covenant_reader=SyntheticCovenantReader(Path("data/synthetic_covenant_terms.csv")),
+    settings=AssessmentSettings(
+        analytics_database=Path("data/processed/agent_analytics.sqlite3"),
+        risk_model=RiskModelConfig(type="stub"),
+    ),
+)
+agent = CreditAssessmentAgent(
+    client=service.client, service=service, assessment_service=assessment_service,
+)
+answer = agent.ask(
+    "Assess covenant compliance and headroom for 2025-09-30, using an information "
+    "cutoff of 2025-09-30. Also request a next-quarter breach prediction and explain "
+    "whether the configured model supplies one.",
+    borrower_id="SYN002",
+)
+```
+
+Load the financial CSV first as described in the README. For a trained forecast,
+replace the stub configuration with the explicitly selected Logistic Regression
+artifact described in [ML usage](ml_early_warning.md#use-the-trained-model-in-assessments).
+The default stub returns no probability. Trained baseline results describe a model
+trained on simulated histories.
+
+All three tools accept only ISO `period_end` and `information_cutoff` dates. Borrower
+scope comes from `ask(..., borrower_id=...)`, not model arguments. If a question also
+supplies `ticker`, the caller explicitly identifies its relationship to the borrower;
+there is no automatic mapping between the synthetic borrowers and real SEC issuers.
+For document-backed calculations, configure `ExtractionCovenantReader` with explicit
+bindings and established `CalculationRules` as described in [assessment usage](ml_early_warning.md).
+Without borrower scope only the document tools are registered. The agent requests
+missing dates rather than choosing a reporting period or cutoff itself.
+
+`get_financials` returns sanitized current metrics and bounded history with source
+file/row provenance; notes and benchmark labels are excluded. `assess_covenants`
+always disables ML. `predict_risk` runs the assessment service with ML enabled,
+ensuring predictions refer to verified calculations and a persisted feature snapshot.
+Each assessment call creates a new run, including when predictions follow a prior
+calculation call. Model failures preserve the calculation results and appear as
+explicit ML status and issues. Missing terms, unresolved formulas, waived tests and
+missing inputs retain their existing abstention/status behavior.
+
+The public `sources` collection retains filing citations, including those returned
+by document-backed assessments. Financial CSV provenance, applied term evidence,
+calculation IDs, feature snapshots and model metadata are available in `tool_trace`
+outcomes and used in the final explanation. Structured assessment verification is
+active; automatic document-extraction verification remains disabled. Neither proves
+the semantic correctness of arbitrary generated prose. The UI remains a mock.
 
 Before the SDK migration on October 5, 2026, all 29 existing local filings
 partitioned losslessly into 107 sections with the default budget.

@@ -4,7 +4,7 @@
 - `batch.py`: separate grouping directive for one-call all-company extraction.
 - `narrative.py`: source-stated monitoring notes without covenant calculations.
 - `assembly.py`: JSON envelopes shared by both workflows.
-- `monitoring.py`: the analyst agent's tool selection, evidence, and answer rules.
+- `credit_assessment.py`: the analyst agent's tool selection, evidence, and answer rules.
 
 The extraction prompt changes only through a separately reviewed version update.
 The extraction/batch prompts are versioned `v2.1`; full-document extraction must

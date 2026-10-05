@@ -3,7 +3,8 @@
 The package separates analyst interaction, orchestration, retrieval, structured financial data, deterministic calculation, assessment synthesis, and verification. The current analyst app is a mock-only demonstration that reads pre-labeled synthetic benchmark cases; it does not connect to a model, live retrieval, calculation workflow, or verifier.
 
 The application-service layer now includes complete-document extraction with SQLite
-caching and a monitoring agent using the OpenAI Agents SDK with document tools.
+caching and a `CreditAssessmentAgent` using the OpenAI Agents SDK with document,
+financial, calculation and prediction tools when the assessment service is configured.
 These are demonstrated in the RAG notebook and remain independent of the mocked
 web app. Automatic post-extraction
 verification is temporarily disabled; the verifier code remains available. See
@@ -56,7 +57,9 @@ The separate `AssessmentService` consumes existing financial rows and structured
 It resolves terms for each reporting period, runs deterministic calculations, and appends historical
 results before optional feature/model execution. `ExtractionCovenantReader` uses existing stored
 extractions through explicit borrower/agreement/covenant bindings; there is no new SEC ingestion
-pipeline. The mocked web app and document-question agent remain separate.
+pipeline. The mocked web app remains separate. The credit assessment agent can invoke
+this pipeline through borrower-scoped calculation and prediction tools; its LLM does
+not execute formulas or supply model probabilities itself.
 
 ```text
 Existing terms → Period-specific resolution ──┐
