@@ -165,6 +165,11 @@ for the required input paths. Evaluation measures performance on the simulation.
 
 ## Repository map
 
+Offline [Evidently LLM judges](docs/llm_judges.md) evaluate captured extraction,
+retrieval and answer outputs. Run `python scripts/run_evaluation.py --help` for the
+snapshot runner. The judges use an isolated Python 3.13 environment and do not
+change the monitoring workflow.
+
 - `src/credit_monitoring/` — package boundaries for the planned application layers
 - `tests/` — unit, integration, evaluation, and fixture locations
 - `data/` — existing capstone materials plus raw, processed, and benchmark locations

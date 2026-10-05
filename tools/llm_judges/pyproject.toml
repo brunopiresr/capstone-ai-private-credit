@@ -1,0 +1,38 @@
+[project]
+name = "credit-monitoring-judges"
+version = "0.1.0"
+description = "Offline Evidently LLM judges for captured credit-monitoring outputs."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "evidently==0.7.23",
+    "openai>=2.30.0",
+    "pandas>=2.2,<3",
+    "pydantic>=2.12.5,<3",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+credit-judges = "credit_monitoring_judges.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3.0", "ruff>=0.9.0"]
+
+[build-system]
+requires = ["hatchling>=1.26.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/credit_monitoring_judges"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["credit_monitoring_judges"]

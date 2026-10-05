@@ -1,3 +1,9 @@
 # Evaluation
 
-This scaffold reserves locations for retrieval, extraction, and end-to-end evaluation. Future evaluation should cover retrieval quality, covenant extraction, calculation correctness, status classification, evidence completeness, unsupported claims, and missing data. No evaluation logic is implemented yet.
+Offline extraction gold comparisons and controlled regression tests are available under
+`tests/evaluation/extraction/`. They compare stored observations and do not call a model.
+
+Three offline LLM judges now evaluate extraction, retrieval, and answer snapshots using
+Evidently. See [LLM judges](llm_judges.md) for their rubrics, data contracts, isolated
+environment, capture adapters, run commands, report artifacts, and limitations.
+Deterministic calculation and structured verification checks remain separate.

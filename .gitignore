@@ -14,3 +14,4 @@ dist/
 /data/processed/*.sqlite3-*
 /data/synthetic_training/
 /data/models/
+/data/processed/judges*/
