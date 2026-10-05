@@ -1,5 +1,6 @@
 """Offline extraction helper tests with temporary files and injected converters."""
 
+import logging
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -65,7 +66,8 @@ def test_download_uses_caller_identity_without_real_http():
     )
 
 
-def test_conversion_reuses_versioned_markdown_and_reconverts_stale_cache(tmp_path):
+def test_conversion_reuses_versioned_markdown_and_reconverts_stale_cache(tmp_path, caplog):
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
     html_dir, markdown_dir = tmp_path / "html", tmp_path / "markdown"
     html_dir.mkdir()
     markdown_dir.mkdir()
@@ -75,9 +77,45 @@ def test_conversion_reuses_versioned_markdown_and_reconverts_stale_cache(tmp_pat
     converter.convert_local.return_value = SimpleNamespace(markdown="synthetic covenant markdown")
     args = dict(html_dir=html_dir, markdown_dir=markdown_dir, user_agent="", converter=converter)
     assert load_markdown(record, **args) == "synthetic covenant markdown"
+    assert "HTML cache hit document_id=SYN" in caplog.text
+    assert "Clean SEC HTML complete document_id=SYN elapsed_s=" in caplog.text
+    assert "Convert HTML to Markdown complete document_id=SYN elapsed_s=" in caplog.text
+    assert "Save Markdown cache complete document_id=SYN elapsed_s=" in caplog.text
+    assert "synthetic covenant markdown" not in caplog.text
     assert (markdown_dir / ".SYN.conversion-version").read_text() == CONVERSION_VERSION
+    caplog.clear()
     load_markdown(record, **args)
     assert converter.convert_local.call_count == 1
+    assert "Markdown cache hit document_id=SYN" in caplog.text
+    assert "Convert HTML to Markdown started" not in caplog.text
     (markdown_dir / ".SYN.conversion-version").write_text("stale")
     load_markdown(record, **args)
     assert converter.convert_local.call_count == 2
+
+
+def test_download_and_conversion_log_before_blocking_work(tmp_path, monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
+
+    def download(*args, **kwargs):
+        assert caplog.messages[-1] == "Download SEC HTML started document_id=SYN"
+        return "<p>synthetic source</p>"
+
+    def convert(*args):
+        assert caplog.messages[-1] == "Convert HTML to Markdown started document_id=SYN"
+        return SimpleNamespace(markdown="synthetic markdown")
+
+    monkeypatch.setattr(
+        "credit_monitoring.ingestion.converters.sec_markdown.download_sec_filing", download
+    )
+    monkeypatch.setattr(
+        "credit_monitoring.ingestion.converters.sec_markdown.throttle_download", lambda: None
+    )
+    markdown = load_markdown(
+        {"document_id": "SYN", "source_url": "https://example.invalid/fixture"},
+        html_dir=tmp_path / "html",
+        markdown_dir=tmp_path / "markdown",
+        user_agent="",
+        converter=SimpleNamespace(convert_local=convert),
+    )
+    assert markdown == "synthetic markdown"
+    assert "Download SEC HTML complete document_id=SYN elapsed_s=" in caplog.text

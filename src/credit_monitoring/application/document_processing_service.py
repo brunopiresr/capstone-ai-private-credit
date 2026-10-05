@@ -2,7 +2,9 @@
 
 import hashlib
 import json
+import logging
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 from credit_monitoring.agents.prompts.extraction import EXTRACTION_PROMPT_VERSION
@@ -23,7 +25,10 @@ from credit_monitoring.ingestion.loaders.sec import (
     full_document_record,
     load_catalog,
 )
+from credit_monitoring.observability.logging import log_step
 from credit_monitoring.retrieval.lexical.sec import build_index, search
+
+logger = logging.getLogger(__name__)
 
 DOCUMENT_QUERY = (
     "Extract every relevant explicitly supported fact from this document section and context, "
@@ -170,52 +175,159 @@ class DocumentProcessingService:
         ]
 
     def process_document(self, document_id: str, force: bool = False) -> DocumentExtraction:
-        record = self.catalog_record(document_id)
-        text = load_markdown(
-            record,
-            html_dir=self.html_dir,
-            markdown_dir=self.markdown_dir,
-            user_agent=self.user_agent,
-            converter=self.converter,
-        )
-        document = full_document_record(record, text, markdown_dir=self.markdown_dir)
-        key = self._key(document)
-        existing = self.get_document_extraction(document_id)
-        if not force and existing.status == "complete" and existing.cache_key == key:
-            return existing
-        sections = split_document(text, max_chars=self.max_chars)
-        metadata = {k: v for k, v in document.items() if k != "content"}
-        self.repository.begin(
-            document_id,
-            key,
-            metadata=metadata,
-            configuration=self.configuration,
-            total_sections=len(sections),
-            force=force,
-        )
-        saved = self.repository.sections(document_id, key)
-        parts = []
-        try:
-            for index, section in enumerate(sections):
-                result = saved.get(index)
-                if result is None:
-                    result = extract_covenants(
-                        DOCUMENT_QUERY,
-                        section.records(document),
-                        client=self.client,
-                        model=self.model,
-                    )
-                    self.repository.save_section(document_id, key, index, result)
-                parts.append(result.extraction)
-            result = ExtractionResult(
-                prompt_version=EXTRACTION_PROMPT_VERSION,
-                extraction=combine_extractions(parts),
+        with log_step(logger, "Process document", document_id=document_id, force=force):
+            record = self.catalog_record(document_id)
+            with log_step(logger, "Load Markdown", document_id=document_id):
+                text = load_markdown(
+                    record,
+                    html_dir=self.html_dir,
+                    markdown_dir=self.markdown_dir,
+                    user_agent=self.user_agent,
+                    converter=self.converter,
+                )
+            with log_step(logger, "Check extraction cache", document_id=document_id):
+                document = full_document_record(record, text, markdown_dir=self.markdown_dir)
+                key = self._key(document)
+                existing = self.get_document_extraction(document_id)
+            if not force and existing.status == "complete" and existing.cache_key == key:
+                logger.info("Extraction cache hit document_id=%s", document_id)
+                return existing
+            logger.info(
+                "Extraction required document_id=%s cache_status=%s force=%s",
+                document_id,
+                existing.status,
+                force,
             )
-            self.repository.finish(document_id, key, result)
-        except Exception as exc:
-            self.repository.fail(document_id, key, f"{type(exc).__name__}: {exc}")
-            raise
-        return self.get_document_extraction(document_id).model_copy(update={"cache_hit": False})
+            with log_step(
+                logger,
+                "Split document",
+                document_id=document_id,
+                chars=len(text),
+                max_chars=self.max_chars,
+            ):
+                sections = split_document(text, max_chars=self.max_chars)
+            metadata = {k: v for k, v in document.items() if k != "content"}
+            with log_step(logger, "Prepare section cache", document_id=document_id):
+                self.repository.begin(
+                    document_id,
+                    key,
+                    metadata=metadata,
+                    configuration=self.configuration,
+                    total_sections=len(sections),
+                    force=force,
+                )
+                saved = self.repository.sections(document_id, key)
+            logger.info(
+                "Sections ready document_id=%s total_sections=%d cached_sections=%d model=%s",
+                document_id,
+                len(sections),
+                len(saved),
+                self.model,
+            )
+            parts = []
+            try:
+                for index, section in enumerate(sections):
+                    progress = f"{index + 1}/{len(sections)}"
+                    result = saved.get(index)
+                    if result is None:
+                        with log_step(
+                            logger,
+                            "Extract section",
+                            document_id=document_id,
+                            section=progress,
+                            model=self.model,
+                            chars=section.end
+                            - section.start
+                            + sum(b - a for a, b in section.context),
+                        ):
+                            result = extract_covenants(
+                                DOCUMENT_QUERY,
+                                section.records(document),
+                                client=self.client,
+                                model=self.model,
+                            )
+                        with log_step(
+                            logger, "Save section", document_id=document_id, section=progress
+                        ):
+                            self.repository.save_section(document_id, key, index, result)
+                    else:
+                        logger.info(
+                            "Section cache hit document_id=%s section=%s", document_id, progress
+                        )
+                    parts.append(result.extraction)
+                with log_step(logger, "Combine extractions", document_id=document_id):
+                    result = ExtractionResult(
+                        prompt_version=EXTRACTION_PROMPT_VERSION,
+                        extraction=combine_extractions(parts),
+                    )
+                with log_step(logger, "Save document result", document_id=document_id):
+                    self.repository.finish(document_id, key, result)
+            except Exception as exc:
+                with log_step(logger, "Save document failure", document_id=document_id):
+                    self.repository.fail(document_id, key, f"{type(exc).__name__}: {exc}")
+                raise
+            return self.get_document_extraction(document_id).model_copy(update={"cache_hit": False})
+
+    def process_all_documents(
+        self, ticker: str | None = None, *, force: bool = False
+    ) -> list[DocumentExtraction]:
+        """Process catalog documents sequentially, retaining per-document failures.
+
+        Complete current results are reused unless force=True. A ticker limits
+        processing to that issuer. Catalog validation errors propagate before
+        any document is processed; individual errors return failed outcomes so
+        subsequent documents are still attempted.
+        """
+        with log_step(logger, "Process all documents", ticker=ticker, force=force):
+            with log_step(logger, "Load and validate catalog"):
+                catalog = self._catalog()
+            selected = [
+                (document_id, record)
+                for document_id, record in catalog.items()
+                if ticker is None or record.get("ticker") == ticker
+            ]
+            total = len(selected)
+            logger.info("Batch ready total_documents=%d ticker=%s force=%s", total, ticker, force)
+            outcomes = []
+            for index, (document_id, record) in enumerate(selected, start=1):
+                started = perf_counter()
+                logger.info(
+                    "Batch document started document=%d/%d document_id=%s ticker=%s",
+                    index,
+                    total,
+                    document_id,
+                    record.get("ticker"),
+                )
+                try:
+                    outcome = self.process_document(document_id, force=force)
+                except Exception as exc:
+                    outcome = DocumentExtraction(
+                        document_id=document_id,
+                        citation=filing_citation(record),
+                        ticker=record.get("ticker") or None,
+                        status="failed",
+                        error=f"{type(exc).__name__}: {exc}",
+                    )
+                outcomes.append(outcome)
+                logger.log(
+                    logging.ERROR if outcome.status == "failed" else logging.INFO,
+                    "Batch document finished document=%d/%d document_id=%s status=%s "
+                    "cache_hit=%s elapsed_s=%.2f",
+                    index,
+                    total,
+                    document_id,
+                    outcome.status,
+                    outcome.cache_hit,
+                    perf_counter() - started,
+                )
+            logger.info(
+                "Batch summary total_documents=%d completed=%d failed=%d cache_hits=%d",
+                total,
+                sum(item.status == "complete" for item in outcomes),
+                sum(item.status == "failed" for item in outcomes),
+                sum(item.cache_hit for item in outcomes),
+            )
+            return outcomes
 
     def search_evidence(self, query: str, ticker: str | None = None) -> list[dict]:
         """Search complete local Markdown chunks; return passages, not a generated answer."""

@@ -2,6 +2,7 @@
 
 import csv
 import json
+import logging
 import re
 from datetime import datetime
 from pathlib import Path
@@ -19,8 +20,157 @@ from credit_monitoring.domain import (
     ThresholdScheduleEntry,
 )
 from credit_monitoring.ingestion.chunking.sections import SectionTooLargeError, split_document
+from credit_monitoring.ingestion.converters.sec_markdown import CONVERSION_VERSION, load_markdown
 
 FIXTURE = Path(__file__).parents[2] / "fixtures/sec_covenant_v2/fmc_amendment_schedule.md"
+
+
+@pytest.fixture
+def multi_document_service(document_service_factory, sdk_response):
+    service = document_service_factory()
+    original = service.catalog_record("SYN")
+    rows = [
+        original,
+        {**original, "document_id": "SECOND", "ticker": "OTHER"},
+        {**original, "document_id": "THIRD"},
+    ]
+    with service.source_file.open("w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=list(original))
+        writer.writeheader()
+        writer.writerows(rows)
+    for row in rows[1:]:
+        document_id = row["document_id"]
+        (service.markdown_dir / f"{document_id}.md").write_text("Maximum leverage ratio 4.00x.")
+        (service.markdown_dir / f".{document_id}.conversion-version").write_text(CONVERSION_VERSION)
+    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    return service
+
+
+def test_process_all_documents_preserves_order_cache_and_force(multi_document_service):
+    service = multi_document_service
+    first = service.process_all_documents()
+    assert [outcome.document_id for outcome in first] == ["SYN", "SECOND", "THIRD"]
+    assert all(outcome.status == "complete" and not outcome.cache_hit for outcome in first)
+    assert service.client.responses.parse.call_count == 3
+    cached = service.process_all_documents()
+    assert all(outcome.cache_hit and outcome.result is not None for outcome in cached)
+    assert service.client.responses.parse.call_count == 3
+    forced = service.process_all_documents(force=True)
+    assert all(outcome.status == "complete" and not outcome.cache_hit for outcome in forced)
+    assert service.client.responses.parse.call_count == 6
+
+
+def test_batch_logs_live_progress_timings_and_cache_reuse(
+    multi_document_service, sdk_response, caplog
+):
+    service = multi_document_service
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
+
+    def respond(**kwargs):
+        # The caller can see the active section before the blocking request returns.
+        assert caplog.records[-1].getMessage().startswith("Extract section started")
+        return sdk_response(CovenantExtraction())
+
+    service.client.responses.parse.side_effect = respond
+    service.process_all_documents(ticker="SYN")
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("document=1/2 document_id=SYN" in message for message in messages)
+    assert any("document=2/2 document_id=THIRD" in message for message in messages)
+    assert not any("document_id=SECOND" in message for message in messages)
+    for action in (
+        "Load Markdown",
+        "Check extraction cache",
+        "Split document",
+        "Prepare section cache",
+        "Extract section",
+        "Save section",
+        "Combine extractions",
+        "Save document result",
+    ):
+        assert any(message.startswith(f"{action} started") for message in messages)
+        assert any(
+            message.startswith(f"{action} complete") and "elapsed_s=" in message
+            for message in messages
+        )
+    assert "section=1/1 model=gpt-4o-mini chars=" in caplog.text
+    assert "Batch summary total_documents=2 completed=2 failed=0 cache_hits=0" in caplog.text
+    assert "Maximum leverage" not in caplog.text
+    assert "retrieved_records" not in caplog.text
+
+    caplog.clear()
+    service.process_all_documents(ticker="SYN")
+    assert "Extraction cache hit document_id=SYN" in caplog.text
+    assert "Extract section started" not in caplog.text
+    assert "Batch summary total_documents=2 completed=2 failed=0 cache_hits=2" in caplog.text
+    assert service.client.responses.parse.call_count == 2
+
+
+def test_process_all_documents_filters_ticker(multi_document_service):
+    service = multi_document_service
+    outcomes = service.process_all_documents(ticker="SYN")
+    assert [outcome.document_id for outcome in outcomes] == ["SYN", "THIRD"]
+    assert service.get_document_extraction("SECOND").status == "missing"
+    assert service.client.responses.parse.call_count == 2
+    assert service.process_all_documents(ticker="UNKNOWN") == []
+    assert service.client.responses.parse.call_count == 2
+
+
+@pytest.mark.parametrize("failure_stage", ["source", "model"])
+def test_process_all_documents_continues_after_failure(
+    failure_stage, multi_document_service, sdk_response, monkeypatch, caplog
+):
+    service = multi_document_service
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
+    if failure_stage == "source":
+
+        def failing_source(record, **kwargs):
+            if record["document_id"] == "SECOND":
+                raise OSError("Source is unavailable")
+            return load_markdown(record, **kwargs)
+
+        monkeypatch.setattr(
+            "credit_monitoring.application.document_processing_service.load_markdown",
+            failing_source,
+        )
+    else:
+        service.client.responses.parse.side_effect = [
+            sdk_response(CovenantExtraction()),
+            sdk_response(status="incomplete"),
+            sdk_response(CovenantExtraction()),
+        ]
+    outcomes = service.process_all_documents()
+    assert [outcome.status for outcome in outcomes] == ["complete", "failed", "complete"]
+    failed = outcomes[1]
+    assert failed.document_id == "SECOND" and failed.ticker == "OTHER"
+    assert failed.citation == service.get_document_extraction("SECOND").citation
+    assert failed.result is None and not failed.cache_hit
+    assert ("OSError" if failure_stage == "source" else "ExtractionIncompleteError") in failed.error
+    assert service.get_document_extraction("THIRD").status == "complete"
+    if failure_stage == "model":
+        assert service.get_document_extraction("SECOND").status == "failed"
+    failed_action = "Load Markdown" if failure_stage == "source" else "Extract section"
+    assert f"{failed_action} failed document_id=SECOND" in caplog.text
+    assert "Batch summary total_documents=3 completed=2 failed=1 cache_hits=0" in caplog.text
+    assert any(
+        record.levelno == logging.ERROR
+        and "Batch document finished document=2/3 document_id=SECOND status=failed"
+        in record.getMessage()
+        for record in caplog.records
+    )
+
+
+def test_process_all_documents_empty_catalog_and_invalid_catalog(multi_document_service, caplog):
+    service = multi_document_service
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
+    header = service.source_file.read_text().splitlines()[0]
+    service.source_file.write_text(header + "\n")
+    assert service.process_all_documents() == []
+    assert "Batch summary total_documents=0 completed=0 failed=0 cache_hits=0" in caplog.text
+    service.source_file.write_text("document_id,company\nSYN,Synthetic\n")
+    with pytest.raises(ValueError, match="Catalog rows require"):
+        service.process_all_documents()
+    assert "Load and validate catalog failed" in caplog.text
+    service.client.responses.parse.assert_not_called()
 
 
 def test_fmc_all_quarters_reach_model_and_survive_json(document_service_factory, sdk_response):
@@ -137,7 +287,7 @@ def test_changed_inputs_invalidate_cache(
 
 
 def test_failed_sections_resume_without_publishing_partial_facts(
-    document_service_factory, sdk_response
+    document_service_factory, sdk_response, caplog
 ):
     text = "# Source\n\n" + "\n\n".join("Paragraph " + str(i) + " x" * 20 for i in range(8))
     service = document_service_factory(text, max_chars=150)
@@ -155,10 +305,14 @@ def test_failed_sections_resume_without_publishing_partial_facts(
     service.client.responses.parse.reset_mock()
     service.client.responses.parse.side_effect = None
     service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
     resumed = service.process_document("SYN")
     assert resumed.status == "complete" and resumed.completed_sections == count
     assert service.client.responses.parse.call_count == count - 1
     assert resumed.result.extraction.gaps == ["First section gap"]
+    assert f"total_sections={count} cached_sections=1" in caplog.text
+    assert f"Section cache hit document_id=SYN section=1/{count}" in caplog.text
+    assert f"Extract section started document_id=SYN section=1/{count}" not in caplog.text
 
 
 def test_failed_forced_run_does_not_return_previous_success(document_service_factory, sdk_response):

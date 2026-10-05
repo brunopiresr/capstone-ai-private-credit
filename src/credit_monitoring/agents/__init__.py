@@ -1,1 +1,1 @@
-"""Scaffold package boundary; implementation is planned for a later step."""
+"""Agent orchestration, prompts, and document tools."""

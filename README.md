@@ -49,6 +49,10 @@ Status: Analyst-facing Streamlit demo, CSV-to-SQLite financial loading, complete
 See [document processing and agent usage](docs/document_processing.md) for the service
 interfaces, cache behavior, tool loop, and verification migration notes.
 
+The monitoring agent uses the OpenAI Agents SDK while retaining the document
+service and evidence trace. Use `agent.ask()` in synchronous application code or
+`await agent.ask_async()` in notebooks and asynchronous applications.
+
 ## Setup
 
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/).

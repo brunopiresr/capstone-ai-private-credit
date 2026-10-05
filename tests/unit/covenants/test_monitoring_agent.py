@@ -1,11 +1,13 @@
 """Actual SDK response types exercise adaptive tools, RAG, failures, and loop limits."""
 
+import asyncio
 import json
-from unittest.mock import Mock
+from itertools import count
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
-from openai import APIError, OpenAI
+from openai import APIError, AsyncOpenAI, OpenAI
 from openai.types.responses import (
     Response,
     ResponseFunctionToolCall,
@@ -19,8 +21,11 @@ from credit_monitoring.agents.monitoring import MonitoringAgent
 from credit_monitoring.agents.tools.documents import DocumentTools
 from credit_monitoring.domain import CovenantExtraction
 
+_response_ids = count()
+
 
 def response(*calls, answer=None, status="completed", refusal=None, reasoning=False):
+    response_id = next(_response_ids)
     output = []
     if reasoning:
         output.append(
@@ -36,7 +41,7 @@ def response(*calls, answer=None, status="completed", refusal=None, reasoning=Fa
             ResponseFunctionToolCall(
                 name=name,
                 arguments=arguments if isinstance(arguments, str) else json.dumps(arguments),
-                call_id=f"call_{index}_{name}",
+                call_id=f"call_{response_id}_{index}_{name}",
                 type="function_call",
             )
         )
@@ -55,11 +60,14 @@ def response(*calls, answer=None, status="completed", refusal=None, reasoning=Fa
                 content=content,
             )
         )
-    return Response.model_construct(id="resp", status=status, error=None, output=output)
+    return Response.model_construct(
+        id=f"resp_{response_id}", status=status, error=None, output=output
+    )
 
 
 def agent(service, **kwargs):
     client = Mock()
+    client.responses.create = AsyncMock()
     return MonitoringAgent(client=client, service=service, **kwargs), client
 
 
@@ -148,7 +156,9 @@ def test_scoped_agent_cannot_process_other_issuer(document_service_factory):
 
 def test_six_tool_round_limit_does_not_execute_seventh_call(document_service_factory):
     monitor, client = agent(document_service_factory())
-    client.responses.create.return_value = response(("list_documents", {"ticker": None}))
+    client.responses.create.side_effect = lambda **kwargs: response(
+        ("list_documents", {"ticker": None})
+    )
     result = monitor.ask("Question")
     assert not result.complete and result.error == "tool_round_limit"
     assert len(result.tool_trace) == 6 and client.responses.create.call_count == 7
@@ -194,7 +204,8 @@ def test_tool_schemas_are_strict_and_configuration_is_not_exposed(document_servi
         assert "force" not in schema["properties"] and "client" not in schema["properties"]
 
 
-def test_installed_sdk_serializes_tool_call_continuation(document_service_factory):
+@pytest.mark.parametrize("async_client", [False, True])
+def test_installed_sdk_serializes_tool_call_continuation(document_service_factory, async_client):
     captured = []
     count = 0
 
@@ -228,13 +239,109 @@ def test_installed_sdk_serializes_tool_call_continuation(document_service_factor
         )
         return httpx.Response(200, json=data)
 
-    with OpenAI(
-        api_key="offline-test-key", http_client=httpx.Client(transport=httpx.MockTransport(respond))
-    ) as client:
-        result = MonitoringAgent(client=client, service=document_service_factory()).ask(
-            "Question", "SYN"
-        )
+    service = document_service_factory()
+    if async_client:
+
+        async def ask():
+            async with AsyncOpenAI(
+                api_key="offline-test-key",
+                http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond)),
+            ) as client:
+                return await MonitoringAgent(client=client, service=service).ask_async(
+                    "Question", "SYN"
+                )
+
+        result = asyncio.run(ask())
+    else:
+        with OpenAI(
+            api_key="offline-test-key",
+            http_client=httpx.Client(transport=httpx.MockTransport(respond)),
+        ) as client:
+            result = MonitoringAgent(client=client, service=service).ask("Question", "SYN")
     assert result.complete and len(result.tool_trace) == 1
     assert captured[0]["tools"][0]["type"] == "function"
     assert captured[1]["input"][-1]["type"] == "function_call_output"
     assert "Maximum leverage" in captured[1]["input"][-1]["output"]
+
+
+@pytest.mark.parametrize("limit", [1, 6])
+def test_last_permitted_model_turn_can_answer(document_service_factory, limit):
+    monitor, client = agent(document_service_factory(), max_tool_rounds=limit)
+    client.responses.create.side_effect = [
+        *(response(("list_documents", {"ticker": None})) for _ in range(limit)),
+        response(answer="The available documents are listed."),
+    ]
+    result = monitor.ask("List available documents.")
+    assert result.complete and len(result.tool_trace) == limit
+    assert client.responses.create.call_count == limit + 1
+
+
+def test_multiple_calls_use_one_round_and_execute_in_order(document_service_factory, sdk_response):
+    service = document_service_factory()
+    monitor, client = agent(service, max_tool_rounds=1)
+    client.responses.create.side_effect = [
+        response(
+            ("get_document_extraction", {"document_id": "SYN"}),
+            ("process_document", {"document_id": "SYN"}),
+            ("get_document_extraction", {"document_id": "SYN"}),
+        ),
+        response(answer="The document is now processed."),
+    ]
+    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    result = monitor.ask("Read the stored document, process it, then read it again.")
+    assert result.complete and len(result.tool_trace) == 3
+    assert [item.outcome["data"]["status"] for item in result.tool_trace] == [
+        "missing",
+        "complete",
+        "complete",
+    ]
+    service.client.responses.parse.assert_called_once()
+
+
+@pytest.mark.parametrize("status", ["incomplete", "failed", "in_progress"])
+def test_non_completed_output_never_executes_tools(document_service_factory, status):
+    service = document_service_factory()
+    monitor, client = agent(service)
+    client.responses.create.return_value = response(
+        ("process_document", {"document_id": "SYN"}), status=status
+    )
+    result = monitor.ask("Process SYN.")
+    assert not result.complete and result.tool_trace == []
+    assert result.error == ("model_incomplete" if status == "incomplete" else "model_error")
+    service.client.responses.parse.assert_not_called()
+
+
+def test_concurrent_read_questions_keep_scope_and_sources_separate(document_service_factory):
+    monitor, client = agent(document_service_factory())
+
+    async def respond(**kwargs):
+        payload = json.loads(kwargs["input"][0]["content"])
+        if any(item.get("type") == "function_call_output" for item in kwargs["input"]):
+            return response(answer=f"Evidence for {payload['ticker']}.")
+        return response(("search_evidence", {"query": "maximum leverage", "ticker": None}))
+
+    client.responses.create.side_effect = respond
+
+    async def ask_both():
+        return await asyncio.gather(
+            monitor.ask_async("Find filing evidence.", ticker="SYN"),
+            monitor.ask_async("Find filing evidence.", ticker="OTHER"),
+        )
+
+    syn, other = asyncio.run(ask_both())
+    assert syn.complete and other.complete
+    assert [source.document_id for source in syn.sources] == ["SYN"]
+    assert other.sources == []
+    assert len(syn.tool_trace) == len(other.tool_trace) == 1
+    assert syn.answer == "Evidence for SYN." and other.answer == "Evidence for OTHER."
+
+
+def test_sync_entry_point_in_running_loop_explains_async_usage(document_service_factory):
+    monitor, client = agent(document_service_factory())
+
+    async def ask():
+        with pytest.raises(RuntimeError, match="await agent.ask_async"):
+            monitor.ask("Question")
+
+    asyncio.run(ask())
+    client.responses.create.assert_not_called()
