@@ -2,6 +2,12 @@
 
 The package separates analyst interaction, orchestration, retrieval, structured financial data, deterministic calculation, assessment synthesis, and verification. The current analyst app is a mock-only demonstration that reads pre-labeled synthetic benchmark cases; it does not connect to a model, live retrieval, calculation workflow, or verifier.
 
+The application-service layer now includes complete-document extraction with SQLite
+caching and a monitoring agent with document tools. These are demonstrated in the
+RAG notebook and remain independent of the mocked web app. Automatic post-extraction
+verification is temporarily disabled; the verifier code remains available. See
+[document processing and agent usage](document_processing.md).
+
 ```text
                        ┌─────────────────────────┐
                        │    Credit Analyst       │

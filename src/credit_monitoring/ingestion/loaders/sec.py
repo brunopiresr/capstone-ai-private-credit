@@ -1,6 +1,7 @@
 """Explicit SEC downloads and catalog loading; no work occurs at import time."""
 
 import csv
+import re
 import time
 from collections.abc import Mapping
 from pathlib import Path
@@ -28,6 +29,35 @@ def download_sec_filing(url: str, *, user_agent: str, session: Any = None) -> st
 def load_catalog(source_file: Path) -> list[dict[str, str]]:
     with Path(source_file).open(newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
+
+
+def filing_citation(record: Mapping[str, Any]) -> str:
+    """The same catalog citation used by retrieval and full-document processing."""
+    label_date = record.get("document_date") or record.get("period_end") or "date not listed"
+    return (
+        f"{record['company']}, {record['document_type']} ({label_date}), "
+        f"{record['document_id']} — {record['source_url']}"
+    )
+
+
+def full_document_record(
+    record: Mapping[str, Any], markdown: str, *, markdown_dir: Path
+) -> dict[str, Any]:
+    """Keep every character and supply measured offsets in the original Markdown."""
+    document_id = record["document_id"]
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", document_id):
+        raise ValueError("Document IDs must be filenames without directory components.")
+    return {
+        **record,
+        "citation": filing_citation(record),
+        "markdown_path": str(Path(markdown_dir).resolve() / f"{document_id}.md"),
+        "content": markdown,
+        "truncated": False,
+        "source_start": 0,
+        "source_end": len(markdown),
+        "source_length": len(markdown),
+        "offset_coordinate_system": "markdown",
+    }
 
 
 def build_company_catalog(records: list[Mapping[str, Any]]) -> dict[str, str]:

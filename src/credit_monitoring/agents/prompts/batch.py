@@ -2,7 +2,7 @@
 
 from .extraction import EXTRACTION_INSTRUCTIONS
 
-BATCH_PROMPT_VERSION = "sec-covenant-batch-v2.0"
+BATCH_PROMPT_VERSION = "sec-covenant-batch-v2.1"
 BATCH_GROUPING_INSTRUCTIONS = """
 For this batch request, apply CovenantExtraction separately to every company
 in the supplied catalog. Return AllCompanyCovenantExtraction as the outer

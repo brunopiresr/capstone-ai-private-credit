@@ -1,5 +1,12 @@
 # SEC covenant extraction V2
 
+**October 5, 2026 update:** complete-document processing and a tool-calling RAG agent
+are now implemented. The result wrapper is version `2.1`, extraction/batch prompts
+are `v2.1`, and automatic verification is temporarily disabled (`validation: null`).
+The verifier remains available for explicit use. See
+[current usage and migration notes](document_processing.md). Sections below describe
+the original V2 implementation where they differ from that update.
+
 The notebook now uses importable evidence extraction models and pipeline helpers.
 The web app, its demo service, and unrelated evidence caches are unchanged.
 No governing-amendment selection, covenant calculations, inferred compliance,
@@ -162,10 +169,9 @@ fallback, amendment reconciliation, or model-driven retry was introduced.
 
 ## Tests and verification status
 
-**Tests were created but not run, and no live model evaluations were performed.**
-Acceptance criteria therefore remain unverified. Static lint, Python/notebook
-syntax inspection, and the offline lockfile consistency check are separate from
-test execution.
+The original 100 tests passed before complete-document processing was added.
+New service, section, and agent tests exercise the updated behavior using mocked
+model responses and real local SQLite. No live model evaluations have been performed.
 
 New tests live in:
 

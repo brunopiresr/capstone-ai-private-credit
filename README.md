@@ -44,7 +44,10 @@ The capstone POC focuses on covenant monitoring, deterministic financial calcula
 
 ## Current implementation status
 
-Status: Project scaffold plus an analyst-facing Streamlit cockpit and a CSV-to-SQLite financial loader. The portfolio view filters and prioritizes pre-labeled synthetic borrower cases, then opens a borrower-specific assessment. The assistant uses fixed response templates. The SQLite repository is available independently; the cockpit, live retrieval, financial calculation services, model calls, and verification are not connected to it. Existing notebooks and data assets are retained as capstone research materials.
+Status: Analyst-facing Streamlit demo, CSV-to-SQLite financial loading, complete SEC document extraction with SQLite reuse, and a RAG agent with document tools. The Streamlit cockpit still uses synthetic cases and fixed assistant responses; document processing and the agent are available through application services and the RAG notebook. Automatic post-extraction verification is temporarily disabled, with its implementation retained.
+
+See [document processing and agent usage](docs/document_processing.md) for the service
+interfaces, cache behavior, tool loop, and verification migration notes.
 
 ## Setup
 
@@ -129,4 +132,4 @@ with sqlite3.connect(database_path) as connection:
 
 ## Next implementation step
 
-Finalize the typed domain schemas and contracts before implementing ingestion or retrieval.
+Connect financial calculation tools and the document-backed agent to the analyst UI.

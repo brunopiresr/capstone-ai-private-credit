@@ -1,5 +1,6 @@
 """Importable evidence-backed SEC extraction contracts."""
 
+from .agent import AgentAnswer, SourceReference, ToolExecution
 from .covenant import (
     AgreementAmendment,
     AllCompanyCovenantExtraction,
@@ -14,6 +15,7 @@ from .covenant import (
 from .documents import RetrievedRecord
 from .evidence import SourceEvidence
 from .financials import FinancialMetricDefinition, ReportedFinancialValue
+from .processing import DocumentExtraction
 from .validation import (
     AllCompanyExtractionResult,
     ExtractionResult,
@@ -22,6 +24,7 @@ from .validation import (
 )
 
 __all__ = [
+    "AgentAnswer",
     "AgreementAmendment",
     "AllCompanyCovenantExtraction",
     "AllCompanyExtractionResult",
@@ -31,12 +34,15 @@ __all__ = [
     "CovenantTerm",
     "CovenantTestingEvent",
     "CreditFacilityTerm",
+    "DocumentExtraction",
     "ExtractionResult",
     "FinancialMetricDefinition",
     "ReportedFinancialValue",
     "RetrievedRecord",
     "SourceEvidence",
+    "SourceReference",
     "ThresholdScheduleEntry",
+    "ToolExecution",
     "ValidationIssue",
     "ValidationReport",
 ]

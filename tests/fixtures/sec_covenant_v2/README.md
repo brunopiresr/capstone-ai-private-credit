@@ -16,4 +16,11 @@ resistance to prompt injection. The injection test checks instruction/data isola
 The optional local SEC regression reads an existing ignored Markdown file when
 available and otherwise skips. It checks verbatim provenance without calling a model.
 
-These tests were created but not run, at the user's request.
+The original tests have been run successfully. Complete-document regression coverage
+also uses `fmc_amendment_schedule.md`, a source excerpt containing all 19 leverage
+and 17 interest-coverage quarters from `DOC_FMC_AMD3_2025`, including page continuation.
+The source catalog links that amendment to the SEC filing. These are pipeline tests
+with mocked model outputs, not live LLM accuracy evaluations.
+
+`extraction_prompt_v2.txt` preserves the historical v2.0 prompt;
+`extraction_prompt_v2_1.txt` is the active v2.1 snapshot.

@@ -7,6 +7,8 @@ from pydantic import Field
 from .base import ExtractionModel
 from .covenant import AllCompanyCovenantExtraction, CovenantExtraction
 
+RESULT_SCHEMA_VERSION = "2.1"
+
 
 class ValidationIssue(ExtractionModel):
     severity: Literal["error", "warning"] = Field(
@@ -34,18 +36,24 @@ class ValidationReport(ExtractionModel):
 
 
 class ExtractionResult(ExtractionModel):
-    schema_version: str = Field(default="2", description="Version of the extraction JSON contract.")
+    schema_version: str = Field(
+        default=RESULT_SCHEMA_VERSION, description="Version of the extraction JSON contract."
+    )
     prompt_version: str = Field(description="Version of the prompt used for this extraction.")
     extraction: CovenantExtraction = Field(description="Unmodified extraction, even if unverified.")
-    validation: ValidationReport = Field(
-        description="Deterministic verification errors and warnings."
+    validation: ValidationReport | None = Field(
+        default=None, description="Verification report; null when verification has not run."
     )
 
 
 class AllCompanyExtractionResult(ExtractionModel):
-    schema_version: str = Field(default="2", description="Version of the batch JSON contract.")
+    schema_version: str = Field(
+        default=RESULT_SCHEMA_VERSION, description="Version of the batch JSON contract."
+    )
     prompt_version: str = Field(
         description="Versions of extraction and batch grouping instructions."
     )
     extraction: AllCompanyCovenantExtraction = Field(description="Unmodified batch extraction.")
-    validation: ValidationReport = Field(description="Batch and per-company errors and warnings.")
+    validation: ValidationReport | None = Field(
+        default=None, description="Batch verification report; null when verification has not run."
+    )

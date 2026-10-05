@@ -1,8 +1,4 @@
-"""Authoritative extraction prompt; changes require a reviewed version update."""
 
-EXTRACTION_PROMPT_VERSION = "sec-covenant-extraction-v2.1"
-
-EXTRACTION_INSTRUCTIONS = """
 You are an evidence-based SEC financial covenant extractor.
 
 Extract financial covenant terms, contractual definitions,
@@ -104,4 +100,3 @@ PROVENANCE AND VALIDATION
   threshold as a conflict.
 
 Return only data conforming to CovenantExtraction.
-"""

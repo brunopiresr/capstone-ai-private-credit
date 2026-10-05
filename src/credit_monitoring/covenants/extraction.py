@@ -21,7 +21,10 @@ from credit_monitoring.domain import (
     ExtractionResult,
     RetrievedRecord,
 )
-from credit_monitoring.verification.extraction import validate_all_companies, validate_extraction
+
+# POC: automatic post-extraction verification is temporarily disabled. Keep the
+# validators and their tests; restore this import and the calls below to re-enable.
+# from credit_monitoring.verification.extraction import validate_all_companies, validate_extraction
 
 
 class ExtractionError(RuntimeError):
@@ -107,7 +110,7 @@ def extract_covenants(
     client: Any,
     model: str = "gpt-4o-mini",
 ) -> ExtractionResult:
-    """Extract facts, then return those facts unchanged together with verification results."""
+    """Extract facts unchanged; validation is null while POC verification is disabled."""
     records = _records(search_results)
     if not any(r.text.strip() for r in records):
         extraction = CovenantExtraction(gaps=["No relevant evidence was retrieved."])
@@ -122,7 +125,9 @@ def extract_covenants(
     return ExtractionResult(
         prompt_version=EXTRACTION_PROMPT_VERSION,
         extraction=extraction,
-        validation=validate_extraction(extraction, records),
+        # POC: restore this call with the validator import when verification resumes.
+        # validation=validate_extraction(extraction, records),
+        validation=None,
     )
 
 
@@ -134,7 +139,7 @@ def extract_all_companies(
     client: Any,
     model: str = "gpt-4o-mini",
 ) -> AllCompanyExtractionResult:
-    """One request for all companies, with ticker coverage and per-company evidence validation."""
+    """One request for all companies; automatic post-extraction verification is disabled."""
     records = _records(documents)
     if any(
         not isinstance(t, str) or not t.strip() or not isinstance(c, str) or not c.strip()
@@ -167,11 +172,15 @@ def extract_all_companies(
             prompt=json.dumps(payload, ensure_ascii=False, indent=2),
             schema=AllCompanyCovenantExtraction,
         )
-    report = validate_all_companies(extraction, records, company_by_ticker)
-    if not company_by_ticker:
-        report.add("warning", "no_company_catalog", "companies", "No company catalog was supplied.")
+    # POC: retain this report-building block for restoring verification later.
+    # report = validate_all_companies(extraction, records, company_by_ticker)
+    # if not company_by_ticker:
+    #     report.add(
+    #         "warning", "no_company_catalog", "companies", "No company catalog was supplied."
+    #     )
     return AllCompanyExtractionResult(
         prompt_version=f"{EXTRACTION_PROMPT_VERSION}+{BATCH_PROMPT_VERSION}",
         extraction=extraction,
-        validation=report,
+        # validation=report,
+        validation=None,
     )

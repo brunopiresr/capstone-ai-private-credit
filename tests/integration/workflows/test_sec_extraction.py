@@ -29,6 +29,7 @@ from credit_monitoring.domain import (
 )
 from credit_monitoring.ingestion.chunking.evidence import prepare_documents
 from credit_monitoring.retrieval.lexical.sec import build_index, search
+from credit_monitoring.verification.extraction import validate_all_companies, validate_extraction
 
 
 def expected_extraction(record, evidence_for):
@@ -56,7 +57,7 @@ def expected_extraction(record, evidence_for):
     )
 
 
-def test_retrieval_to_installed_sdk_parse_to_validation_to_json(synthetic_records, evidence_for):
+def test_retrieval_to_installed_sdk_parse_to_unverified_json(synthetic_records, evidence_for):
     record = {
         **synthetic_records["base"],
         "document_type": "Synthetic agreement",
@@ -123,9 +124,9 @@ def test_retrieval_to_installed_sdk_parse_to_validation_to_json(synthetic_record
         ),
     ) as client:
         result = extract_covenants("Extract synthetic terms", results, client=client)
-    assert result.validation.is_valid
+    assert result.validation is None
     assert result.extraction == expected
-    assert result.schema_version == "2"
+    assert result.schema_version == "2.1"
     assert len(captured) == 1 and captured[0]["instructions"] == EXTRACTION_INSTRUCTIONS
     assert captured[0]["text"]["format"]["name"] == "CovenantExtraction"
     output = json.loads(result.model_dump_json())
@@ -163,7 +164,7 @@ def test_one_batch_request_and_nested_v2_results(synthetic_records, evidence_for
         company_by_ticker={"SYN": "Synthetic Issuer Inc.", "SPARSE": "Sparse Synthetic Issuer"},
     )
     client.responses.parse.assert_called_once()
-    assert result.validation.is_valid and len(result.extraction.companies) == 2
+    assert result.validation is None and len(result.extraction.companies) == 2
     assert client.responses.parse.call_args.kwargs["instructions"] == ALL_COMPANY_INSTRUCTIONS
     assert client.responses.parse.call_args.kwargs["text_format"] is AllCompanyCovenantExtraction
 
@@ -197,7 +198,13 @@ def test_batch_coverage_and_cross_company_provenance_errors(
         client=client,
         company_by_ticker={"SYN": "Synthetic Issuer Inc.", "OTHER": "Other Synthetic Issuer"},
     )
-    codes = {issue.code for issue in result.validation.issues}
+    assert result.validation is None
+    # The retained verifier can still be explicitly invoked outside extraction.
+    report = validate_all_companies(
+        result.extraction, [synthetic_records["base"]],
+        {"SYN": "Synthetic Issuer Inc.", "OTHER": "Other Synthetic Issuer"},
+    )
+    codes = {issue.code for issue in report.issues}
     assert {
         "duplicate_company",
         "missing_company",
@@ -205,7 +212,7 @@ def test_batch_coverage_and_cross_company_provenance_errors(
         "source_pair_mismatch",
         "company_ticker_mismatch",
     } <= codes
-    assert not result.validation.is_valid and result.extraction == expected
+    assert not report.is_valid and result.extraction == expected
 
 
 def test_empty_evidence_skips_single_and_batch_model_calls():
@@ -263,10 +270,11 @@ def test_missing_input_provenance_fails_before_model_call():
     client.responses.parse.assert_not_called()
 
 
-def test_invalid_facts_are_returned_with_report(synthetic_records, evidence_for, sdk_response):
+def test_invalid_facts_are_returned_unverified(synthetic_records, evidence_for, sdk_response):
     expected = expected_extraction(synthetic_records["base"], evidence_for)
     expected.covenants[0].evidence.evidence_quote = "Invented quotation"
     client = Mock()
     client.responses.parse.return_value = sdk_response(expected)
     result = extract_covenants("Extract", [synthetic_records["base"]], client=client)
-    assert not result.validation.is_valid and result.extraction == expected
+    assert result.validation is None and result.extraction == expected
+    assert not validate_extraction(result.extraction, [synthetic_records["base"]]).is_valid
