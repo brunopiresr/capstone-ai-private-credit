@@ -1,1 +1,1 @@
-"""Scaffold package boundary; implementation is planned for a later step."""
+"""Deterministic covenant metrics, comparisons, and period-aligned changes."""

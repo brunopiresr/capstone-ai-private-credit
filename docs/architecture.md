@@ -50,6 +50,33 @@ verification is temporarily disabled; the verifier code remains available. See
                           └─────────────────────┘
 ```
 
+## Implemented assessment pipeline
+
+The separate `AssessmentService` consumes existing financial rows and structured covenant inputs.
+It resolves terms for each reporting period, runs deterministic calculations, and appends historical
+results before optional feature/model execution. `ExtractionCovenantReader` uses existing stored
+extractions through explicit borrower/agreement/covenant bindings; there is no new SEC ingestion
+pipeline. The mocked web app and document-question agent remain separate.
+
+```text
+Existing terms → Period-specific resolution ──┐
+                                             ↓
+Financial periods → Calculations → Stored covenant results
+                                             ↓
+                              Feature snapshots → Model service
+                                             ↓
+                              Assessment context → Verification
+```
+
+New analytics storage contains calculation results, exact feature snapshots, and linked predictions.
+The stub provides unknown risk and no probabilities. A separate offline generator simulates
+histories from the PoC cases and derives next-quarter labels through the same calculation services.
+A Logistic Regression training pipeline saves its preprocessing, classifier, metadata and
+evaluation. The runtime adapter uses the shared feature converter and loads an explicitly selected
+artifact. Synthetic outcome labels remain offline files; prediction storage uses the existing
+analytics schema. UI wiring and additional models are later work. See
+[assessment and training usage](ml_early_warning.md).
+
 ## Boundaries
 
 - Calculations are deterministic and independent of LLMs.

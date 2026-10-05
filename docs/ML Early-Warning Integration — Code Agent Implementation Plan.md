@@ -1,821 +1,479 @@
 # ML Early-Warning Integration — Implementation Plan
 
-## Objective
+## Objective and implementation boundaries
 
-Add an ML early-warning step to the existing covenant-monitoring flow without replacing the deterministic covenant calculation logic.
+Add an optional ML service after period-specific covenant resolution, deterministic calculations,
+and persisted history. The implementation uses existing structured extractions, financial storage,
+and synthetic covenant inputs. There is no separate SEC integration milestone or new ingestion
+pipeline. The document agent and mocked analyst UI keep their existing behavior.
 
-The ML component consumes:
+The implementation establishes application services and tests, generates independent simulated
+histories from the PoC templates, trains a Logistic Regression baseline, and integrates its saved
+artifact at runtime. It supports net, total, and pro-forma leverage, interest coverage, and
+fixed-charge coverage. Outcome labels and artifacts are offline files; SHAP, additional models,
+ML-agent orchestration and UI integration remain later work. A prediction never replaces
+deterministic compliance.
 
-- normalized financial data
-- calculated covenant results
-- historical borrower metrics
-- historical covenant trends
+Follow PEP 8 and existing project conventions. Favor clarity over brevity, use readable names and
+simple control flow, maintain docstrings with their code, and keep comments direct and useful.
+Review changes for style consistency. Do not create git commits. Investigation of monitoring-agent
+timeouts and existing extraction inconsistencies is out of scope.
 
-and produces predictive signals such as:
-
-- deterioration probability
-- covenant breach probability
-- anomaly score
-- important feature drivers
-
-The first implementation should establish the architecture and interfaces. It does not need to train a production-quality model.
-
----
-
-# 1. Target Flow
-
-Implement the following flow:
+## Target flow and historical data
 
 ```text
-Documents
-    ↓
-Document Retrieval / RAG
-    ↓
-LLM Covenant Extraction
-    ↓
-Structured Covenant Records
-    ↓
-Covenant Resolution
-    ↓
-Active Covenant Definition
-    ↓
-Financial Data
-    ↓
-Calculation Tools
-    ↓
-Covenant Results
-    ↓
-Feature Engineering
-    ↓
-ML Early-Warning Model
-    ↓
-Risk Signals
-    ↓
-Risk / Trend Analysis
-    ↓
-Verification
-    ↓
-Analyst Output
+Existing structured covenants → Period-specific resolution ──┐
+                                                             ↓
+Existing financial data → Deterministic calculations → Stored results
+                                                             ↓
+                                    Current + historical structured state
+                                                             ↓
+                                         Feature snapshot → ML prediction
+                                                             ↓
+                                         Risk/trend assessment → Verification
 ```
 
-The ML model must not replace:
+Financial history exists independently of covenant resolution. For every historical period,
+resolve the terms applicable to that period, combine them with its financial inputs, and persist a
+`CovenantResult`. Never apply current terms to all previous periods. Save current calculations before
+building features. Each assessment backfills available periods chronologically within a new run.
 
-- covenant extraction
-- covenant resolution
-- financial calculations
-- covenant calculations
+RAG remains available for source evidence and document questions. Calculations, history, features,
+and predictions come from structured services and repositories. Assessments read complete current
+extractions; they do not download documents or call extraction models.
 
-It operates after these steps.
+## Domain models across layers
 
----
+| Layer | Domain models | Persistence |
+| --- | --- | --- |
+| Source evidence | Existing `RetrievedRecord`, `SourceEvidence`, documents and chunks | Existing source files/storage |
+| Structured extraction | Existing `CovenantExtraction`, `CovenantTerm`, `ThresholdScheduleEntry`, `AgreementAmendment`, `CovenantTestingEvent`, `ComplianceDisclosure`, `CreditFacilityTerm`, `FinancialMetricDefinition`, `ReportedFinancialValue` | Existing extraction cache |
+| Resolved credit state | `ResolvedCovenant`, `FinancialPeriod`; `CovenantResolution` represents successful resolution or abstention | Existing financial storage; applied terms copied into results |
+| Derived analytics | `CovenantResult`, `CovenantRiskFeatures`, `BorrowerRiskFeatures`, `BorrowerFeatureSnapshot`, `RiskPrediction`, `RiskAssessment` | Results, feature snapshots, predictions persisted; assessment returned |
+| Offline training | Simulated borrower metadata, feature rows, outcome labels, dataset manifest, fitted preprocessing/classifier and model manifest | Generated CSV/JSONL/JSON files and local joblib artifacts; no additional SQL tables |
+| Processing and verification | Existing `DocumentExtraction`, `ExtractionResult`, `ValidationReport`, `ValidationIssue`, and batch wrappers | Existing processing state; issues captured in results |
+| Agent interaction | Existing `AgentAnswer`, `SourceReference`, `ToolExecution` | Existing behavior |
 
-# 2. Architectural Principle
+Borrower, agreement, covenant, version, period, run, and snapshot identifiers connect these records.
+A standalone `Borrower` model remains outside this implementation.
 
-Separate the system into three information layers.
+## Implementation order and service interfaces
 
-## Layer 1 — Source Evidence
+### 1. Typed inputs and storage
 
-Original documents and document chunks.
+Reuse existing financial dictionaries through `FinancialPeriod.from_repository_row()`, which
+allowlists metric names and excludes notes. `SyntheticCovenantReader` reads the existing covenant CSV
+and uses explicit formula mappings. `ExtractionCovenantReader` consumes existing extraction models
+through `ExtractionBinding` records identifying borrower, agreement, covenant, document, and exact
+covenant name. Optional `CalculationRules` declare an approved formula and measurement basis.
 
-Examples:
+Do not automatically join synthetic borrowers to SEC issuers, infer formulas from name similarity,
+replace existing repository APIs, or duplicate extraction records. Repeated identical or conflicting
+applicable document candidates remain unresolved rather than selecting an arbitrary record.
 
-- SEC filings
-- credit agreements
-- amendments
-- covenant disclosures
+### 2. Period-specific covenant resolution
 
-Used for:
+Select explicit effective ranges and schedules. Named schedule dates take precedence over ranges;
+undated schedules cannot resolve applicability. Preserve amendment versions, testing conditions,
+waivers, suspensions, and supporting evidence. Missing, stale, conflicting, unsupported, or
+ambiguous inputs return explicit resolution issues. Selected extraction quotes and citations must
+match the stored document. This validation does not repair extraction output.
 
-- extraction
-- provenance
-- analyst evidence
-- verification
-- answering source-specific questions
+### 3. Deterministic calculations and historical results
 
-Storage may include:
+Use allowlisted implementations; never execute formula strings. Support contractual cash-netting,
+addback, and synergy caps, and preserve missing inputs and debt-source conflicts as abstentions.
 
-```text
-documents
-document_chunks
-embeddings
-```
+Maximum-covenant headroom is `threshold - actual`; minimum-covenant headroom is `actual - threshold`.
+Equality tests have no directional headroom. Strict comparison boundaries remain strict. Invalid
+or nonpositive denominators and nonfinite results cannot establish compliance.
 
----
+Waived and inactive tests retain their applicability state. A calculable informational actual does
+not establish an active compliance conclusion. Source-reported actuals can be compared to resolved
+thresholds, but are labeled `reported`, never independently `calculated`.
 
-## Layer 2 — Structured Credit State
+### 4. Feature engineering
 
-Canonical data extracted and resolved from source documents.
+`RiskFeatureBuilder` reads persisted calculation inputs from a bounded assessment run, not mutable
+financial rows or raw documents. Support multiple separate covenants per borrower-period.
 
-Examples:
+Calculate comparable metric/headroom changes and reported EBITDA/total debt growth against exact
+prior-quarter/year dates. Preserve missing history and unknown prior breach/waiver state as null.
+Suppress ratio/headroom changes across incompatible formulas, units, operators, or result bases.
+Expose threshold changes separately. Revenue, liquidity, and unavailable metrics remain missing.
 
-```text
-Borrower
-CovenantDefinition
-ThresholdSchedule
-CovenantEvidence
-ResolvedCovenant
-FinancialPeriod
-CovenantResult
-```
+Exclude financial notes, borrower scenarios, expected results, gold labels, and future outcomes
+from feature vectors and narrative inputs.
 
-This layer is the primary source for application logic.
-
-Do not retrieve active covenant definitions using semantic RAG once they have been parsed and resolved.
-
-Use deterministic structured queries.
-
-Example:
-
-```python
-active_covenant = covenant_repository.get_active_covenant(
-    borrower_id=borrower_id,
-    covenant_type="net_leverage",
-    period_end=period_end,
-)
-```
-
----
-
-## Layer 3 — Derived Analytics
-
-Calculated and predictive information.
-
-Examples:
-
-```text
-CovenantResult
-BorrowerFeatureSnapshot
-MLRiskPrediction
-RiskAssessment
-```
-
-This layer is generated from structured credit state and financial data.
-
----
-
-# 3. ML Component
-
-Do not implement the ML model as an autonomous LLM agent.
-
-Implement it as an ML service/tool callable by the monitoring workflow.
-
-Recommended abstraction:
+### 5. ML protocol, factory, and exact snapshots
 
 ```python
 class RiskModel(Protocol):
-    def predict(
-        self,
-        features: BorrowerRiskFeatures,
-    ) -> RiskPrediction:
+    def predict(self, features: BorrowerRiskFeatures) -> RiskPrediction:
         ...
 ```
 
-Possible future implementations:
+`RiskModelFactory` registers constructors and creates a configured implementation without changing
+workflow code. Defaults are `ml_enabled=False` and `RiskModelConfig(type="stub", version="v1")`.
 
-```text
-LogisticRegressionRiskModel
-XGBoostRiskModel
-IsolationForestRiskModel
-```
+The deterministic stub returns status `stub`, null probabilities/scores, and risk level `unknown`.
+It proves integration, not forecasting accuracy. The initial target is `any_covenant_breach` in the
+next quarter. Reject unexpected horizons, identity mismatches, invalid probability bounds,
+nonfinite output, and fabricated stub forecasts.
 
-The rest of the application should not depend on a specific ML library.
+Persist the exact feature snapshot before invoking a model. Pass a separate copy to the model so
+model-side mutation cannot change the stored vector. Model or prediction-storage failure leaves
+deterministic results available with explicit failure metadata.
 
----
-
-# 4. New Domain Models
-
-Add the following models.
-
-## BorrowerRiskFeatures
-
-Represents the model input for one borrower and one reporting period.
-
-Suggested fields:
+### 6. Assessment, narrative, and verification
 
 ```python
-class BorrowerRiskFeatures(BaseModel):
-    borrower_id: str
-    period_end: date
+AssessmentService.assess(
+    borrower_id: str,
+    period_end: date,
+    information_cutoff: date,
+    *,
+    ml_enabled: bool | None = None,
+) -> RiskAssessment
 
-    net_leverage: float | None = None
-    covenant_threshold: float | None = None
-    covenant_headroom: float | None = None
-
-    leverage_change_qoq: float | None = None
-    headroom_change_qoq: float | None = None
-
-    ebitda_growth_qoq: float | None = None
-    ebitda_growth_yoy: float | None = None
-
-    debt_growth_qoq: float | None = None
-    debt_growth_yoy: float | None = None
-
-    liquidity: float | None = None
-    liquidity_change_qoq: float | None = None
-
-    interest_coverage: float | None = None
-
-    previous_breach: bool = False
-    previous_waiver: bool = False
+RiskFeatureBuilder.build(
+    borrower_id: str,
+    period_end: date,
+    information_cutoff: date,
+    *,
+    assessment_run_id: str,
+) -> BorrowerRiskFeatures
 ```
 
-Do not tightly couple this schema to XGBoost, sklearn, or another ML framework.
+A null ML override uses `AssessmentSettings.ml_enabled`, which defaults to false. Explicit false
+disables ML even if settings enable it. Constructor dependencies include a financial repository,
+covenant reader, settings, optional model factory, and optional narrator.
 
----
+Return current results, bounded historical results, optional feature snapshot/prediction, issues,
+narrative, and verification. `AssessmentNarrator.summarize(context)` receives a detached context
+containing current financials, deterministic results, history, features, predictions, and evidence.
+It cannot mutate authoritative results. The default narrative is deterministic and requires no LLM.
 
-## RiskPrediction
+Verification replays stored calculations, checks identities, provenance presence, cutoff bounds,
+and model metadata. It does not certify semantic entailment of arbitrary injected narrative prose.
+Source availability remains explicitly unknown when not supplied.
 
-```python
-class RiskPrediction(BaseModel):
-    borrower_id: str
-    period_end: date
+### 7. Independent synthetic training dataset
 
-    model_name: str
-    model_version: str
+`generate_dataset(source_directory, output_directory, seed=42, borrowers_per_scenario=50)` generates
+600 simulated borrowers and 4,800 quarterly observations from 2025 Q1 through 2026 Q4. Each existing
+PoC scenario supplies 50 templates with varied scale, initial headroom, trends, recoveries and
+shocks. Original files remain unchanged. Preserve the existing contractual formulas, caps,
+amendments, holiday and springing condition. Complete numeric inputs only for newly simulated
+borrowers; preserve missing-input and conflict examples and original SYN010 abstentions.
 
-    breach_probability: float | None = None
-    deterioration_probability: float | None = None
-    anomaly_score: float | None = None
+Write borrower metadata, financial inputs, terms, typed features, flattened training rows,
+next-quarter outcomes, reproducible calculation records and a manifest to
+`data/synthetic_training/`. The manifest records the seed, generator/schema versions, simulation
+assumptions, source/output checksums, counts, partition labels and missingness. Reporting-date
+availability is a disclosed simulation assumption; actual publication dates remain unknown.
 
-    risk_level: Literal[
-        "low",
-        "medium",
-        "high",
-        "unknown",
-    ]
+Calculate outcomes through the existing covenant services. A next-quarter established breach is
+`1`. A negative label requires at least one active test and all relevant outcomes establishing no
+breach. Missing, unresolved and wholly inactive outcomes remain null with reasons. The final
+quarter is unlabeled. Gold labels and notes do not define generated outcomes or features.
 
-    top_drivers: list[str] = []
+At default size, assign 35 training, 7 validation and 8 test borrowers within each scenario,
+reproducibly shuffled. Training feature periods end in 2025 Q3, so outcomes end by 2025 Q4.
+Validation features are 2026 Q1-Q2 and test features 2026 Q3. Other periods and unknown labels
+receive split `unused`. Current inputs unusable at runtime are also excluded from evaluation.
+Borrowers are disjoint across partitions. Generation uses temporary analytics storage.
 
-    generated_at: datetime
+### 8. Shared model feature conversion
+
+`model_feature_row(BorrowerRiskFeatures)` defines the ordered numeric contract `logistic-v1`,
+distinct from typed feature schema `v1`. Use the same converter for dataset export and prediction.
+Aggregate covenants by the five supported formula families: count, mean actual/threshold,
+minimum headroom divided by absolute threshold, mean comparable changes, compliance-state
+counts, prior breach/waiver counts and unknown counts, and basis-change counts. Include existing
+borrower growth/liquidity fields and the information-availability flag. Add fixed missingness
+columns. Reject unsupported families and nonfinite derived values. Do not include IDs, scenarios,
+notes, generation parameters or future outcomes. Do not fit preprocessing while exporting data.
+
+### 9. Offline Logistic Regression training and artifact
+
+`train_model(dataset_directory, artifact_directory, version="v1", seed=42)` validates schema,
+checksum, unique borrower-period keys, observed binary targets, partition identity and temporal
+boundaries. Train only eligible training rows; require both classes. Fit median imputation with
+missingness indicators and retained empty columns, standard scaling, and Logistic Regression
+(`C=1`, `max_iter=1000`, no class weighting). Validation and test data do not affect fitting.
+
+Report partition counts, prevalence, precision/recall at 0.5, average precision (PR-AUC), ROC-AUC,
+log loss and Brier score, plus a constant training-prevalence baseline. AUC metrics are null when
+required classes are absent; empty partitions carry a reason. Evaluation measures the simulation.
+
+Save `pipeline.joblib` and `manifest.json` under `data/models/logistic_regression/v1/` by default.
+Metadata includes model/version, ordered columns, feature schemas, target/horizon, seed,
+synthetic origin, Python/library versions, dataset fingerprint, evaluation, and pipeline SHA-256.
+Load trusted local outputs of this workflow. Generated datasets/artifacts are ignored by Git.
+Declare the optional `ml` extra with locked scikit-learn, NumPy, SciPy and joblib versions.
+Training uses CPU resources and never invokes an LLM.
+
+### 10. Trained-model runtime integration
+
+Register `LogisticRegressionRiskModel` under factory type `logistic_regression`. Configure
+`RiskModelConfig(type="logistic_regression", version="v1", artifact_path=...)`; artifact paths
+identify directories. Validate metadata, numerical-library/Python compatibility and the pipeline
+checksum before loading. Load once per adapter instance and apply the shared converter and saved
+preprocessing. Validate the loaded pipeline's feature order and binary classifier classes.
+
+Return next-quarter breach probability with version/hash. Leave risk level unknown and drivers
+empty until policies are validated; deterioration probability and anomaly score remain null.
+Without usable current numeric covenant inputs, return `unavailable`. Missing, incompatible or
+corrupt artifacts preserve deterministic assessments through existing failure handling.
+
+Add assessment CLI options `--model-type`, `--model-version`, and `--model-artifact`. Model execution
+still requires `--ml`; default settings retain disabled ML and the stub. Training does not activate
+a model automatically. The default narrative identifies synthetic training. Save predictions in
+the existing `risk_predictions` table linked to their exact feature snapshots; no migration or
+new prediction table is required. Additional models can later register without changing the
+assessment workflow; Isolation Forest needs distinct anomaly target semantics.
+
+## Persisted entities and SQLite DDL
+
+Keep the existing extraction and financial databases. Store the three new analytics tables together
+in `data/processed/analytics.sqlite3`, separate from the financial database.
+
+| Table | Stored entity |
+| --- | --- |
+| `document_extractions` | Complete extraction and processing state |
+| `document_extraction_sections` | Section extraction cache |
+| `quarterly_financials` | Current financial snapshot per borrower-period |
+| `covenant_results` | Historical calculations with applied terms, exact inputs, and evidence |
+| `risk_feature_snapshots` | Exact model input and supporting result identifiers |
+| `risk_predictions` | Model output linked to its feature snapshot |
+
+The existing `financial_facts` view is retained. `ResolvedCovenant` is captured inside each result;
+no separate resolved-covenant table is required. `RiskAssessment` is returned rather than persisted.
+Outcome labels and training manifests are offline files, not additional SQL entities.
+
+### Existing tables — reference DDL
+
+```sql
+CREATE TABLE document_extractions (
+                    document_id TEXT NOT NULL,
+                    cache_key TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL,
+                    configuration_json TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    total_sections INTEGER NOT NULL,
+                    result_json TEXT,
+                    error TEXT,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (document_id, cache_key)
+                );
+
+CREATE TABLE document_extraction_sections (
+                    document_id TEXT NOT NULL,
+                    cache_key TEXT NOT NULL,
+                    section_index INTEGER NOT NULL,
+                    result_json TEXT NOT NULL,
+                    PRIMARY KEY (document_id, cache_key, section_index),
+                    FOREIGN KEY (document_id, cache_key)
+                        REFERENCES document_extractions(document_id, cache_key) ON DELETE CASCADE
+                );
+
+CREATE TABLE quarterly_financials (
+            borrower_id TEXT NOT NULL,
+            period_end TEXT NOT NULL,
+            total_debt REAL,
+cash REAL,
+reported_ebitda REAL,
+eligible_addbacks REAL,
+cash_interest REAL,
+capex REAL,
+cash_taxes REAL,
+scheduled_principal REAL,
+rent REAL,
+revolver_availability_pct REAL,
+acquired_ebitda REAL,
+synergy_addback REAL,
+financials_debt REAL,
+compliance_certificate_debt REAL,
+            notes TEXT,
+            source_file TEXT NOT NULL,
+            source_row INTEGER NOT NULL,
+            loaded_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+            PRIMARY KEY (borrower_id, period_end)
+        ) STRICT
+    ;
 ```
 
-Model probabilities must be values between `0` and `1`.
+### New analytics tables
 
----
+The executable schema is `src/credit_monitoring/persistence/analytics_schema.sql`.
 
-# 5. Feature Engineering Service
+```sql
+PRAGMA foreign_keys = ON;
 
-Create a dedicated feature-engineering component.
+CREATE TABLE IF NOT EXISTS covenant_results (
+    result_id TEXT PRIMARY KEY,
+    assessment_run_id TEXT NOT NULL,
+    borrower_id TEXT NOT NULL,
+    agreement_id TEXT,
+    covenant_id TEXT NOT NULL,
+    covenant_version TEXT,
+    covenant_type TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    information_cutoff TEXT NOT NULL,
+    actual_value REAL,
+    threshold REAL,
+    operator TEXT CHECK (operator IN ('<', '<=', '>', '>=', '=')),
+    unit TEXT,
+    headroom REAL,
+    compliance_status TEXT NOT NULL CHECK (compliance_status IN (
+        'compliant', 'breach', 'waived', 'not_tested', 'incomplete', 'unresolved', 'unsupported'
+    )),
+    calculation_version TEXT NOT NULL,
+    resolved_covenant_json TEXT CHECK (
+        resolved_covenant_json IS NULL OR json_valid(resolved_covenant_json)
+    ),
+    financial_inputs_json TEXT NOT NULL CHECK (json_valid(financial_inputs_json)),
+    evidence_json TEXT NOT NULL CHECK (json_valid(evidence_json)),
+    issues_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(issues_json)),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    UNIQUE (assessment_run_id, borrower_id, covenant_id, period_end)
+) STRICT;
 
-Suggested interface:
+CREATE INDEX IF NOT EXISTS idx_covenant_history
+    ON covenant_results (borrower_id, covenant_id, period_end, information_cutoff);
 
-```python
-class RiskFeatureBuilder:
+CREATE TABLE IF NOT EXISTS risk_feature_snapshots (
+    snapshot_id TEXT PRIMARY KEY,
+    assessment_run_id TEXT NOT NULL,
+    borrower_id TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    information_cutoff TEXT NOT NULL,
+    feature_schema_version TEXT NOT NULL,
+    features_json TEXT NOT NULL CHECK (json_valid(features_json)),
+    source_result_ids_json TEXT NOT NULL CHECK (json_valid(source_result_ids_json)),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
 
-    def build(
-        self,
-        borrower_id: str,
-        period_end: date,
-    ) -> BorrowerRiskFeatures:
-        ...
+CREATE INDEX IF NOT EXISTS idx_feature_history
+    ON risk_feature_snapshots (borrower_id, period_end);
+
+CREATE TABLE IF NOT EXISTS risk_predictions (
+    prediction_id TEXT PRIMARY KEY,
+    snapshot_id TEXT NOT NULL REFERENCES risk_feature_snapshots(snapshot_id),
+    model_name TEXT NOT NULL,
+    model_version TEXT NOT NULL,
+    model_artifact_hash TEXT,
+    prediction_target TEXT NOT NULL DEFAULT 'any_covenant_breach',
+    horizon_quarters INTEGER NOT NULL DEFAULT 1 CHECK (horizon_quarters > 0),
+    prediction_status TEXT NOT NULL CHECK (prediction_status IN (
+        'stub', 'complete', 'unavailable', 'failed'
+    )),
+    breach_probability REAL CHECK (breach_probability BETWEEN 0 AND 1),
+    deterioration_probability REAL CHECK (deterioration_probability BETWEEN 0 AND 1),
+    anomaly_score REAL,
+    risk_level TEXT NOT NULL CHECK (risk_level IN ('low', 'medium', 'high', 'unknown')),
+    top_drivers_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(top_drivers_json)),
+    error TEXT,
+    generated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_prediction_snapshot ON risk_predictions (snapshot_id);
 ```
 
-The builder should combine:
+### Persistence rules
 
-```text
-FinancialPeriod
-+
-CovenantResult
-+
-previous FinancialPeriod records
-+
-previous CovenantResult records
+- Generate UUIDs for runtime runs, results, snapshots, and predictions. Every assessment rerun
+  receives a new run ID. Offline simulations use deterministic identifiers and timestamps so
+  regenerated dataset files are reproducible.
+- Use stable agreement-specific covenant identifiers. Synthetic IDs include borrower and covenant.
+- Analytics repositories append records; they do not update or delete earlier runs. SQL administrators
+  can still modify tables directly; immutability is enforced by the repository API.
+- Save an entire calculation run in one transaction. Capture exact financial inputs because source
+  financial reloads replace matching borrower-period rows.
+- Predictions obtain borrower/period from their linked feature snapshot.
+- Validate JSON shape and referenced result ownership, run, and period bounds in application code.
+  JSON references are not SQL foreign keys. Source references do not require cross-database joins.
+- Use ISO dates, UTC timestamps, and null for unknown information.
+
+## Existing-data limits and later work
+
+Existing-source assessments use the supplied inputs only. `SYN010` lacks numeric FCCR inputs:
+its inactive Q2 test returns `not_tested`,
+and its active Q3 test returns `incomplete`. Do not obtain 1.10x from notes or gold labels and do not
+invent replacement benchmark rows. Separately generated borrowers use explicit simulation
+assumptions. This original-source abstention differs from the supplied benchmark label.
+
+Reporting dates and financial load timestamps do not establish historical information availability.
+`information_cutoff` records the requested cutoff, not proof of point-in-time accuracy. Apply known
+availability dates and identify missing ones. Historical restatement vintages are not reconstructed;
+exact run inputs and feature snapshots preserve reproducibility from the time they are recorded.
+
+The synthetic baseline supplies separately defined outcomes and temporal evaluation. Reliable
+real-world predictions still require representative historical data and independently verified
+outcomes. Anomaly detection does not substitute for a calibrated breach-probability model.
+Boosting, anomaly models, SHAP, UI changes and ML-agent orchestration remain later work.
+
+## Tests and acceptance criteria
+
+- Existing synthetic cases cover leverage, interest coverage, FCCR, caps, pro-forma adjustments,
+  amendments, waivers, springing conditions, and conflicting debt sources.
+- Gold labels are test expectations only; early-warning labels do not redefine compliance.
+- Verify missing inputs, invalid denominators, exact threshold boundaries, missing quarters,
+  multiple covenants, and incompatible measurement bases.
+- Verify existing stored extractions are consumed without reprocessing, reported actuals remain
+  distinguishable, invalid evidence/ambiguous terms abstain, and mappings prevent borrower leakage.
+- Verify results exist before feature construction; snapshots and earlier runs survive source reloads.
+- Exercise schema initialization, JSON constraints, duplicate/atomic inserts, reference ownership,
+  probability bounds, and snapshot foreign keys against temporary SQLite files.
+- Exercise model replacement, malformed outputs, model/storage failures, and detached narrator inputs.
+- Confirm calculations remain available when ML is disabled or fails. Stub probabilities remain null.
+- Confirm existing processing APIs and mocked UI remain independent. No commits are created.
+- Verify reproducible generation, source preservation, contractual edge cases and unknown outcomes.
+- Verify borrower/temporal separation and that changing future inputs cannot change earlier features.
+- Verify held-out inputs cannot change fitted preprocessing or classifier parameters.
+- Verify shared conversion, multiple-covenant aggregation, artifact round trips, schema/version/hash
+  rejection, missing-current-input abstention, and persisted trained predictions/failure records.
+- Smoke test the full generator, trainer, financial loader and assessment CLI workflow.
+
+Run the scoped checks without the excluded monitoring-agent and local SEC evaluation investigations:
+
+```bash
+uv run --extra ml pytest tests/unit tests/integration tests/test_package_import.py \
+  --ignore=tests/unit/covenants/test_monitoring_agent.py
+uv run ruff check .
 ```
 
-It should not query raw SEC documents.
+Generate and train the baseline separately:
 
----
-
-# 6. Feature Calculation
-
-Example:
-
-```text
-Current quarter:
-
-Net leverage       = 4.9x
-Threshold          = 5.5x
-Headroom           = 0.6x
-
-Previous quarter:
-
-Net leverage       = 4.6x
-Headroom           = 1.0x
+```bash
+uv sync --extra ml --locked
+uv run --extra ml python scripts/generate_training_dataset.py
+uv run --extra ml python scripts/train_risk_model.py
 ```
 
-Derived features:
+See [training and runtime usage](ml_early_warning.md#generate-and-train-the-synthetic-baseline) for
+generated file contracts, CLI options, artifact selection and an isolated assessment example.
 
-```text
-leverage_change_qoq = +0.3x
-headroom_change_qoq = -0.4x
+## Usage
+
+First load the existing financial CSV using the existing loader, if it has not been loaded:
+
+```bash
+uv run python -m credit_monitoring.ingestion.loaders.financials \
+  --csv data/synthetic_quarterly_financials.csv \
+  --db data/processed/financials.sqlite3
 ```
 
-If financial history is missing, fields should remain `None`.
+Run the service through the command entry point; omit `--ml` for calculations only:
 
-Do not fabricate historical values.
-
----
-
-# 7. Data Persistence
-
-Persist the following historical datasets.
-
-## Financial history
-
-```text
-borrower_id
-period_end
-revenue
-ebitda
-debt
-cash
-liquidity
-interest_expense
+```bash
+uv run python scripts/run_assessment.py \
+  --borrower-id SYN002 \
+  --period-end 2025-09-30 \
+  --information-cutoff 2025-09-30 \
+  --ml
 ```
 
----
-
-## Covenant results
-
-```text
-borrower_id
-covenant_id
-period_end
-
-actual_ratio
-threshold
-headroom
-compliance_status
-```
-
----
-
-## Risk feature snapshots
-
-Persist the exact input used for each model prediction.
-
-```text
-borrower_id
-period_end
-feature_schema_version
-features
-created_at
-```
-
-This is important for:
-
-- reproducibility
-- model evaluation
-- debugging
-- future model training
-
----
-
-## ML predictions
-
-```text
-borrower_id
-period_end
-
-model_name
-model_version
-
-breach_probability
-deterioration_probability
-anomaly_score
-risk_level
-
-created_at
-```
-
----
-
-## Outcomes
-
-Design storage for future labels even if the POC does not yet populate all of them.
-
-```text
-borrower_id
-period_end
-
-breach_next_quarter
-breach_next_two_quarters
-
-downgrade
-default
-restructuring
-watchlist_event
-```
-
-These will eventually become the target variables for supervised ML.
-
----
-
-# 8. Initial Model Strategy
-
-Implement the architecture so multiple models can be used.
-
-For the POC, support a deterministic stub first.
-
-Example:
-
-```python
-class StubRiskModel:
-
-    def predict(
-        self,
-        features: BorrowerRiskFeatures,
-    ) -> RiskPrediction:
-        ...
-```
-
-The stub allows the full application flow to be tested independently of ML training.
-
-After the integration works, implement one real model.
-
-Recommended order:
-
-```text
-1. Logistic Regression baseline
-2. XGBoost or LightGBM
-3. Isolation Forest if labeled data is insufficient
-```
-
-Do not add neural networks.
-
----
-
-# 9. Model Registry
-
-Introduce a simple model configuration.
-
-Example:
-
-```yaml
-risk_model:
-  type: logistic_regression
-  version: "v1"
-  artifact_path: "models/risk_model_v1.pkl"
-```
-
-The monitoring workflow should obtain the model through a factory:
-
-```python
-risk_model = risk_model_factory.create(config.risk_model)
-```
-
-Avoid importing model implementation classes directly into the monitoring workflow.
-
----
-
-# 10. Monitoring Workflow Integration
-
-Extend the existing quarterly monitoring workflow.
-
-Current logical flow:
-
-```python
-covenant = resolve_covenant(...)
-financials = load_financials(...)
-
-result = calculate_covenant(
-    covenant=covenant,
-    financials=financials,
-)
-```
-
-Extend it to:
-
-```python
-covenant = resolve_covenant(...)
-
-financials = load_financials(...)
-
-covenant_result = calculate_covenant(
-    covenant=covenant,
-    financials=financials,
-)
-
-features = risk_feature_builder.build(
-    borrower_id=borrower_id,
-    period_end=period_end,
-)
-
-risk_prediction = risk_model.predict(features)
-
-assessment = risk_analysis_service.analyze(
-    covenant_result=covenant_result,
-    risk_prediction=risk_prediction,
-)
-```
-
-The risk model must only run after the current covenant result has been calculated.
-
----
-
-# 11. Risk Analysis Agent Input
-
-Extend the Risk / Trend Agent input schema to include:
-
-```text
-current financial metrics
-
-current covenant result
-
-historical covenant results
-
-ML prediction
-
-source evidence references
-```
-
-Example context:
-
-```json
-{
-  "covenant": {
-    "ratio": 4.9,
-    "threshold": 5.5,
-    "headroom": 0.6,
-    "status": "pass"
-  },
-  "trend": {
-    "previous_headroom": 1.0,
-    "headroom_change": -0.4
-  },
-  "ml_prediction": {
-    "breach_probability": 0.41,
-    "deterioration_probability": 0.72,
-    "risk_level": "high"
-  }
-}
-```
-
-The LLM must not reinterpret the ML probability as a fact.
-
-It should describe it explicitly as a model prediction.
-
----
-
-# 12. Explainability
-
-The ML service should return model drivers when available.
-
-Example:
-
-```text
-Top drivers:
-
-1. declining covenant headroom
-2. increasing leverage
-3. negative EBITDA growth
-```
-
-For tree models, SHAP may be introduced later.
-
-Do not make SHAP part of the first implementation unless required.
-
----
-
-# 13. RAG Changes
-
-Do not remove RAG entirely.
-
-Change its responsibility.
-
-## RAG should be used for:
-
-```text
-finding relevant sections in source documents
-
-finding supporting covenant evidence
-
-retrieving definitions and clauses during extraction
-
-answering analyst questions about source documents
-
-verification against original documents
-```
-
----
-
-## RAG should not be used for:
-
-```text
-finding the active covenant threshold
-
-finding the current covenant definition
-
-retrieving historical covenant calculations
-
-retrieving current financial values
-
-retrieving ML predictions
-```
-
-Those should come from structured repositories.
-
----
-
-# 14. Structured Repository Interfaces
-
-Create repository abstractions such as:
-
-```python
-class CovenantRepository:
-
-    def get_active_covenant(
-        self,
-        borrower_id: str,
-        covenant_type: str,
-        period_end: date,
-    ) -> ResolvedCovenant:
-        ...
-```
-
-```python
-class FinancialRepository:
-
-    def get_period(
-        self,
-        borrower_id: str,
-        period_end: date,
-    ) -> FinancialPeriod:
-        ...
-```
-
-```python
-class CovenantResultRepository:
-
-    def get_history(
-        self,
-        borrower_id: str,
-        covenant_type: str,
-    ) -> list[CovenantResult]:
-        ...
-```
-
-```python
-class RiskPredictionRepository:
-
-    def save(
-        self,
-        prediction: RiskPrediction,
-    ) -> None:
-        ...
-```
-
----
-
-# 15. Recommended Retrieval Architecture
-
-Use two retrieval paths.
-
-```text
-                  Analyst / Monitoring Agent
-                           │
-              ┌────────────┴────────────┐
-              │                         │
-              ▼                         ▼
-       Structured Query            Document RAG
-              │                         │
-              ▼                         ▼
-    Covenant / Financial       Original evidence
-    / Historical state         and legal language
-```
-
-Example analyst question:
-
-```text
-"What is Acme's current leverage covenant?"
-```
-
-Answer primarily from:
-
-```text
-ResolvedCovenant
-```
-
-Then attach source evidence retrieved from:
-
-```text
-Document RAG
-```
-
-Example:
-
-```text
-Current covenant:
-Net leverage <= 5.50x
-
-Effective period:
-Q1 2026 onward
-
-Source:
-Credit Agreement Amendment No. 2, Section 6.11
-```
-
-The structured state answers the question.
-
-RAG provides provenance.
-
----
-
-# 16. Suggested Project Structure
-
-Add modules similar to:
-
-```text
-src/
-    domain/
-        risk_features.py
-        risk_prediction.py
-
-    features/
-        risk_feature_builder.py
-
-    ml/
-        base.py
-        factory.py
-        stub_model.py
-        logistic_regression.py
-
-    repositories/
-        covenant_repository.py
-        financial_repository.py
-        covenant_result_repository.py
-        risk_prediction_repository.py
-
-    workflows/
-        quarterly_monitoring.py
-```
-
-Do not reorganize unrelated existing modules unless necessary.
-
----
-
-# 17. Tests
-
-Add unit tests for:
-
-```text
-feature calculation
-
-missing historical periods
-
-headroom calculation input
-
-model interface
-
-prediction bounds
-
-model factory
-
-prediction persistence
-```
-
-Add workflow test:
-
-```text
-document/extracted covenant
-        ↓
-resolved covenant
-        ↓
-financial data
-        ↓
-covenant result
-        ↓
-feature vector
-        ↓
-ML prediction
-        ↓
-risk assessment
-```
-
-The workflow test can use the stub ML model.
-
----
-
-# 18. Acceptance Criteria
-
-The implementation is complete when:
-
-1. Covenant calculation still works independently of ML.
-
-2. Risk features can be constructed from stored structured data.
-
-3. A model implementation can be swapped without changing the monitoring workflow.
-
-4. Risk predictions are stored with model name and version.
-
-5. Historical feature snapshots are preserved.
-
-6. The Risk / Trend Agent receives both deterministic covenant results and ML predictions.
-
-7. Raw-document RAG is not used to obtain data that already exists in the structured domain model.
-
-8. Every structured covenant remains traceable to its original document evidence.
-
-9. The complete quarterly assessment works with a stub ML model.
-
-10. The architecture supports adding Logistic Regression or XGBoost later without redesigning the workflow.
+The command prints the complete typed assessment and appends analytics records. It does not call
+an LLM, download sources, change benchmark CSVs, or connect the mocked analyst UI.

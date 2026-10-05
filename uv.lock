@@ -26,6 +26,14 @@ dependencies = [
     { name = "streamlit" },
 ]
 
+[package.optional-dependencies]
+ml = [
+    { name = "joblib" },
+    { name = "numpy" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
@@ -36,17 +44,22 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.0" },
     { name = "gitsource", specifier = ">=0.0.5" },
+    { name = "joblib", marker = "extra == 'ml'", specifier = "==1.5.3" },
     { name = "jupyter", specifier = ">=1.0.0" },
     { name = "markitdown", specifier = ">=0.1.0" },
     { name = "minsearch", specifier = ">=0.0.5" },
+    { name = "numpy", marker = "extra == 'ml'", specifier = "==2.4.4" },
     { name = "openai", specifier = ">=2.30.0" },
     { name = "openai-agents", specifier = ">=0.23.1" },
     { name = "pandas", specifier = ">=2.2.0" },
     { name = "pydantic", specifier = ">=2.12.5,<3" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "requests", specifier = ">=2.32.0" },
+    { name = "scikit-learn", marker = "extra == 'ml'", specifier = "==1.8.0" },
+    { name = "scipy", marker = "extra == 'ml'", specifier = "==1.17.1" },
     { name = "streamlit", specifier = ">=1.41.0" },
 ]
+provides-extras = ["ml"]
 
 [package.metadata.requires-dev]
 dev = [

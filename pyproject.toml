@@ -19,6 +19,14 @@ dependencies = [
     "streamlit>=1.41.0",
 ]
 
+[project.optional-dependencies]
+ml = [
+    "scikit-learn==1.8.0",
+    "numpy==2.4.4",
+    "scipy==1.17.1",
+    "joblib==1.5.3",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.0",

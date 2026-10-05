@@ -125,6 +125,44 @@ with sqlite3.connect(database_path) as connection:
     )
 ```
 
+## Quarterly assessment and optional ML
+
+The assessment service now resolves existing covenant inputs, calculates leverage and coverage,
+and stores calculation history in a separate analytics database. Optional feature engineering
+and a replaceable model service run after those results are persisted. The built-in stub returns
+unknown risk and null probabilities; it does not forecast events. The analyst UI remains a mock.
+An optional Logistic Regression model can be trained on independently generated synthetic histories
+and loaded through the same model service.
+
+After loading financials, run:
+
+```bash
+uv run python scripts/run_assessment.py \
+  --borrower-id SYN002 \
+  --period-end 2025-09-30 \
+  --information-cutoff 2025-09-30 \
+  --ml
+```
+
+Omit `--ml` for deterministic assessments only. See [service usage and storage](docs/ml_early_warning.md)
+for Python interfaces, existing extraction inputs, and data limits. Model-training dependencies are
+available through the optional `ml` extra. Financial loading and document-processing APIs retain
+their existing behavior.
+
+To generate the dataset and train the baseline:
+
+```bash
+uv sync --extra ml --locked
+uv run --extra ml python scripts/generate_training_dataset.py
+uv run --extra ml python scripts/train_risk_model.py
+```
+
+The default dataset contains 600 simulated borrowers and 4,800 quarterly observations. Artifacts
+are saved under `data/models/logistic_regression/v1/`. Select them explicitly with `--ml`,
+`--model-type logistic_regression`, and `--model-artifact` when assessing a borrower. Follow the
+[complete trained-model workflow](docs/ml_early_warning.md#use-the-trained-model-in-assessments)
+for the required input paths. Evaluation measures performance on the simulation.
+
 ## Repository map
 
 - `src/credit_monitoring/` — package boundaries for the planned application layers
