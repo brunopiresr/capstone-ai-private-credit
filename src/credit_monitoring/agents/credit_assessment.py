@@ -2,11 +2,9 @@
 
 import asyncio
 import json
-from dataclasses import dataclass, field
 
 from agents import (
     Agent,
-    FunctionTool,
     MaxTurnsExceeded,
     ModelBehaviorError,
     ModelResponse,
@@ -16,6 +14,7 @@ from agents import (
     RunContextWrapper,
     RunHooks,
     Runner,
+    Tool,
     ToolErrorFormatterArgs,
     ToolExecutionConfig,
 )
@@ -24,54 +23,19 @@ from openai import APIError, AsyncOpenAI, OpenAI
 
 from credit_monitoring.agents.prompts.credit_assessment import CREDIT_ASSESSMENT_INSTRUCTIONS
 from credit_monitoring.agents.responses_client import AgentFailure, ResponsesClientAdapter
+from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.assessment import AssessmentTools
-from credit_monitoring.agents.tools.documents import DocumentTools, decode_arguments
+from credit_monitoring.agents.tools.documents import DocumentTools
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.domain.agent import AgentAnswer, SourceReference, ToolExecution
+from credit_monitoring.domain.agent import AgentAnswer
 
 
-@dataclass
-class _QuestionState:
-    tools: DocumentTools
-    max_tool_rounds: int
-    assessment_tools: AssessmentTools | None = None
-    tool_rounds: int = 0
-    trace: list[ToolExecution] = field(default_factory=list)
-    sources: dict[tuple[str, str], SourceReference] = field(default_factory=dict)
-    arguments: dict[str, str] = field(default_factory=dict)
-
-    def execute(self, name: str, call_id: str, raw_arguments: str) -> str:
-        arguments = decode_arguments(raw_arguments)
-        dispatcher = (
-            self.assessment_tools
-            if self.assessment_tools and self.assessment_tools.supports(name)
-            else self.tools
-        )
-        outcome = dispatcher.execute(name, arguments)
-        self.trace.append(
-            ToolExecution(call_id=call_id, name=name, arguments=arguments, outcome=outcome)
-        )
-        for source in outcome.get("sources", []):
-            reference = SourceReference(**source)
-            self.sources[(reference.document_id, reference.citation)] = reference
-        return json.dumps(outcome, ensure_ascii=False)
-
-    def answer(self, text: str, error: str | None = None) -> AgentAnswer:
-        return AgentAnswer(
-            answer=text,
-            complete=error is None,
-            error=error,
-            sources=list(self.sources.values()),
-            tool_trace=self.trace,
-        )
-
-
-class _QuestionHooks(RunHooks[_QuestionState]):
+class _QuestionHooks(RunHooks[AgentRunState]):
     async def on_llm_end(
         self,
-        context: RunContextWrapper[_QuestionState],
-        agent: Agent[_QuestionState],
+        context: RunContextWrapper[AgentRunState],
+        agent: Agent[AgentRunState],
         response: ModelResponse,
     ) -> None:
         calls = [item for item in response.output if item.type == "function_call"]
@@ -89,18 +53,30 @@ class _QuestionHooks(RunHooks[_QuestionState]):
         state.tool_rounds += 1
         state.arguments = {call.call_id: call.arguments for call in calls}
 
+    async def on_tool_end(
+        self,
+        context: RunContextWrapper[AgentRunState],
+        agent: Agent[AgentRunState],
+        tool: Tool,
+        result: object,
+    ) -> None:
+        if isinstance(context, ToolContext) and isinstance(result, str):
+            context.context.record(
+                context.tool_name,
+                context.tool_call_id,
+                context.tool_arguments,
+                json.loads(result),
+            )
 
-async def _invoke_tool(context: ToolContext[_QuestionState], arguments: str) -> str:
-    # Services are synchronous and may process documents or persist assessments. Keep that work
-    # off the event loop; the runner limits local function concurrency to one.
-    return await asyncio.to_thread(
-        context.context.execute, context.tool_name, context.tool_call_id, arguments
-    )
 
-
-def _unknown_tool_result(args: ToolErrorFormatterArgs[_QuestionState]) -> str:
+def _unknown_tool_result(args: ToolErrorFormatterArgs[AgentRunState]) -> str:
     state = args.run_context.context
-    return state.execute(args.tool_name, args.call_id, state.arguments[args.call_id])
+    return state.record(
+        args.tool_name,
+        args.call_id,
+        state.arguments[args.call_id],
+        {"ok": False, "error": "unknown_tool", "message": f"Unknown tool: {args.tool_name}"},
+    )
 
 
 class CreditAssessmentAgent:
@@ -140,34 +116,24 @@ class CreditAssessmentAgent:
     ) -> AgentAnswer:
         if not question.strip():
             raise ValueError("Question must not be empty.")
-        state = _QuestionState(DocumentTools(self.service, ticker=ticker), self.max_tool_rounds)
+        state = AgentRunState(max_tool_rounds=self.max_tool_rounds)
+        documents = DocumentTools(self.service, ticker=ticker)
+        tools = documents.tools
         if borrower_id is not None:
             if self.assessment_service is None:
                 raise ValueError("Configure an assessment_service before supplying a borrower ID.")
-            state.assessment_tools = AssessmentTools(
-                self.assessment_service, borrower_id=borrower_id
-            )
-        definitions = state.tools.definitions
-        if state.assessment_tools is not None:
-            definitions += state.assessment_tools.definitions
+            assessments = AssessmentTools(self.assessment_service, borrower_id=borrower_id)
+            tools += assessments.tools
         # Each question owns its tools and trace, so issuer/borrower scope and evidence do
         # not leak between calls. The SDK owns history and the execution loop.
-        agent = Agent[_QuestionState](
+        agent = Agent[AgentRunState](
             name="Credit assessment agent",
             instructions=CREDIT_ASSESSMENT_INSTRUCTIONS,
             model=OpenAIResponsesModel(
                 model=self.model, openai_client=ResponsesClientAdapter(self.client)
             ),
             model_settings=ModelSettings(parallel_tool_calls=False),
-            tools=[
-                FunctionTool(
-                    name=definition["name"],
-                    description=definition["description"],
-                    params_json_schema=definition["parameters"],
-                    on_invoke_tool=_invoke_tool,
-                )
-                for definition in definitions
-            ],
+            tools=tools,
         )
         try:
             result = await Runner.run(

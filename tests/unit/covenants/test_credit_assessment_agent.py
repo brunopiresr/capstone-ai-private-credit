@@ -9,6 +9,8 @@ from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
+from agents import Agent, OpenAIResponsesModel, RunConfig, Runner
+from agents.tool_context import ToolContext
 from openai import APIError, AsyncOpenAI, OpenAI
 from openai.types.responses import (
     Response,
@@ -19,7 +21,9 @@ from openai.types.responses import (
     ResponseReasoningItem,
 )
 
-from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
+from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent, _QuestionHooks
+from credit_monitoring.agents.responses_client import ResponsesClientAdapter
+from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.assessment import AssessmentTools
 from credit_monitoring.agents.tools.documents import DocumentTools
 from credit_monitoring.application.assessment_service import AssessmentService
@@ -92,6 +96,19 @@ def agent(service, **kwargs):
     return CreditAssessmentAgent(client=client, service=service, **kwargs), client
 
 
+def invoke_tool(container, name, arguments):
+    """Invoke an actual SDK function tool without a model or service dispatcher."""
+    tool = next(tool for tool in container.tools if tool.name == name)
+    raw = arguments if isinstance(arguments, str) else json.dumps(arguments)
+    context = ToolContext(
+        context=AgentRunState(max_tool_rounds=6),
+        tool_name=name,
+        tool_call_id="direct_test_call",
+        tool_arguments=raw,
+    )
+    return json.loads(asyncio.run(tool.on_invoke_tool(context, raw)))
+
+
 def test_document_discovery_processing_cache_read_and_rag_loop(
     document_service_factory,
     sdk_response,
@@ -132,7 +149,11 @@ def test_document_discovery_processing_cache_read_and_rag_loop(
         ("get_document_extraction", "{broken json", "invalid_arguments"),
         ("get_document_extraction", "[]", "invalid_arguments"),
         ("process_document", {"document_id": "SYN", "force": True}, "invalid_arguments"),
+        ("get_document_extraction", {"document_id": ""}, "invalid_arguments"),
         ("get_document_extraction", {"document_id": 3}, "invalid_arguments"),
+        ("list_documents", {"ticker": 3}, "invalid_arguments"),
+        ("search_evidence", {"query": ""}, "invalid_arguments"),
+        ("search_evidence", {"query": "leverage", "ctx": {}}, "invalid_arguments"),
         ("get_document_extraction", {"document_id": "UNKNOWN"}, "service_error"),
         ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "service_error"),
     ],
@@ -162,7 +183,7 @@ def test_stale_result_is_visible_and_cannot_supply_old_facts(
     service.process_document("SYN")
     service.model = "changed-model"
     tools = DocumentTools(service)
-    result = tools.execute("get_document_extraction", {"document_id": "SYN"})
+    result = invoke_tool(tools, "get_document_extraction", {"document_id": "SYN"})
     assert result["data"]["status"] == "stale" and result["data"]["result"] is None
     assert result["sources"] == []
 
@@ -170,7 +191,7 @@ def test_stale_result_is_visible_and_cannot_supply_old_facts(
 def test_scoped_agent_cannot_process_other_issuer(document_service_factory):
     service = document_service_factory()
     tools = DocumentTools(service, ticker="OTHER")
-    result = tools.execute("process_document", {"document_id": "SYN"})
+    result = invoke_tool(tools, "process_document", {"document_id": "SYN"})
     assert result["error"] == "service_error"
     service.client.responses.parse.assert_not_called()
 
@@ -216,13 +237,78 @@ def test_api_failure_retains_executed_trace(document_service_factory):
 
 
 def test_tool_schemas_are_strict_and_configuration_is_not_exposed(document_service_factory):
-    definitions = DocumentTools(document_service_factory()).definitions
+    definitions = DocumentTools(document_service_factory()).tools
     assert len(definitions) == 4
     for tool in definitions:
-        schema = tool["parameters"]
-        assert tool["strict"] and schema["additionalProperties"] is False
+        schema = tool.params_json_schema
+        assert tool.strict_json_schema and schema["additionalProperties"] is False
         assert set(schema["required"]) == set(schema["properties"])
         assert "force" not in schema["properties"] and "client" not in schema["properties"]
+        assert "self" not in schema["properties"] and "ctx" not in schema["properties"]
+
+
+def test_sdk_uses_tool_and_parameter_docstrings(document_service_factory, agent_assessment_service):
+    tools = (
+        DocumentTools(document_service_factory()).tools
+        + AssessmentTools(agent_assessment_service, borrower_id="SYN002").tools
+    )
+    for tool in tools:
+        assert tool.description
+        assert "Args:" not in tool.description
+        for parameter in tool.params_json_schema["properties"].values():
+            assert parameter["description"]
+    descriptions = {tool.name: tool.description for tool in tools}
+    assert "use process_document" in descriptions["get_document_extraction"]
+    assert "does not invoke ML" in descriptions["assess_covenants"]
+    assert "stub supplies no forecast" in descriptions["predict_risk"]
+
+
+def test_tool_classes_are_reusable_by_independent_sdk_agents():
+    first_service, second_service = Mock(), Mock()
+    first_service.search_evidence.return_value = [
+        {"document_id": "FIRST", "citation": "First filing", "content": "First evidence"}
+    ]
+    second_service.search_evidence.return_value = [
+        {"document_id": "SECOND", "citation": "Second filing", "content": "Second evidence"}
+    ]
+    first_tools = DocumentTools(first_service, ticker="FIRST")
+    second_tools = DocumentTools(second_service, ticker="SECOND")
+
+    async def run(container):
+        client = Mock()
+        client.responses.create = AsyncMock(
+            side_effect=[
+                response(("search_evidence", {"query": "leverage", "ticker": None})),
+                response(answer="Evidence retrieved."),
+            ]
+        )
+        sdk_agent = Agent[AgentRunState](
+            name="Reusable research agent",
+            model=OpenAIResponsesModel(
+                model="gpt-4o-mini", openai_client=ResponsesClientAdapter(client)
+            ),
+            tools=container.tools,
+        )
+        state = AgentRunState(max_tool_rounds=1)
+        await Runner.run(
+            sdk_agent,
+            "Find leverage evidence.",
+            context=state,
+            hooks=_QuestionHooks(),
+            run_config=RunConfig(tracing_disabled=True),
+        )
+        return state
+
+    async def run_both():
+        return await asyncio.gather(run(first_tools), run(second_tools))
+
+    first, second = asyncio.run(run_both())
+    first_service.search_evidence.assert_called_once_with(query="leverage", ticker="FIRST")
+    second_service.search_evidence.assert_called_once_with(query="leverage", ticker="SECOND")
+    assert [source.document_id for source in first.sources.values()] == ["FIRST"]
+    assert [source.document_id for source in second.sources.values()] == ["SECOND"]
+    assert first.trace[0].outcome["data"][0]["content"] == "First evidence"
+    assert second.trace[0].outcome["data"][0]["content"] == "Second evidence"
 
 
 @pytest.mark.parametrize("async_client", [False, True])
@@ -450,8 +536,8 @@ def test_tools_preserve_contractual_applicability_and_missing_inputs(
 ):
     tools = AssessmentTools(agent_assessment_service, borrower_id=borrower)
     agent_assessment_service.settings.ml_enabled = True
-    outcome = tools.execute(
-        "assess_covenants", {"period_end": period, "information_cutoff": period}
+    outcome = invoke_tool(
+        tools, "assess_covenants", {"period_end": period, "information_cutoff": period}
     )
     assert outcome["ok"]
     assert outcome["data"]["results"][0]["compliance_status"] == status
@@ -472,6 +558,9 @@ def test_tools_preserve_contractual_applicability_and_missing_inputs(
         {**ASSESSMENT_DATES, "model_artifact": "/tmp/other"},
         {**ASSESSMENT_DATES, "ml_enabled": True},
         {**ASSESSMENT_DATES, "period_end": 20250930},
+        {**ASSESSMENT_DATES, "period_end": "2025-9-30"},
+        {**ASSESSMENT_DATES, "information_cutoff": 20250930},
+        {**ASSESSMENT_DATES, "ctx": {}},
     ],
 )
 def test_assessment_arguments_cannot_change_scope_or_configuration(
@@ -479,8 +568,8 @@ def test_assessment_arguments_cannot_change_scope_or_configuration(
 ):
     assess = Mock()
     monkeypatch.setattr(agent_assessment_service, "assess", assess)
-    result = AssessmentTools(agent_assessment_service, borrower_id="SYN002").execute(
-        "predict_risk", arguments
+    result = invoke_tool(
+        AssessmentTools(agent_assessment_service, borrower_id="SYN002"), "predict_risk", arguments
     )
     assert result["error"] == "invalid_arguments"
     assess.assert_not_called()
@@ -488,14 +577,16 @@ def test_assessment_arguments_cannot_change_scope_or_configuration(
 
 def test_financial_tools_do_not_substitute_another_reporting_period(agent_assessment_service):
     tools = AssessmentTools(agent_assessment_service, borrower_id="SYN002")
-    result = tools.execute(
-        "get_financials", {"period_end": "2025-08-31", "information_cutoff": "2025-08-31"}
+    result = invoke_tool(
+        tools, "get_financials", {"period_end": "2025-08-31", "information_cutoff": "2025-08-31"}
     )
     assert result["data"]["current"] is None
     assert len(result["data"]["history"]) == 2
     assert result["data"]["issues"]
-    unknown = AssessmentTools(agent_assessment_service, borrower_id="UNKNOWN").execute(
-        "predict_risk", ASSESSMENT_DATES
+    unknown = invoke_tool(
+        AssessmentTools(agent_assessment_service, borrower_id="UNKNOWN"),
+        "predict_risk",
+        ASSESSMENT_DATES,
     )
     assert unknown["data"]["results"] == []
     assert unknown["data"]["ml_status"] == "unavailable"
@@ -509,7 +600,7 @@ def test_financial_tools_respect_known_availability(agent_assessment_service, mo
         agent_assessment_service.financial_repository, "get_history", Mock(return_value=[row])
     )
     tools = AssessmentTools(agent_assessment_service, borrower_id="SYN002")
-    result = tools.execute("get_financials", ASSESSMENT_DATES)
+    result = invoke_tool(tools, "get_financials", ASSESSMENT_DATES)
     assert result["data"]["current"] is None and result["data"]["history"] == []
     assert any("exceed the cutoff" in issue for issue in result["data"]["issues"])
 
@@ -710,10 +801,10 @@ def test_agent_processes_document_then_assesses_bound_formula_with_sources(
 
 
 def test_assessment_schemas_expose_dates_only(agent_assessment_service):
-    definitions = AssessmentTools(agent_assessment_service, borrower_id="SYN002").definitions
+    definitions = AssessmentTools(agent_assessment_service, borrower_id="SYN002").tools
     for tool in definitions:
-        schema = tool["parameters"]
-        assert tool["strict"] and schema["additionalProperties"] is False
+        schema = tool.params_json_schema
+        assert tool.strict_json_schema and schema["additionalProperties"] is False
         assert (
             set(schema["required"])
             == set(schema["properties"])

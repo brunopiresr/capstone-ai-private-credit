@@ -1,42 +1,25 @@
-"""Borrower-scoped tools over the existing calculation and prediction workflow."""
+"""Borrower-scoped SDK tools over the existing calculation and prediction workflow."""
 
-import sqlite3
+import json
 from datetime import date
-from typing import Any
 
-from pydantic import Field, ValidationError
+from agents import FunctionTool, function_tool
+from agents.tool_context import ToolContext
 
-from credit_monitoring.agents.tools.documents import ToolArguments
+from credit_monitoring.agents.run_state import AgentRunState
+from credit_monitoring.agents.tools.common import (
+    InvalidToolArguments,
+    ISODate,
+    tool_error,
+    tool_result,
+    validate_call,
+)
 from credit_monitoring.application.assessment_service import AssessmentService
-from credit_monitoring.domain.assessment import FinancialPeriod
-
-
-class AssessmentArguments(ToolArguments):
-    period_end: str = Field(
-        pattern=r"^\d{4}-\d{2}-\d{2}$", description="Reporting date, YYYY-MM-DD."
-    )
-    information_cutoff: str = Field(
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-        description="Explicit information cutoff, YYYY-MM-DD; on or after the reporting date.",
-    )
-
-
-_TOOLS = {
-    "get_financials": "Read source financial metrics and history for the scoped borrower.",
-    "assess_covenants": (
-        "Resolve configured covenant terms, calculate ratios, compliance and headroom, "
-        "verify and persist results. Does not invoke ML."
-    ),
-    "predict_risk": (
-        "Run verified covenant calculations and the application-configured ML model. "
-        "Return current compliance separately from the next-quarter prediction, "
-        "with exact feature snapshot and model metadata. A stub supplies no forecast."
-    ),
-}
+from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
 
 
 class AssessmentTools:
-    """Dates are model-supplied; borrower, formulas, database and model are application-owned."""
+    """The application owns borrower scope, services, formulas, databases and model selection."""
 
     def __init__(self, service: AssessmentService, *, borrower_id: str) -> None:
         if not borrower_id.strip():
@@ -45,52 +28,112 @@ class AssessmentTools:
         self.borrower_id = borrower_id
 
     @property
-    def definitions(self) -> list[dict]:
+    def tools(self) -> list[FunctionTool]:
         return [
-            {
-                "type": "function",
-                "name": name,
-                "description": description,
-                "parameters": AssessmentArguments.model_json_schema(),
-                "strict": True,
-            }
-            for name, description in _TOOLS.items()
+            function_tool(method, failure_error_function=tool_error)
+            for method in (self.get_financials, self.assess_covenants, self.predict_risk)
         ]
 
-    def supports(self, name: str) -> bool:
-        return name in _TOOLS
+    def get_financials(
+        self,
+        ctx: ToolContext[AgentRunState],
+        period_end: ISODate,
+        information_cutoff: ISODate,
+    ) -> str:
+        """Read source financial metrics and history for the borrower.
 
-    def execute(self, name: str, arguments: Any) -> dict:
-        if name not in _TOOLS:
-            return {"ok": False, "error": "unknown_tool", "message": f"Unknown tool: {name}"}
+        Use this to inspect inputs before requesting calculations. Borrower
+        scope comes from the application. Obtain both dates from the analyst;
+        do not substitute today's date.
+
+        Args:
+            period_end: The reporting date, formatted as YYYY-MM-DD.
+            information_cutoff: The information cutoff, formatted as YYYY-MM-DD.
+                It must be on or after period_end.
+
+        Returns:
+            JSON containing current financial metrics, earlier periods, source
+            provenance, and missing-data or availability issues. No alternative
+            reporting period is substituted.
+        """
+        validate_call(ctx, self.get_financials)
+        period, cutoff = self._dates(period_end, information_cutoff)
+        return json.dumps(self._financials(period, cutoff), ensure_ascii=False)
+
+    def assess_covenants(
+        self,
+        ctx: ToolContext[AgentRunState],
+        period_end: ISODate,
+        information_cutoff: ISODate,
+    ) -> str:
+        """Calculate and verify current covenant compliance and headroom.
+
+        Use this for deterministic covenant assessments. The service resolves
+        configured terms, applies established formulas, and persists results.
+        This tool does not invoke ML.
+
+        Args:
+            period_end: The reporting date, formatted as YYYY-MM-DD.
+            information_cutoff: The information cutoff, formatted as YYYY-MM-DD.
+                It must be on or after period_end.
+
+        Returns:
+            JSON containing calculated ratios, applicable thresholds, compliance,
+            headroom, verification, provenance, and run IDs. Missing inputs and
+            unresolved terms remain explicit.
+        """
+        validate_call(ctx, self.assess_covenants)
+        period, cutoff = self._dates(period_end, information_cutoff)
+        assessment = self.service.assess(self.borrower_id, period, cutoff, ml_enabled=False)
+        return self._assessment_result(assessment)
+
+    def predict_risk(
+        self,
+        ctx: ToolContext[AgentRunState],
+        period_end: ISODate,
+        information_cutoff: ISODate,
+    ) -> str:
+        """Run covenant calculations and the configured risk model.
+
+        Use this when the analyst requests a forecast. Report current observed
+        compliance separately from the next-quarter prediction. The application
+        selects the model; a stub supplies no forecast.
+
+        Args:
+            period_end: The reporting date, formatted as YYYY-MM-DD.
+            information_cutoff: The information cutoff, formatted as YYYY-MM-DD.
+                It must be on or after period_end.
+
+        Returns:
+            JSON containing covenant results, prediction status, supplied
+            probabilities, the exact feature snapshot, and model metadata.
+            Valid calculations are retained when prediction fails.
+        """
+        validate_call(ctx, self.predict_risk)
+        period, cutoff = self._dates(period_end, information_cutoff)
+        assessment = self.service.assess(self.borrower_id, period, cutoff, ml_enabled=True)
+        return self._assessment_result(assessment)
+
+    @staticmethod
+    def _dates(period_end: str, information_cutoff: str) -> tuple[date, date]:
         try:
-            args = AssessmentArguments.model_validate(arguments)
-            period_end = date.fromisoformat(args.period_end)
-            cutoff = date.fromisoformat(args.information_cutoff)
-            if cutoff < period_end:
-                raise ValueError("Information cutoff must be on or after the reporting date.")
-        except (ValidationError, ValueError) as exc:
-            return {"ok": False, "error": "invalid_arguments", "message": str(exc)}
-        try:
-            if name == "get_financials":
-                return self._financials(period_end, cutoff)
-            assessment = self.service.assess(
-                self.borrower_id, period_end, cutoff, ml_enabled=name == "predict_risk"
-            )
-            sources = []
-            for result in assessment.results + assessment.history:
-                for evidence in result.evidence:
-                    if evidence.get("document_id") and evidence.get("citation"):
-                        sources.append(
-                            {
-                                "document_id": evidence["document_id"],
-                                "citation": evidence["citation"],
-                            }
-                        )
-            # ML failures and abstentions remain in the typed outcome, alongside calculations.
-            return {"ok": True, "data": assessment.model_dump(mode="json"), "sources": sources}
-        except (OSError, ValueError, sqlite3.Error) as exc:
-            return {"ok": False, "error": "service_error", "message": str(exc)}
+            period = date.fromisoformat(period_end)
+            cutoff = date.fromisoformat(information_cutoff)
+        except ValueError as exc:
+            raise InvalidToolArguments(str(exc)) from exc
+        if cutoff < period:
+            raise InvalidToolArguments("Information cutoff must be on or after the reporting date.")
+        return period, cutoff
+
+    @staticmethod
+    def _assessment_result(assessment: RiskAssessment) -> str:
+        sources = [
+            {"document_id": evidence["document_id"], "citation": evidence["citation"]}
+            for result in assessment.results + assessment.history
+            for evidence in result.evidence
+            if evidence.get("document_id") and evidence.get("citation")
+        ]
+        return tool_result(assessment.model_dump(mode="json"), sources=sources)
 
     def _financials(self, period_end: date, cutoff: date) -> dict:
         rows = self.service.financial_repository.get_history(

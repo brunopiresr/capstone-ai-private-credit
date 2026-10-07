@@ -52,6 +52,10 @@ interfaces, cache behavior, tool loop, and verification migration notes.
 The credit assessment agent uses the OpenAI Agents SDK while retaining the document
 service and evidence trace. Use `agent.ask()` in synchronous application code or
 `await agent.ask_async()` in notebooks and asynchronous applications.
+Its reusable `DocumentTools` and `AssessmentTools` classes expose typed methods with
+descriptive docstrings; their `.tools` properties wrap bound methods with SDK
+`function_tool()`. Services and scope stay on tool instances, while `AgentRunState`
+contains only per-question execution state. See [tool reuse](docs/document_processing.md#reuse-the-tool-classes).
 
 ## Setup
 

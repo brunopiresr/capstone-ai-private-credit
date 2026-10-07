@@ -1,47 +1,18 @@
-"""Allowlisted document tools with strict arguments and application-owned configuration."""
+"""Reusable document methods wrapped as SDK tools from signatures and docstrings."""
 
-import json
-import sqlite3
-from typing import Any
+from agents import FunctionTool, function_tool
+from agents.tool_context import ToolContext
+from pydantic import StrictStr
 
-import requests
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
-
+from credit_monitoring.agents.run_state import AgentRunState
+from credit_monitoring.agents.tools.common import (
+    NonEmptyString,
+    tool_error,
+    tool_result,
+    validate_call,
+)
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.covenants.extraction import ExtractionError
-
-
-class ToolArguments(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-
-class ListArguments(ToolArguments):
-    ticker: str | None = Field(default=None, description="Restrict to a catalog ticker, or null.")
-
-
-class DocumentArguments(ToolArguments):
-    document_id: str = Field(min_length=1, description="Exact catalog document ID.")
-
-
-class SearchArguments(ListArguments):
-    query: str = Field(min_length=1, description="Question or terms to search in source passages.")
-
-
-_TOOLS = {
-    "list_documents": (ListArguments, "List catalog documents and current processing states."),
-    "get_document_extraction": (
-        DocumentArguments,
-        "Read stored facts; report missing/stale state.",
-    ),
-    "search_evidence": (
-        SearchArguments,
-        "Retrieve cited filing passages without generating an answer.",
-    ),
-    "process_document": (
-        DocumentArguments,
-        "Extract all document facts, reusing a successful cache.",
-    ),
-}
+from credit_monitoring.domain.processing import DocumentExtraction
 
 
 class DocumentTools:
@@ -50,70 +21,129 @@ class DocumentTools:
         self.ticker = ticker
 
     @property
-    def definitions(self) -> list[dict]:
-        definitions = []
-        for name, (model, description) in _TOOLS.items():
-            schema = model.model_json_schema()
-            schema["required"] = list(schema["properties"])
-            for field in schema["properties"].values():
-                field.pop("default", None)
-            definitions.append(
-                {
-                    "type": "function",
-                    "name": name,
-                    "description": description,
-                    "parameters": schema,
-                    "strict": True,
-                }
+    def tools(self) -> list[FunctionTool]:
+        return [
+            function_tool(method, failure_error_function=tool_error)
+            for method in (
+                self.list_documents,
+                self.get_document_extraction,
+                self.search_evidence,
+                self.process_document,
             )
-        return definitions
+        ]
 
-    def execute(self, name: str, arguments: Any) -> dict:
-        if name not in _TOOLS:
-            return {"ok": False, "error": "unknown_tool", "message": f"Unknown tool: {name}"}
-        try:
-            args = _TOOLS[name][0].model_validate(arguments).model_dump()
-        except ValidationError as exc:
-            return {"ok": False, "error": "invalid_arguments", "message": str(exc)}
-        try:
-            if "ticker" in args:
-                if self.ticker and args["ticker"] not in (None, self.ticker):
-                    raise ValueError("Tool ticker is outside the requested issuer scope.")
-                args["ticker"] = self.ticker or args["ticker"]
-            if "document_id" in args and self.ticker:
-                record = self.service.catalog_record(args["document_id"])
-                if record.get("ticker") != self.ticker:
-                    raise ValueError("Document is outside the requested issuer scope.")
-            sources = []
-            if name == "list_documents":
-                documents = self.service.list_document_extractions(**args, include_results=False)
-                data = [d.model_dump(mode="json", exclude={"result"}) for d in documents]
-            elif name == "search_evidence":
-                records = self.service.search_evidence(**args)
-                data = records
-                sources = [
-                    {"document_id": r["document_id"], "citation": r["citation"]} for r in records
-                ]
-            else:
-                method = getattr(self.service, name)
-                document = method(**args)
-                data = document.model_dump(mode="json")
-                if document.status == "complete":
-                    sources = [{"document_id": document.document_id, "citation": document.citation}]
-            return {"ok": True, "data": data, "sources": sources}
-        except (
-            ExtractionError,
-            OSError,
-            ValueError,
-            sqlite3.Error,
-            requests.RequestException,
-        ) as exc:
-            return {"ok": False, "error": "service_error", "message": str(exc)}
+    def list_documents(
+        self, ctx: ToolContext[AgentRunState], ticker: StrictStr | None = None
+    ) -> str:
+        """Discover available documents and their processing states.
 
+        Use this tool to obtain valid document IDs before reading extractions or
+        processing documents. Catalog descriptions identify documents; they are
+        not evidence of financial facts.
 
-def decode_arguments(raw: str) -> dict | None:
-    try:
-        value = json.loads(raw)
-    except TypeError, json.JSONDecodeError:
-        return None
-    return value if isinstance(value, dict) else None
+        Args:
+            ticker: Restrict results to this catalog ticker, or None. An
+                application-configured ticker takes precedence; requests for a
+                different ticker are rejected.
+
+        Returns:
+            JSON containing document metadata and processing states. Extracted
+            facts are excluded from this listing.
+        """
+        validate_call(ctx, self.list_documents)
+        documents = self.service.list_document_extractions(
+            ticker=self._resolve_ticker(ticker), include_results=False
+        )
+        return tool_result(
+            [document.model_dump(mode="json", exclude={"result"}) for document in documents]
+        )
+
+    def get_document_extraction(
+        self, ctx: ToolContext[AgentRunState], document_id: NonEmptyString
+    ) -> str:
+        """Read the stored extraction for a catalog document.
+
+        Use a document ID obtained from list_documents. If the extraction is
+        missing or stale, use process_document when current facts are needed.
+
+        Args:
+            document_id: The exact catalog document ID.
+
+        Returns:
+            JSON containing processing status, extracted facts when complete
+            and current, and source citations. Other states are reported
+            explicitly without supplying old facts.
+        """
+        validate_call(ctx, self.get_document_extraction)
+        self._check_document_scope(document_id)
+        document = self.service.get_document_extraction(document_id)
+        return self._document_result(document)
+
+    def search_evidence(
+        self,
+        ctx: ToolContext[AgentRunState],
+        query: NonEmptyString,
+        ticker: StrictStr | None = None,
+    ) -> str:
+        """Retrieve filing passages that support an analyst question.
+
+        Use this tool for supporting source text or questions beyond stored
+        facts. Read stored extractions for complete covenant schedules; search
+        returns only selected passages.
+
+        Args:
+            query: The question or terms to search for in filings.
+            ticker: Restrict results to this catalog ticker, or None. Requests
+                outside the configured ticker scope are rejected.
+
+        Returns:
+            JSON containing matching passages, document IDs, and exact
+            citations. This tool does not generate an answer.
+        """
+        validate_call(ctx, self.search_evidence)
+        passages = self.service.search_evidence(query=query, ticker=self._resolve_ticker(ticker))
+        return tool_result(
+            passages,
+            sources=[
+                {"document_id": passage["document_id"], "citation": passage["citation"]}
+                for passage in passages
+            ],
+        )
+
+    def process_document(self, ctx: ToolContext[AgentRunState], document_id: NonEmptyString) -> str:
+        """Extract supported facts from a complete catalog document.
+
+        Use this when needed facts have no complete, current extraction. A
+        successful current extraction is reused from cache. This tool does not
+        permit forced reprocessing.
+
+        Args:
+            document_id: The exact document ID from list_documents.
+
+        Returns:
+            JSON containing processing status, extracted facts when successful,
+            cache-hit information, and source citations. Processing failures
+            remain explicit in the result.
+        """
+        validate_call(ctx, self.process_document)
+        self._check_document_scope(document_id)
+        document = self.service.process_document(document_id)
+        return self._document_result(document)
+
+    def _resolve_ticker(self, requested: str | None) -> str | None:
+        if self.ticker and requested not in (None, self.ticker):
+            raise ValueError("Tool ticker is outside the requested issuer scope.")
+        return self.ticker or requested
+
+    def _check_document_scope(self, document_id: str) -> None:
+        if self.ticker:
+            record = self.service.catalog_record(document_id)
+            if record.get("ticker") != self.ticker:
+                raise ValueError("Document is outside the requested issuer scope.")
+
+    @staticmethod
+    def _document_result(document: DocumentExtraction) -> str:
+        sources = []
+        if document.status == "complete":
+            sources.append({"document_id": document.document_id, "citation": document.citation})
+        return tool_result(document.model_dump(mode="json"), sources=sources)

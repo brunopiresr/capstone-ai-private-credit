@@ -149,6 +149,63 @@ public `AgentAnswer` contract. Tool execution is sequential even if a response
 contains several calls. Each question has separate context, sources, and trace.
 See the [official OpenAI Agents SDK quickstart](https://developers.openai.com/api/docs/guides/agents/quickstart?lang=python).
 
+### Reuse the tool classes
+
+`DocumentTools` and `AssessmentTools` expose explicit methods and a `.tools` property.
+The property wraps their bound methods with SDK `function_tool()`. Tool descriptions
+and argument descriptions come from each method's docstring; type annotations supply
+the schemas. There are no separate tool-definition dictionaries or service dispatchers.
+`self` and `ToolContext` are excluded from model-visible arguments.
+
+Each instance owns its service and issuer/borrower scope. Another agent can reuse the
+classes with its own configured services:
+
+```python
+from agents import Agent, RunConfig, Runner, ToolExecutionConfig
+from credit_monitoring.agents.run_state import AgentRunState
+from credit_monitoring.agents.tools.documents import DocumentTools
+from credit_monitoring.agents.tools.assessment import AssessmentTools
+
+documents = DocumentTools(service, ticker="FMC")
+tools = documents.tools
+
+# Optional: assessment_service must already be configured, and the application
+# must explicitly establish this borrower's relationship to the issuer.
+# assessments = AssessmentTools(assessment_service, borrower_id="BORROWER_ID")
+# tools += assessments.tools
+
+research_agent = Agent[AgentRunState](
+    name="Filing research agent",
+    model="gpt-4o-mini",
+    instructions="Use filing tools to answer questions with exact source citations.",
+    tools=tools,
+)
+result = await Runner.run(
+    research_agent,
+    "Find FMC's leverage covenant and supporting filing passages.",
+    context=AgentRunState(max_tool_rounds=6),
+    max_turns=7,
+    run_config=RunConfig(
+        tracing_disabled=True,
+        tool_execution=ToolExecutionConfig(max_function_tool_concurrency=1),
+    ),
+)
+print(result.final_output)
+```
+
+This direct SDK example returns SDK results. Use `CreditAssessmentAgent` for the
+public `AgentAnswer`, collected citations and trace, custom round budget, and raw
+response validation described below. Its SDK hooks collect successful and failed
+tool outcomes. `AgentRunState` holds only execution counters, pending arguments,
+sources and trace; it contains no services. Adding a service requires its tool
+class and agent registration rather than a new context field. Create fresh tool
+instances and state for each question to keep scope and execution state separate.
+
+The shared validation helper rejects unexpected raw arguments before service
+execution, including attempts to supply `force`, borrower overrides, or model
+configuration. Expected argument and service failures remain JSON error results
+the model can use on its next turn.
+
 The default permits six tool rounds plus one model response to finish. A further
 tool request returns `complete=False`, `error="tool_round_limit"`, and the existing
 sources and trace. Model refusals, incomplete responses, empty responses and API
