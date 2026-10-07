@@ -12,5 +12,6 @@ dist/
 /data/sec_documents/*
 /data/processed/*.sqlite3
 /data/processed/*.sqlite3-*
+/data/processed/judges*
 /data/synthetic_training/
 /data/models/

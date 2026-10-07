@@ -4,7 +4,7 @@ Status: Proposed. Scope: this private-credit capstone; no implementation or depl
 
 ## Context and evidence
 
-The existing [POC scope](../poc_definition.md) prioritizes traceable covenant monitoring and analyst review. The [implementation specification](../../06_POC_Code_Agent_Implementation_Spec.md) establishes the Credit Analyst persona. Authentication is new; the repository has no established identity or permission requirements.
+The existing [POC scope](../poc_definition.md) prioritizes traceable covenant monitoring and analyst review. The [implementation specification](../../06_POC_Code_Agent_Implementation_Spec.md) establishes the Credit Analyst persona. Authentication is required by the current request; its implementation mechanism remains unspecified.
 
 | Review | Finding | Evidence |
 |---|---|---|
@@ -15,7 +15,7 @@ The existing [POC scope](../poc_definition.md) prioritizes traceable covenant mo
 
 Source paths above are relative to `src/credit_monitoring/` unless otherwise stated.
 
-All four agents reviewed the other three reports and the common draft. Incorporated refinements: correct placeholder terminology, port-based identity flow, configuration before UI integration, lazy wiring, validated claims, and prevention of indirect adapter imports through wrappers.
+The original proposal underwent four-agent cross-review. Retained refinements: correct placeholder terminology, an application-owned authentication boundary, lazy wiring, validated identity, and prevention of indirect adapter imports through wrappers. This revision removes the earlier identity-provider choice.
 
 ## Decisions and rationale
 
@@ -24,17 +24,17 @@ All four agents reviewed the other three reports and the common draft. Incorpora
 | One package with `domain`, `application`, `adapters`, and `bootstrap.py` | Makes layers visible without separate services or elaborate hierarchies. Concepts stay visible in module names. |
 | Application owns small ports; bootstrap injects implementations | Removes SQLite/SDK construction from use cases and makes substitution/test doubles straightforward. Reuse existing `CovenantReader`, `RiskModel`, and `AssessmentNarrator` contracts. |
 | Retain Pydantic contracts and pure deterministic rules | Fits existing code. Move metric vocabulary inward and repository-row conversion outward; avoid a wholesale model rewrite. |
-| Native Streamlit OIDC for authentication | Fits the existing UI and delegates credential handling. Requires a configured provider and a compatible `streamlit[auth]` dependency. [Streamlit login documentation](https://docs.streamlit.io/develop/api-reference/user/st.login). |
-| Immutable `AnalystPrincipal` plus `(issuer, subject)` allowlist | Proposed minimum access rule: approved analysts share the capstone workspace. Stable identity grants access; display name/email do not. OIDC authenticates identity; application policy decides access. [Streamlit authentication documentation](https://docs.streamlit.io/develop/concepts/connections/authentication). |
+| Authentication behind an application-owned port | Keep the required login/logout behavior independent of the UI and any identity-provider protocol. Select the concrete mechanism before implementing login; this proposal prescribes no provider adapter or authentication library. |
+| Immutable `AnalystPrincipal` plus an `analyst_id` allowlist | Proposed minimum access rule: approved analysts share the capstone workspace. A stable identifier from successfully validated authentication grants access; display name/email do not. Application policy decides workspace access. |
 | Guard browser entry points; keep local workflows trusted | Prevents anonymous/unapproved UI reads and tool execution without adding identity arguments to credit calculations or offline scripts. |
 | Add modules incrementally; retain old imports and constructor entry points as wrappers | Preserves notebooks, scripts, tests and docs. No deletions, schema redesign, or cache-version changes are needed. |
 
-Alternatives deferred: context-per-service architecture is excessive for this POC; local password/account/session storage adds an unsupported workflow; package moves before dependency cleanup create churn without fixing coupling.
+Alternatives deferred: context-per-service architecture is excessive for this POC; custom account/session storage is not selected without a concrete login requirement; package moves before dependency cleanup create churn without fixing coupling.
 
 ## Scope and limits
 
 Protect portfolio, borrower assessments, evidence and mock chat before data reads, service construction with side effects, or tool calls. Deny missing/malformed identities and unavailable authentication. Clear analyst UI state on logout or identity change; recheck access each rerun. Browser authentication does not connect the mocked UI to the live pipeline.
 
-Roles, tenancy, borrower ACLs, registration/reset and account administration are outside the documented scope. Provider choice, callback URL and approved identities are implementation inputs. Native logout does not invalidate other already-open sessions; cross-tab revocation and a custom session timeout are not promised. [Streamlit session behavior](https://docs.streamlit.io/develop/concepts/connections/authentication).
+Roles, tenancy, borrower ACLs, registration/reset and account administration are outside the documented scope. Authentication mechanism, session lifetime, logout behavior and approved analyst identifiers are implementation inputs. No provider callbacks, token formats or browser cookie behavior are assumed.
 
 Related: [architecture and DDD language](../architecture-proposal.md), [implementation plan](../authentication-implementation-plan.md).

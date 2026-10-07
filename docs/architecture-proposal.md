@@ -19,9 +19,9 @@ src/credit_monitoring/
     access_service.py       # require_workspace_access()
     analyst_workspace.py    # Guarded browser-facing operations
     feature_service.py      # Load history, build and persist features
-    ports.py                # Identity, financials, terms, analytics, models
+    ports.py                # Authentication, financials, terms, analytics, models
   adapters/
-    web/                    # Streamlit, identity normalization, session state
+    web/                    # Streamlit presentation and session state
     persistence/            # SQLite repositories and row mapping
     documents/              # SEC loading/conversion, extraction, retrieval
     agents/                 # SDK runner, prompts and tool bridges
@@ -34,7 +34,7 @@ This is the new layout, not an instruction to delete existing directories. Keep 
 
 Dependency direction: adapters → application/ports → domain. Adapters may also import domain contracts. Domain has no application, storage, UI or SDK dependencies. Application consumes ports, not concrete repositories or model factories. Bootstrap alone chooses and constructs concrete dependencies; use ordinary constructors and Python `Protocol`, without a dependency-injection framework.
 
-Bootstrap builds access components first; initialize data/SDK dependencies only after approval. New core modules must not import legacy wrappers that lead back to adapters.
+Bootstrap builds access components first; initialize data/SDK dependencies only after approval. The authentication implementation is an open choice; no identity-provider adapter is prescribed. New core modules must not import legacy wrappers that lead back to adapters.
 
 Ports expose only consumed methods and typed domain contracts, not SQL rows or entire repository APIs. Retain existing constructor entry points through compatibility wiring during adoption.
 
@@ -42,7 +42,7 @@ Ports expose only consumed methods and typed domain contracts, not SQL rows or e
 |---|---|---|
 | Credit Monitoring — core | Applicable terms, calculations, assessment, optional early warning | `RiskAssessment` groups one run's results; `CovenantResult` identifies a reproducible record. Existing persistence stays unchanged. |
 | Document Evidence — supporting | Source provenance and extraction contracts | External extraction/search maps to typed evidence. Preserve explicit agreement/covenant bindings when feeding monitoring. |
-| Identity and Access — supporting, new | Recognize an analyst and permit workspace access | Frozen principal value object and access policy. Session/cookie mechanics remain in the web adapter. |
+| Identity and Access — supporting, new | Authenticate an analyst and permit workspace access | Frozen principal value object and access policy. Authentication/session mechanics remain outside the domain. |
 
 These are conceptual boundaries inside one package. Do not introduce aggregates or event infrastructure without a concrete invariant that needs them.
 
@@ -51,9 +51,8 @@ These are conceptual boundaries inside one package. Do not introduce aggregates 
 ```mermaid
 flowchart TD
     W[Streamlit] --> A[AccessService]
-    A --> IP[Identity port]
-    IP --> I[OIDC identity adapter]
-    I -->|trusted principal| A
+    A --> IP[Authentication port: implementation to be selected]
+    IP -->|validated principal| A
     A --> AP[AnalystAccessPolicy]
     AP -->|approved| F[AnalystWorkspace]
     AP -->|denied| X[Stop before protected reads and calls]
@@ -84,7 +83,7 @@ Future live browser wiring must pass through `AnalystWorkspace` before invoking 
 | Information Cutoff | Known availability bound; reporting/load dates do not establish availability |
 | Source Evidence | Document identity, citation and quote/provenance; `SourceEvidence` |
 | Feature Snapshot / Risk Prediction | Stored model inputs / optional forecast; neither changes observed compliance |
-| Analyst Principal — proposed | Immutable trusted `(issuer, subject)` identity; optional display name |
+| Analyst Principal — proposed | Immutable authenticated `analyst_id`; optional display name |
 | Workspace Access — proposed | Allowlist approval for the complete capstone analyst workspace |
 
 Missing data remains missing; calculations stay deterministic; narratives never override calculated results. Authentication introduces no ownership relationship between analysts and borrowers.
