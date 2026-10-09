@@ -89,8 +89,12 @@ applications, an `AsyncOpenAI` client can instead be supplied to the agent and r
 within the application's event loop. The extraction service still uses its own
 synchronous client.
 
-`notebooks/02-rag.ipynb` demonstrates the direct service and SDK agent loop. Notebook
-model cells require API credentials. Existing direct narrative RAG remains available;
+`notebooks/02-rag.ipynb` demonstrates narrative RAG and direct document processing.
+`notebooks/03-agents.ipynb` is the independent SDK agent walkthrough: client and service
+setup, tool inspection, document questions, synthetic financial loading, and borrower
+calculations/predictions with answer and trace inspection. Run its cells in order;
+it does not depend on state from the RAG notebook. Notebook model cells require API
+credentials. Existing direct narrative RAG remains available;
 the service's evidence search indexes full local Markdown rather than keyword-selected
 excerpts. Search returns up to ten ranked passages, at most two per filing. Complete
 schedules should be read from stored extraction results rather than inferred from

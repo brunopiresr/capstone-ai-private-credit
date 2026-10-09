@@ -5,7 +5,7 @@ The package separates analyst interaction, orchestration, retrieval, structured 
 The application-service layer now includes complete-document extraction with SQLite
 caching and a `CreditAssessmentAgent` using the OpenAI Agents SDK with document,
 financial, calculation and prediction tools when the assessment service is configured.
-These are demonstrated in the RAG notebook and remain independent of the mocked
+These are demonstrated in `notebooks/03-agents.ipynb` and remain independent of the mocked
 web app. Automatic post-extraction
 verification is temporarily disabled; the verifier code remains available. See
 [document processing and agent usage](document_processing.md).

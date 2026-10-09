@@ -44,7 +44,7 @@ The capstone POC focuses on covenant monitoring, deterministic financial calcula
 
 ## Current implementation status
 
-Status: Analyst-facing Streamlit demo, CSV-to-SQLite financial loading, complete SEC document extraction with SQLite reuse, and a `CreditAssessmentAgent` with document tools plus optional borrower-scoped financial, calculation and ML prediction tools. The Streamlit cockpit still uses synthetic cases and fixed assistant responses; document processing and the agent are available through application services and the RAG notebook. Automatic post-extraction verification is temporarily disabled, with its implementation retained. Structured assessment verification remains active.
+Status: Analyst-facing Streamlit demo, CSV-to-SQLite financial loading, complete SEC document extraction with SQLite reuse, and a `CreditAssessmentAgent` with document tools plus optional borrower-scoped financial, calculation and ML prediction tools. The Streamlit cockpit still uses synthetic cases and fixed assistant responses; document processing and the agent are available through application services and the notebooks. Automatic post-extraction verification is temporarily disabled, with its implementation retained. Structured assessment verification remains active.
 
 See [document processing and agent usage](docs/document_processing.md) for the service
 interfaces, cache behavior, tool loop, and verification migration notes.
@@ -69,6 +69,12 @@ uv run streamlit run src/credit_monitoring/web/app.py
 ```
 
 The scaffold import test and demo app do not need credentials or external services. Configuration names are listed in `.env.example` for future use.
+
+Run the notebooks with the project's `.venv` kernel:
+
+- [01-setup.ipynb](notebooks/01-setup.ipynb) checks the OpenAI client setup.
+- [02-rag.ipynb](notebooks/02-rag.ipynb) covers retrieval, narrative RAG, and direct document processing.
+- [03-agents.ipynb](notebooks/03-agents.ipynb) independently configures and runs the document research and borrower assessment agents, with tool lists, citations, and execution traces. Run its cells in order; it does not require running the RAG notebook first.
 
 ## Load quarterly financials
 
