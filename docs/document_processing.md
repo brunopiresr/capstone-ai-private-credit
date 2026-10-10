@@ -231,7 +231,38 @@ SDK dashboard tracing is disabled by default. Set `tracing_enabled=True` on
 `CreditAssessmentAgent` to enable tracing with sensitive input/output data excluded.
 The application-owned `tool_trace` remains available with either setting. The
 current agent starts a fresh conversation per question; persistent sessions,
-streaming, and specialist handoffs are separate extensions.
+token streaming, and specialist handoffs are separate extensions.
+
+### View live agent progress
+
+Pass an `event_stream_handler` to `ask()` or `ask_async()` to see progress while the
+agent runs. Both agents in `notebooks/03-agents.ipynb` use this callback:
+
+```python
+from credit_monitoring.agents.events import AgentEventCallback
+
+answer = await agent.ask_async(
+    "Find FMC's leverage covenant and supporting filing passages.",
+    ticker="FMC",
+    event_stream_handler=AgentEventCallback(agent),
+)
+```
+
+The callback prints model requests, tool names and JSON arguments before execution,
+tool success/error status, and the final complete/incomplete status. Output is flushed
+immediately. Set `name="Filing research agent"` when constructing an agent to label its
+events. This observes SDK lifecycle hooks; it does not stream model tokens or print
+private reasoning or full tool payloads. Final answers, citations, and `tool_trace`
+remain available as before, independently of dashboard tracing.
+
+A handler can also be configured on `CreditAssessmentAgent(event_stream_handler=...)`;
+a per-question handler overrides that default. Without a handler, runs stay quiet.
+Custom async handlers receive `(ctx, event)`, where `ctx.context` is the current
+`AgentRunState` and `event` is an `AgentEvent` with `kind`, `agent_name`, and relevant
+tool metadata (`tool_name`, `call_id`, raw `arguments`, or the result `outcome`).
+Kinds are `model_start`, `tool_call`, `tool_result`, and `run_end`; the last includes
+an `error` code for incomplete answers. `AgentEventCallback` also accepts nested async
+event streams. Callback exceptions propagate to the caller.
 
 ## Verification and limitations
 

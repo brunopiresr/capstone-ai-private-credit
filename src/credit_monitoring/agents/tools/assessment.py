@@ -47,7 +47,9 @@ class AssessmentTools:
         do not substitute today's date.
 
         Args:
-            period_end: The reporting date, formatted as YYYY-MM-DD.
+            period_end: The financial reporting period used as input, formatted
+                as YYYY-MM-DD. Use the analyst's reporting date, not a future
+                forecast date.
             information_cutoff: The information cutoff, formatted as YYYY-MM-DD.
                 It must be on or after period_end.
 
@@ -98,9 +100,13 @@ class AssessmentTools:
         Use this when the analyst requests a forecast. Report current observed
         compliance separately from the next-quarter prediction. The application
         selects the model; a stub supplies no forecast.
+        Keep the analyst's input dates unchanged from the current assessment.
+        The service handles the forecast horizon; do not advance either date.
 
         Args:
-            period_end: The reporting date, formatted as YYYY-MM-DD.
+            period_end: The financial reporting period used as input, formatted
+                as YYYY-MM-DD. Use the analyst's reporting date, not a future
+                forecast date.
             information_cutoff: The information cutoff, formatted as YYYY-MM-DD.
                 It must be on or after period_end.
 

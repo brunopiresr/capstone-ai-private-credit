@@ -18,9 +18,11 @@ from agents import (
     ToolErrorFormatterArgs,
     ToolExecutionConfig,
 )
+from agents.items import TResponseInputItem
 from agents.tool_context import ToolContext
 from openai import APIError, AsyncOpenAI, OpenAI
 
+from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
 from credit_monitoring.agents.prompts.credit_assessment import CREDIT_ASSESSMENT_INSTRUCTIONS
 from credit_monitoring.agents.responses_client import AgentFailure, ResponsesClientAdapter
 from credit_monitoring.agents.run_state import AgentRunState
@@ -32,6 +34,22 @@ from credit_monitoring.domain.agent import AgentAnswer
 
 
 class _QuestionHooks(RunHooks[AgentRunState]):
+    def __init__(self, event_stream_handler: EventStreamHandler | None = None) -> None:
+        self.event_stream_handler = event_stream_handler
+
+    async def emit(self, context: RunContextWrapper[AgentRunState], event: AgentEvent) -> None:
+        if self.event_stream_handler is not None:
+            await self.event_stream_handler(context, event)
+
+    async def on_llm_start(
+        self,
+        context: RunContextWrapper[AgentRunState],
+        agent: Agent[AgentRunState],
+        system_prompt: str | None,
+        input_items: list[TResponseInputItem],
+    ) -> None:
+        await self.emit(context, AgentEvent("model_start", agent.name))
+
     async def on_llm_end(
         self,
         context: RunContextWrapper[AgentRunState],
@@ -53,6 +71,24 @@ class _QuestionHooks(RunHooks[AgentRunState]):
         state.tool_rounds += 1
         state.arguments = {call.call_id: call.arguments for call in calls}
 
+    async def on_tool_start(
+        self,
+        context: RunContextWrapper[AgentRunState],
+        agent: Agent[AgentRunState],
+        tool: Tool,
+    ) -> None:
+        if isinstance(context, ToolContext):
+            await self.emit(
+                context,
+                AgentEvent(
+                    "tool_call",
+                    agent.name,
+                    tool_name=context.tool_name,
+                    call_id=context.tool_call_id,
+                    arguments=context.tool_arguments,
+                ),
+            )
+
     async def on_tool_end(
         self,
         context: RunContextWrapper[AgentRunState],
@@ -61,11 +97,22 @@ class _QuestionHooks(RunHooks[AgentRunState]):
         result: object,
     ) -> None:
         if isinstance(context, ToolContext) and isinstance(result, str):
+            outcome = json.loads(result)
             context.context.record(
                 context.tool_name,
                 context.tool_call_id,
                 context.tool_arguments,
-                json.loads(result),
+                outcome,
+            )
+            await self.emit(
+                context,
+                AgentEvent(
+                    "tool_result",
+                    agent.name,
+                    tool_name=context.tool_name,
+                    call_id=context.tool_call_id,
+                    outcome=outcome,
+                ),
             )
 
 
@@ -91,6 +138,8 @@ class CreditAssessmentAgent:
         model: str = "gpt-4o-mini",
         max_tool_rounds: int = 6,
         tracing_enabled: bool = False,
+        name: str = "Credit assessment agent",
+        event_stream_handler: EventStreamHandler | None = None,
     ) -> None:
         if max_tool_rounds <= 0:
             raise ValueError("max_tool_rounds must be positive.")
@@ -100,19 +149,38 @@ class CreditAssessmentAgent:
         self.model = model
         self.max_tool_rounds = max_tool_rounds
         self.tracing_enabled = tracing_enabled
+        self.name = name
+        self.event_stream_handler = event_stream_handler
 
     def ask(
-        self, question: str, ticker: str | None = None, *, borrower_id: str | None = None
+        self,
+        question: str,
+        ticker: str | None = None,
+        *,
+        borrower_id: str | None = None,
+        event_stream_handler: EventStreamHandler | None = None,
     ) -> AgentAnswer:
         """Run from synchronous application code; use ask_async in notebooks."""
         try:
             asyncio.get_running_loop()
         except RuntimeError:
-            return asyncio.run(self.ask_async(question, ticker, borrower_id=borrower_id))
+            return asyncio.run(
+                self.ask_async(
+                    question,
+                    ticker,
+                    borrower_id=borrower_id,
+                    event_stream_handler=event_stream_handler,
+                )
+            )
         raise RuntimeError("An event loop is already running; use await agent.ask_async(...).")
 
     async def ask_async(
-        self, question: str, ticker: str | None = None, *, borrower_id: str | None = None
+        self,
+        question: str,
+        ticker: str | None = None,
+        *,
+        borrower_id: str | None = None,
+        event_stream_handler: EventStreamHandler | None = None,
     ) -> AgentAnswer:
         if not question.strip():
             raise ValueError("Question must not be empty.")
@@ -127,7 +195,7 @@ class CreditAssessmentAgent:
         # Each question owns its tools and trace, so issuer/borrower scope and evidence do
         # not leak between calls. The SDK owns history and the execution loop.
         agent = Agent[AgentRunState](
-            name="Credit assessment agent",
+            name=self.name,
             instructions=CREDIT_ASSESSMENT_INSTRUCTIONS,
             model=OpenAIResponsesModel(
                 model=self.model, openai_client=ResponsesClientAdapter(self.client)
@@ -135,6 +203,34 @@ class CreditAssessmentAgent:
             model_settings=ModelSettings(parallel_tool_calls=False),
             tools=tools,
         )
+        hooks = _QuestionHooks(
+            event_stream_handler if event_stream_handler is not None else self.event_stream_handler
+        )
+
+        async def unknown_tool_result(args: ToolErrorFormatterArgs[AgentRunState]) -> str:
+            await hooks.emit(
+                args.run_context,
+                AgentEvent(
+                    "tool_call",
+                    agent.name,
+                    tool_name=args.tool_name,
+                    call_id=args.call_id,
+                    arguments=state.arguments[args.call_id],
+                ),
+            )
+            result = _unknown_tool_result(args)
+            await hooks.emit(
+                args.run_context,
+                AgentEvent(
+                    "tool_result",
+                    agent.name,
+                    tool_name=args.tool_name,
+                    call_id=args.call_id,
+                    outcome=json.loads(result),
+                ),
+            )
+            return result
+
         try:
             result = await Runner.run(
                 agent,
@@ -142,7 +238,7 @@ class CreditAssessmentAgent:
                     {"question": question, "ticker": ticker, "borrower_id": borrower_id}
                 ),
                 context=state,
-                hooks=_QuestionHooks(),
+                hooks=hooks,
                 max_turns=self.max_tool_rounds + 1,
                 run_config=RunConfig(
                     workflow_name="Credit assessment",
@@ -150,18 +246,26 @@ class CreditAssessmentAgent:
                     trace_include_sensitive_data=False,
                     tool_execution=ToolExecutionConfig(max_function_tool_concurrency=1),
                     tool_not_found_behavior="return_error_to_model",
-                    tool_error_formatter=_unknown_tool_result,
+                    tool_error_formatter=unknown_tool_result,
                 ),
             )
         except AgentFailure as exc:
-            return state.answer(str(exc), exc.code)
+            answer = state.answer(str(exc), exc.code)
         except MaxTurnsExceeded:
-            return state.answer("Processing stopped at the tool-round limit.", "tool_round_limit")
+            answer = state.answer("Processing stopped at the tool-round limit.", "tool_round_limit")
         except APIError as exc:
-            return state.answer(f"Agent model request failed: {exc}", "model_error")
+            answer = state.answer(f"Agent model request failed: {exc}", "model_error")
         except ModelBehaviorError as exc:
-            return state.answer(f"Agent model response failed: {exc}", "model_error")
-        text = result.final_output
-        if not isinstance(text, str) or not text.strip():
-            return state.answer("Model returned no answer or tool calls.", "empty_response")
-        return state.answer(text)
+            answer = state.answer(f"Agent model response failed: {exc}", "model_error")
+        else:
+            text = result.final_output
+            answer = (
+                state.answer(text)
+                if isinstance(text, str) and text.strip()
+                else state.answer("Model returned no answer or tool calls.", "empty_response")
+            )
+        await hooks.emit(
+            RunContextWrapper(context=state),
+            AgentEvent("run_end", agent.name, error=answer.error),
+        )
+        return answer

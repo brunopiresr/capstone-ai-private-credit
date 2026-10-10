@@ -22,6 +22,7 @@ from openai.types.responses import (
 )
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent, _QuestionHooks
+from credit_monitoring.agents.events import AgentEvent, AgentEventCallback
 from credit_monitoring.agents.responses_client import ResponsesClientAdapter
 from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.assessment import AssessmentTools
@@ -94,6 +95,195 @@ def agent(service, **kwargs):
     client = Mock()
     client.responses.create = AsyncMock()
     return CreditAssessmentAgent(client=client, service=service, **kwargs), client
+
+
+def test_progress_arrives_before_service_execution_and_keeps_trace(document_service_factory):
+    events = []
+    states = []
+
+    async def handler(ctx, event):
+        events.append(event)
+        states.append(ctx.context)
+        if event.kind == "tool_call":
+            assert not ctx.context.trace
+        if event.kind == "tool_result":
+            assert ctx.context.trace[-1].outcome == event.outcome
+
+    service = document_service_factory()
+    original = service.list_document_extractions
+
+    def list_documents(**kwargs):
+        assert events[-1].kind == "tool_call"
+        assert events[-1].tool_name == "list_documents"
+        return original(**kwargs)
+
+    service.list_document_extractions = list_documents
+    monitor, client = agent(service, name="Research")
+    client.responses.create.side_effect = [
+        response(("list_documents", {"ticker": None}), reasoning=True),
+        response(answer="Found the filing."),
+    ]
+    answer = monitor.ask("Find filings", event_stream_handler=handler)
+    assert answer.complete
+    assert [event.kind for event in events] == [
+        "model_start",
+        "tool_call",
+        "tool_result",
+        "model_start",
+        "run_end",
+    ]
+    assert all(event.agent_name == "Research" for event in events)
+    assert all(state is states[0] for state in states)
+    assert events[1].arguments == '{"ticker": null}'
+    assert events[1].call_id == events[2].call_id == answer.tool_trace[0].call_id
+    assert events[2].outcome == answer.tool_trace[0].outcome
+    assert "private-content" not in repr(events)
+
+
+@pytest.mark.parametrize(
+    "name,arguments,error",
+    [
+        ("unknown", {}, "unknown_tool"),
+        ("get_document_extraction", "{broken json", "invalid_arguments"),
+        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "service_error"),
+    ],
+)
+def test_progress_reports_tool_errors_and_continues(
+    document_service_factory, name, arguments, error
+):
+    events = []
+
+    async def handler(ctx, event):
+        events.append(event)
+
+    monitor, client = agent(document_service_factory(), event_stream_handler=handler)
+    client.responses.create.side_effect = [
+        response((name, arguments)),
+        response(answer="Evidence unavailable."),
+    ]
+    answer = asyncio.run(monitor.ask_async("Find evidence", ticker="SYN"))
+    assert answer.complete
+    assert [event.kind for event in events] == [
+        "model_start",
+        "tool_call",
+        "tool_result",
+        "model_start",
+        "run_end",
+    ]
+    assert events[2].outcome["error"] == error
+    assert events[2].outcome == answer.tool_trace[0].outcome
+
+
+def test_progress_reports_round_limit_without_excess_tool_call(document_service_factory):
+    events = []
+
+    async def handler(ctx, event):
+        events.append(event)
+
+    monitor, client = agent(
+        document_service_factory(), max_tool_rounds=1, event_stream_handler=handler
+    )
+    client.responses.create.side_effect = lambda **kwargs: response(("list_documents", {}))
+    answer = monitor.ask("Find filings")
+    assert answer.error == "tool_round_limit"
+    assert [event.kind for event in events] == [
+        "model_start",
+        "tool_call",
+        "tool_result",
+        "model_start",
+        "run_end",
+    ]
+    assert events[-1].error == answer.error
+    assert len(answer.tool_trace) == 1
+
+
+@pytest.mark.parametrize(
+    "model_response,error",
+    [
+        (response(status="incomplete"), "model_incomplete"),
+        (response(refusal="Cannot answer"), "model_refusal"),
+        (response(), "empty_response"),
+        (
+            APIError(
+                "Offline", request=httpx.Request("POST", "https://example.invalid"), body=None
+            ),
+            "model_error",
+        ),
+    ],
+)
+def test_progress_reports_model_failure(document_service_factory, model_response, error):
+    events = []
+
+    async def handler(ctx, event):
+        events.append(event)
+
+    monitor, client = agent(document_service_factory())
+    client.responses.create.side_effect = [model_response]
+    answer = monitor.ask("Find filings", event_stream_handler=handler)
+    assert answer.error == error
+    assert [event.kind for event in events] == ["model_start", "run_end"]
+    assert events[-1].error == error
+
+
+def test_handler_override_is_per_question_and_silent_default(document_service_factory, capsys):
+    default = AsyncMock()
+    override = AsyncMock()
+    monitor, client = agent(document_service_factory(), event_stream_handler=default)
+    client.responses.create.side_effect = [response(answer="One"), response(answer="Two")]
+    monitor.ask("One", event_stream_handler=override)
+    default.assert_not_awaited()
+    monitor.ask("Two")
+    assert default.await_count == override.await_count == 2
+    assert (
+        default.call_args_list[0].args[0].context is not override.call_args_list[0].args[0].context
+    )
+    assert capsys.readouterr().out == ""
+
+
+def test_callback_prints_nested_streams_and_error_status(capsys):
+    ctx = Mock()
+    callback = AgentEventCallback(Mock(name="unused"))
+    callback.agent.name = "Notebook agent"
+
+    async def nested():
+        yield AgentEvent("tool_call", "SDK name", tool_name="list_documents", arguments="{}")
+        yield AgentEvent(
+            "tool_result", "SDK name", tool_name="list_documents", outcome={"ok": True}
+        )
+        yield AgentEvent(
+            "tool_result",
+            "SDK name",
+            tool_name="missing",
+            outcome={
+                "ok": False,
+                "error": "unknown_tool",
+                "message": "private payload",
+            },
+        )
+
+    async def stream():
+        yield AgentEvent("model_start", "SDK name")
+        yield nested()
+        yield AgentEvent("run_end", "SDK name", error="tool_round_limit")
+
+    asyncio.run(callback(ctx, stream()))
+    assert capsys.readouterr().out.splitlines() == [
+        "MODEL REQUEST (Notebook agent)",
+        "TOOL CALL (Notebook agent): list_documents({})",
+        "TOOL RESULT (Notebook agent): list_documents — ok",
+        "TOOL RESULT (Notebook agent): missing — error: unknown_tool",
+        "AGENT FINISHED (Notebook agent): incomplete: tool_round_limit",
+    ]
+
+
+def test_callback_uses_event_agent_name_when_unbound(document_service_factory, capsys):
+    monitor, client = agent(document_service_factory(), event_stream_handler=AgentEventCallback())
+    client.responses.create.return_value = response(answer="Done")
+    assert monitor.ask("Find filings").complete
+    assert capsys.readouterr().out.splitlines() == [
+        "MODEL REQUEST (Credit assessment agent)",
+        "AGENT FINISHED (Credit assessment agent): complete",
+    ]
 
 
 def invoke_tool(container, name, arguments):
