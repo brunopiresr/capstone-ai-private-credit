@@ -8,6 +8,7 @@ from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
+from credit_monitoring.observability.logging import configure_logging
 
 
 def main() -> None:
@@ -28,7 +29,14 @@ def main() -> None:
     parser.add_argument("--model-type", default="stub", help="Registered model type.")
     parser.add_argument("--model-version", default="v1")
     parser.add_argument("--model-artifact", type=Path, help="Local trained-artifact directory.")
+    parser.add_argument(
+        "--log-level",
+        choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
+        help="Enable package logs on stderr; INFO shows calculation inputs and results.",
+    )
     arguments = parser.parse_args()
+    if arguments.log_level is not None:
+        configure_logging(arguments.log_level)
     service = AssessmentService(
         financial_repository=FinancialRepository(arguments.financial_db),
         covenant_reader=SyntheticCovenantReader(arguments.terms),

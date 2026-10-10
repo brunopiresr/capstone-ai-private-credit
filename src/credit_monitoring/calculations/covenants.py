@@ -1,5 +1,6 @@
 """Calculate one covenant while preserving abstentions and exact inputs."""
 
+import logging
 from datetime import date
 
 from credit_monitoring.domain.assessment import (
@@ -8,6 +9,12 @@ from credit_monitoring.domain.assessment import (
     FinancialPeriod,
     ResolvedCovenant,
 )
+from credit_monitoring.observability.assessment import (
+    calculation_context,
+    calculation_inputs,
+    covenant_output,
+)
+from credit_monitoring.observability.logging import log_event, logged_operation
 
 from .coverage import fixed_charge_coverage, interest_coverage
 from .headroom import calculate_headroom, compare_threshold
@@ -19,9 +26,17 @@ from .leverage import (
     total_leverage,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _metric(financials: FinancialPeriod, name: str) -> float:
     value = financials.metrics.get(name)
+    log_event(
+        logger,
+        "financial_metric",
+        inputs={"metric": name},
+        outputs={"value": value, "status": "missing" if value is None else "provided"},
+    )
     if value is None:
         raise CalculationInputError(f"Missing financial input: {name}.")
     return value
@@ -37,11 +52,18 @@ def _debt(financials: FinancialPeriod) -> float:
         )
     ]
     provided = [value for value in figures if value is not None]
+    log_event(
+        logger,
+        "debt_sources",
+        inputs=dict(zip(("total_debt", "financials_debt", "compliance_certificate_debt"), figures)),
+        outputs={"conflict": len(set(provided)) > 1},
+    )
     if len(set(provided)) > 1:
         raise CalculationInputError("DEBT_SOURCE_CONFLICT: debt sources disagree.")
     return _metric(financials, "total_debt")
 
 
+@logged_operation(inputs=calculation_inputs, context=calculation_context)
 def calculate_actual(covenant: ResolvedCovenant, financials: FinancialPeriod) -> float:
     """Dispatch only typed, allowlisted formulas; never interpret formula text."""
     reported_ebitda = _metric(financials, "reported_ebitda")
@@ -85,6 +107,7 @@ def calculate_actual(covenant: ResolvedCovenant, financials: FinancialPeriod) ->
             raise CalculationInputError("Unsupported contractual calculation formula.")
 
 
+@logged_operation(inputs=calculation_inputs, outputs=covenant_output, context=calculation_context)
 def calculate_covenant(
     resolution: CovenantResolution,
     financials: FinancialPeriod,
@@ -130,6 +153,14 @@ def calculate_covenant(
     result.compliance_status = "incomplete"
     if covenant.testing_status == "unresolved":
         result.compliance_status = "unresolved"
+        log_event(
+            logger,
+            "covenant_testing",
+            outputs={
+                "testing_status": covenant.testing_status,
+                "reason": "Testing conditions could not be resolved.",
+            },
+        )
         return result
     inactive_status = {
         "waived": "waived",
@@ -138,6 +169,14 @@ def calculate_covenant(
     }.get(covenant.testing_status)
     if inactive_status:
         result.compliance_status = inactive_status
+        log_event(
+            logger,
+            "covenant_testing",
+            outputs={
+                "testing_status": covenant.testing_status,
+                "reason": "Compliance comparison and headroom are skipped for this test.",
+            },
+        )
     try:
         if covenant.formula is None:
             if covenant.reported_actual is None:

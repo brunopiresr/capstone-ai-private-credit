@@ -1,5 +1,7 @@
 """Use existing extraction contracts with mocked processing and real temporary SQLite."""
 
+import json
+import logging
 from datetime import date
 
 import pytest
@@ -71,7 +73,8 @@ def stored_terms(document_service_factory, sdk_response):
     return service, reader, extraction
 
 
-def test_existing_extraction_is_consumed_without_reprocessing(stored_terms, tmp_path):
+def test_existing_extraction_is_consumed_without_reprocessing(stored_terms, tmp_path, caplog):
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
     service, reader, _ = stored_terms
     financial_csv = tmp_path / "financials.csv"
     financial_csv.write_text("borrower_id,period_end,total_debt\nBORROWER,2025-09-30,\n")
@@ -93,10 +96,30 @@ def test_existing_extraction_is_consumed_without_reprocessing(stored_terms, tmp_
     assert not reader.resolve(
         "SYN001", period, period, FinancialPeriod(borrower_id="SYN001", period_end=period)
     )
+    selected = next(
+        r for r in caplog.records if getattr(r, "operation", None) == "covenant_resolution"
+    )
+    assert selected.outputs["terms"]["threshold"] == 5
+    assert selected.outputs["terms"]["reported_actual"] == 4.5
+    candidates = [r for r in caplog.records if getattr(r, "operation", None) == "_candidate"]
+    assert candidates
+    assert all(
+        r.document_id == "SYN" and r.covenant_id == "agreement-1:leverage" for r in candidates
+    )
+    final = next(
+        r
+        for r in caplog.records
+        if getattr(r, "operation", None) == "calculate_covenant" and r.status == "complete"
+    )
+    assert final.outputs["result_basis"] == "reported"
+    data = json.dumps([r.__dict__ for r in caplog.records], default=str)
+    assert "Maximum leverage 5.00x; reported actual 4.50x." not in data
+    assert "evidence_quote" not in data
 
 
 @pytest.mark.parametrize("condition", ["wrong_period", "stale", "future", "ambiguous", "bad_quote"])
-def test_unresolved_document_inputs(stored_terms, condition, sdk_response):
+def test_unresolved_document_inputs(stored_terms, condition, sdk_response, caplog):
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
     service, reader, extraction = stored_terms
     period = date(2025, 9, 30)
     if condition == "wrong_period":
@@ -125,6 +148,13 @@ def test_unresolved_document_inputs(stored_terms, condition, sdk_response):
     resolution = reader.resolve("BORROWER", period, period, financials)[0]
     assert resolution.covenant is None
     assert resolution.issues
+    outcomes = [r for r in caplog.records if getattr(r, "operation", None) == "covenant_resolution"]
+    assert outcomes[-1].outputs["terms"] is None
+    assert outcomes[-1].outputs["issues"] == resolution.issues
+    if condition in ("wrong_period", "stale", "future", "bad_quote"):
+        rejected = [r for r in caplog.records if getattr(r, "status", None) == "rejected"]
+        assert rejected
+        assert all(r.document_id == "SYN" and r.outputs["reason"] for r in rejected)
 
 
 def test_testing_event_preserves_waiver(stored_terms, sdk_response):

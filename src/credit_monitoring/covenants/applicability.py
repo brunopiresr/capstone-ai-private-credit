@@ -3,7 +3,17 @@
 import re
 from datetime import date
 
+from credit_monitoring.observability.logging import logged_operation
 
+
+@logged_operation(
+    inputs=lambda args: {
+        "period_end": args["period_end"],
+        "period_end_dates": args["entry"].period_end_dates,
+        "from_period_end": args["entry"].from_period_end,
+        "through_period_end": args["entry"].through_period_end,
+    }
+)
 def applies_to_period(entry, period_end: date) -> bool:
     """Named dates take precedence over ranges; undated entries cannot resolve a period."""
     if entry.period_end_dates:
@@ -15,6 +25,7 @@ def applies_to_period(entry, period_end: date) -> bool:
     return False
 
 
+@logged_operation()
 def parse_ratio(value: str) -> float:
     """Normalize unambiguous ratio notation without accepting arbitrary expressions."""
     number = r"([+-]?\d+(?:\.\d+)?)"

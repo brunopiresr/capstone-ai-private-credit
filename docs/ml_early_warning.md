@@ -49,6 +49,71 @@ Every invocation gets a new run ID and snapshots the available historical calcul
 `feature_snapshot`, `prediction`, and `ml_status` describe optional model execution.
 `verification` identifies structured errors and unknown source availability.
 
+## Inspect calculation inputs and results
+
+Enable step-by-step output in a notebook or application before calling the service:
+
+```python
+from credit_monitoring.observability.logging import configure_logging
+
+configure_logging()  # INFO: covenant selection, inputs, adjustments, and results
+# Call service.assess(...) or the agent as usual.
+# configure_logging("WARNING") hides routine calculation details.
+```
+
+The agent notebook already calls `configure_logging()`. Each calculation logs its method,
+named inputs, and output. Additional steps show addbacks and cash/synergy caps, the division
+numerator and denominator, threshold comparisons, and signed headroom. Covenant resolution
+shows selected versions, applicable dates, testing conditions, and rejected candidates.
+Final covenant records include the calculated or reported basis, compliance status, and issues,
+including missing inputs, conflicting debt sources, unsupported formulas, and unresolved terms.
+Waived and inactive tests explicitly explain why comparison and headroom were skipped.
+
+For example, a capped EBITDA adjustment produces a line with this message and structured data
+(timestamp and logger prefix omitted):
+
+```text
+apply_addback_cap complete {"inputs": {"reported_ebitda": 50, "eligible_addbacks": 20, "cap_fraction": 0.2}, "outputs": {"eligible_addbacks": 10}}
+```
+
+Run, borrower, reporting period, and covenant identifiers accompany records when available.
+Earlier reporting periods retain their own dates, and trend calculations identify the covenant
+or financial metric being compared. Context is scoped to each invocation and restored even
+after failures; asyncio tasks and worker threads used via `asyncio.to_thread` retain isolation.
+Manually created worker threads require explicit context propagation.
+
+For the CLI, add `--log-level INFO` to the assessment command. Logs go to stderr; stdout remains
+the assessment JSON. Without that flag the CLI retains its existing output. `--log-level WARNING`
+suppresses routine steps, including expected calculation failures recorded as incomplete results.
+Full evidence bodies, documents, prompts, financial notes, and benchmark labels are excluded.
+
+### Reuse the records with Logfire later
+
+The records use standard Python `logging` with `extra` attributes: `operation`, `status`,
+`inputs`, `outputs`, available identifiers, and timing/error type where applicable. Console
+formatting does not flatten or replace these attributes, so other handlers can consume them.
+Repeated `configure_logging()` calls preserve external handlers and do not duplicate the console
+handler. Logfire remains an optional future dependency; no telemetry is exported by this change.
+
+After separately installing and configuring Logfire, attach its handler directly to the package
+logger, which sets `propagate=False` when configured for console output:
+
+```python
+import logging
+import logfire  # Install separately when ready to enable external telemetry.
+
+configure_logging()
+logfire.configure(console=False)  # Keep the existing local console output.
+package_logger = logging.getLogger("credit_monitoring")
+if not any(isinstance(handler, logfire.LogfireLoggingHandler)
+           for handler in package_logger.handlers):
+    package_logger.addHandler(logfire.LogfireLoggingHandler())
+```
+
+Keep the package logger at INFO to export the calculation steps. See the
+[Logfire logging integration](https://pydantic.dev/docs/logfire/integrations/logging/logging/).
+Nested tracing spans can be added separately later; these records already carry run identifiers.
+
 ## Consume stored document covenants
 
 Use the existing `DocumentProcessingService` instance and explicit identities:

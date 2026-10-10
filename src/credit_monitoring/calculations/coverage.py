@@ -1,13 +1,17 @@
 """Deterministic interest and fixed-charge coverage calculations."""
 
+from credit_monitoring.observability.logging import logged_operation
+
 from .leverage import divide
 
 
+@logged_operation()
 def interest_coverage(ebitda: float, cash_interest: float) -> float:
     """Measure EBITDA relative to cash interest."""
     return divide(ebitda, cash_interest)
 
 
+@logged_operation()
 def fixed_charge_coverage(
     ebitda: float,
     capex: float,

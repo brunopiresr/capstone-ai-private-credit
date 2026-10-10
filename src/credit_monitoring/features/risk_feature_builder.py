@@ -5,6 +5,8 @@ from datetime import date
 from credit_monitoring.calculations.trends import difference, growth, previous_period
 from credit_monitoring.domain.assessment import CovenantResult, FinancialPeriod
 from credit_monitoring.domain.risk_features import BorrowerRiskFeatures, CovenantRiskFeatures
+from credit_monitoring.observability.assessment import resolution_context
+from credit_monitoring.observability.logging import logged_operation, logging_context
 from credit_monitoring.persistence.analytics_repositories import CovenantResultRepository
 
 
@@ -29,6 +31,14 @@ class RiskFeatureBuilder:
     def __init__(self, result_repository: CovenantResultRepository) -> None:
         self.result_repository = result_repository
 
+    @logged_operation(
+        inputs=resolution_context,
+        outputs=lambda features: {"features": features.model_dump(mode="json")},
+        context=lambda args: {
+            **resolution_context(args),
+            "assessment_run_id": args["assessment_run_id"],
+        },
+    )
     def build(
         self,
         borrower_id: str,
@@ -51,35 +61,44 @@ class RiskFeatureBuilder:
         quarter_end = previous_period(period_end)
         covenant_features = []
         for current in current_results:
-            prior = indexed.get((current.covenant_id, quarter_end))
-            features = CovenantRiskFeatures(
-                covenant_id=current.covenant_id,
-                covenant_type=current.covenant_type,
-                actual_value=current.actual_value,
-                threshold=current.threshold,
-                headroom=current.headroom,
-                compliance_status=current.compliance_status,
-            )
-            if prior is not None:
-                if prior.compliance_status in ("compliant", "breach"):
-                    features.previous_breach = prior.compliance_status == "breach"
-                if (
-                    prior.resolved_covenant
-                    and prior.resolved_covenant.testing_status != "unresolved"
-                ):
-                    features.previous_waiver = prior.resolved_covenant.testing_status == "waived"
-                comparable = _comparable(current, prior)
-                features.basis_changed = not comparable
-                if comparable:
-                    features.threshold_change_qoq = difference(current.threshold, prior.threshold)
-                    if current.compliance_status in ("compliant", "breach") and (
-                        prior.compliance_status in ("compliant", "breach")
+            with logging_context(
+                covenant_id=current.covenant_id, comparison_period_end=quarter_end
+            ):
+                prior = indexed.get((current.covenant_id, quarter_end))
+                features = CovenantRiskFeatures(
+                    covenant_id=current.covenant_id,
+                    covenant_type=current.covenant_type,
+                    actual_value=current.actual_value,
+                    threshold=current.threshold,
+                    headroom=current.headroom,
+                    compliance_status=current.compliance_status,
+                )
+                if prior is not None:
+                    if prior.compliance_status in ("compliant", "breach"):
+                        features.previous_breach = prior.compliance_status == "breach"
+                    if (
+                        prior.resolved_covenant
+                        and prior.resolved_covenant.testing_status != "unresolved"
                     ):
-                        features.metric_change_qoq = difference(
-                            current.actual_value, prior.actual_value
+                        features.previous_waiver = (
+                            prior.resolved_covenant.testing_status == "waived"
                         )
-                        features.headroom_change_qoq = difference(current.headroom, prior.headroom)
-            covenant_features.append(features)
+                    comparable = _comparable(current, prior)
+                    features.basis_changed = not comparable
+                    if comparable:
+                        features.threshold_change_qoq = difference(
+                            current.threshold, prior.threshold
+                        )
+                        if current.compliance_status in ("compliant", "breach") and (
+                            prior.compliance_status in ("compliant", "breach")
+                        ):
+                            features.metric_change_qoq = difference(
+                                current.actual_value, prior.actual_value
+                            )
+                            features.headroom_change_qoq = difference(
+                                current.headroom, prior.headroom
+                            )
+                covenant_features.append(features)
         periods = {result.period_end: _financial_period(result) for result in results}
         current_financials = periods[period_end]
         vector = BorrowerRiskFeatures(
@@ -105,12 +124,13 @@ class RiskFeatureBuilder:
             ):
                 continue
             for metric in ("reported_ebitda", "total_debt"):
-                setattr(
-                    vector,
-                    f"{metric}_growth_{suffix}",
-                    growth(
-                        current_financials.metrics.get(metric),
-                        prior_financials.metrics.get(metric),
-                    ),
-                )
+                with logging_context(metric=metric, trend=suffix):
+                    setattr(
+                        vector,
+                        f"{metric}_growth_{suffix}",
+                        growth(
+                            current_financials.metrics.get(metric),
+                            prior_financials.metrics.get(metric),
+                        ),
+                    )
         return BorrowerRiskFeatures.model_validate(vector.model_dump())

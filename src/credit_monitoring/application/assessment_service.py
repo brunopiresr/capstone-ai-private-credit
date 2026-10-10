@@ -1,5 +1,6 @@
 """Quarterly assessments from existing structured terms and financial inputs."""
 
+import logging
 from datetime import date
 
 from credit_monitoring.application.risk_analysis_service import (
@@ -16,12 +17,15 @@ from credit_monitoring.domain.risk_prediction import RiskPrediction
 from credit_monitoring.features.risk_feature_builder import RiskFeatureBuilder
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ml.factory import RiskModelFactory
+from credit_monitoring.observability.logging import log_event, logging_context
 from credit_monitoring.persistence.analytics_repositories import (
     CovenantResultRepository,
     RiskFeatureSnapshotRepository,
     RiskPredictionRepository,
 )
 from credit_monitoring.verification.verifier import verify_assessment
+
+logger = logging.getLogger(__name__)
 
 
 class AssessmentService:
@@ -69,69 +73,98 @@ class AssessmentService:
                 "A borrower and a cutoff on or after the reporting period are required."
             )
         run_id = new_identifier()
-        use_ml = self.settings.ml_enabled if ml_enabled is None else ml_enabled
-        rows = self.financial_repository.get_history(borrower_id, as_of=period_end.isoformat())
-        periods = {
-            date.fromisoformat(row["period_end"]): FinancialPeriod.from_repository_row(row)
-            for row in rows
-        }
-        periods.setdefault(
-            period_end, FinancialPeriod(borrower_id=borrower_id, period_end=period_end)
-        )
-        results = []
-        input_issues = []
-        for reporting_date in sorted(periods):
-            financials = periods[reporting_date]
-            if financials.available_at is not None and financials.available_at > information_cutoff:
-                input_issues.append(
-                    f"Financial inputs for {reporting_date} were unavailable at the cutoff."
-                )
-                continue
-            resolutions = self.covenant_reader.resolve(
-                borrower_id,
-                reporting_date,
-                information_cutoff,
-                financials,
-            )
-            for resolution in resolutions:
-                results.append(
-                    calculate_covenant(
-                        resolution,
-                        financials,
-                        assessment_run_id=run_id,
-                        information_cutoff=information_cutoff,
-                    )
-                )
-        assessment = RiskAssessment(
+        with logging_context(
             assessment_run_id=run_id,
             borrower_id=borrower_id,
             period_end=period_end,
             information_cutoff=information_cutoff,
-            results=[result for result in results if result.period_end == period_end],
-            history=[result for result in results if result.period_end < period_end],
-            issues=input_issues,
-        )
-        if not assessment.results:
-            assessment.issues.append(
-                "No mapped covenant inputs are available for this borrower-period."
+        ):
+            use_ml = self.settings.ml_enabled if ml_enabled is None else ml_enabled
+            log_event(logger, "assessment", inputs={"ml_enabled": use_ml}, status="started")
+            rows = self.financial_repository.get_history(borrower_id, as_of=period_end.isoformat())
+            periods = {
+                date.fromisoformat(row["period_end"]): FinancialPeriod.from_repository_row(row)
+                for row in rows
+            }
+            periods.setdefault(
+                period_end, FinancialPeriod(borrower_id=borrower_id, period_end=period_end)
             )
-        assessment.verification = verify_assessment(assessment)
-        if not assessment.verification.is_valid:
-            assessment.issues.append("Structured verification failed; ML was not invoked.")
-            assessment.ml_status = "unavailable" if use_ml else "disabled"
-        else:
-            self.result_repository.save_all(results)
-            if use_ml:
-                if assessment.results:
-                    self._run_ml(assessment)
-                else:
-                    assessment.ml_status = "unavailable"
-        try:
-            assessment.narrative = self.risk_analysis_service.analyze(assessment)
-        except Exception as error:
-            assessment.issues.append(f"Narrative unavailable: {type(error).__name__}: {error}")
-        assessment.verification = verify_assessment(assessment)
-        return assessment
+            results = []
+            input_issues = []
+            for reporting_date in sorted(periods):
+                financials = periods[reporting_date]
+                if (
+                    financials.available_at is not None
+                    and financials.available_at > information_cutoff
+                ):
+                    input_issues.append(
+                        f"Financial inputs for {reporting_date} were unavailable at the cutoff."
+                    )
+                    log_event(
+                        logger,
+                        "financial_period",
+                        status="rejected",
+                        period_end=reporting_date,
+                        inputs={"available_at": financials.available_at},
+                        outputs={"reason": input_issues[-1]},
+                    )
+                    continue
+                resolutions = self.covenant_reader.resolve(
+                    borrower_id,
+                    reporting_date,
+                    information_cutoff,
+                    financials,
+                )
+                for resolution in resolutions:
+                    results.append(
+                        calculate_covenant(
+                            resolution,
+                            financials,
+                            assessment_run_id=run_id,
+                            information_cutoff=information_cutoff,
+                        )
+                    )
+            assessment = RiskAssessment(
+                assessment_run_id=run_id,
+                borrower_id=borrower_id,
+                period_end=period_end,
+                information_cutoff=information_cutoff,
+                results=[result for result in results if result.period_end == period_end],
+                history=[result for result in results if result.period_end < period_end],
+                issues=input_issues,
+            )
+            if not assessment.results:
+                assessment.issues.append(
+                    "No mapped covenant inputs are available for this borrower-period."
+                )
+            assessment.verification = verify_assessment(assessment)
+            if not assessment.verification.is_valid:
+                assessment.issues.append("Structured verification failed; ML was not invoked.")
+                assessment.ml_status = "unavailable" if use_ml else "disabled"
+            else:
+                self.result_repository.save_all(results)
+                if use_ml:
+                    if assessment.results:
+                        self._run_ml(assessment)
+                    else:
+                        assessment.ml_status = "unavailable"
+            try:
+                assessment.narrative = self.risk_analysis_service.analyze(assessment)
+            except Exception as error:
+                assessment.issues.append(f"Narrative unavailable: {type(error).__name__}: {error}")
+            assessment.verification = verify_assessment(assessment)
+            log_event(
+                logger,
+                "assessment",
+                outputs={
+                    "current_result_count": len(assessment.results),
+                    "history_result_count": len(assessment.history),
+                    "verification_valid": assessment.verification.is_valid,
+                    "ml_status": assessment.ml_status,
+                    "issues": list(assessment.issues),
+                },
+            )
+            return assessment
 
     def _run_ml(self, assessment: RiskAssessment) -> None:
         snapshot_saved = False

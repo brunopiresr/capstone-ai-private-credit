@@ -2,7 +2,10 @@
 
 import csv
 import json
+import logging
 import sqlite3
+import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -10,6 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.calculations.leverage import divide
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.risk_prediction import RiskPrediction
@@ -251,3 +255,53 @@ def test_prediction_bounds_and_finite_inputs():
             prediction_status="complete",
             breach_probability=float("inf"),
         )
+
+
+def test_logs_link_resolution_calculations_and_trends_to_each_run(assessment_service, caplog):
+    caplog.set_level(logging.INFO, logger="credit_monitoring")
+    period = date(2025, 9, 30)
+    for borrower in ("SYN002", "SYN006"):
+        caplog.clear()
+        assessment = assessment_service.assess(borrower, period, period, ml_enabled=True)
+        records = [r for r in caplog.records if hasattr(r, "operation")]
+        assert records
+        assert all(r.assessment_run_id == assessment.assessment_run_id for r in records)
+        assert all(r.borrower_id == borrower for r in records)
+        expected_periods = {
+            result.period_end.isoformat() for result in assessment.results + assessment.history
+        }
+        assert {r.period_end for r in records} == expected_periods
+        trends = [r for r in records if r.operation == "difference"]
+        if borrower == "SYN002":
+            assert trends and all(r.covenant_id for r in trends)
+    divide(10, 2)
+    assert not hasattr(caplog.records[-1], "assessment_run_id")
+
+
+@pytest.mark.parametrize("level", [None, "INFO", "WARNING"])
+def test_cli_logging_keeps_stdout_json_and_is_opt_in(assessment_service, tmp_path, level):
+    command = [
+        sys.executable,
+        str(DATA.parent / "scripts/run_assessment.py"),
+        "--borrower-id",
+        "SYN006",
+        "--period-end",
+        "2025-09-30",
+        "--information-cutoff",
+        "2025-09-30",
+        "--financial-db",
+        str(assessment_service.financial_repository.database_path),
+        "--analytics-db",
+        str(tmp_path / "cli-analytics.sqlite3"),
+    ]
+    if level:
+        command.extend(["--log-level", level])
+    outcome = subprocess.run(command, capture_output=True, text=True, check=True)
+    assessment = json.loads(outcome.stdout)
+    assert assessment["results"][0]["actual_value"] is not None
+    if level == "INFO":
+        assert "apply_addback_cap complete" in outcome.stderr
+        assert '"borrower_id": "SYN006"' in outcome.stderr
+        assert "calculate_covenant complete" in outcome.stderr
+    else:
+        assert outcome.stderr == ""

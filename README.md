@@ -159,6 +159,11 @@ for Python interfaces, existing extraction inputs, and data limits. Model-traini
 available through the optional `ml` extra. Financial loading and document-processing APIs retain
 their existing behavior.
 
+Add `--log-level INFO` to inspect covenant selection, method inputs, intermediate adjustments,
+and results on stderr while preserving JSON on stdout. In notebooks, the existing
+`configure_logging()` call enables these steps. See [calculation logging and future Logfire
+integration](docs/ml_early_warning.md#inspect-calculation-inputs-and-results).
+
 To generate the dataset and train the baseline:
 
 ```bash

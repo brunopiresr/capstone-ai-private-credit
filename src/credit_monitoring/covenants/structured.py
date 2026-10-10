@@ -3,6 +3,7 @@
 import csv
 import hashlib
 import json
+import logging
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -15,8 +16,18 @@ from credit_monitoring.domain.assessment import (
     FinancialPeriod,
     ResolvedCovenant,
 )
+from credit_monitoring.observability.assessment import (
+    covenant_terms,
+    resolution_context,
+    resolution_inputs,
+    resolution_output,
+    resolution_outputs,
+)
+from credit_monitoring.observability.logging import log_event, logged_operation, logging_context
 
 from .applicability import applies_to_period, parse_ratio
+
+logger = logging.getLogger(__name__)
 
 
 class CovenantReader(Protocol):
@@ -74,6 +85,11 @@ class SyntheticCovenantReader:
         with self.csv_path.open(newline="", encoding="utf-8-sig") as source:
             self.rows = list(enumerate(csv.DictReader(source), start=2))
 
+    @logged_operation(
+        inputs=resolution_inputs,
+        outputs=resolution_outputs,
+        context=resolution_context,
+    )
     def resolve(
         self,
         borrower_id: str,
@@ -89,20 +105,41 @@ class SyntheticCovenantReader:
         resolutions = []
         for source_id, versions in grouped.items():
             covenant_id = f"synthetic:{borrower_id}:{source_id}"
-            active = [
-                (line, row)
-                for line, row in versions
-                if (
-                    date.fromisoformat(row["effective_start"]) <= period_end
-                    and (
-                        not row["effective_end"]
-                        or period_end <= date.fromisoformat(row["effective_end"])
-                    )
+            active = []
+            for line, row in versions:
+                applies = date.fromisoformat(row["effective_start"]) <= period_end and (
+                    not row["effective_end"]
+                    or period_end <= date.fromisoformat(row["effective_end"])
                 )
-            ]
+                log_event(
+                    logger,
+                    "synthetic_version",
+                    covenant_id=covenant_id,
+                    source_file=str(self.csv_path),
+                    source_row=line,
+                    inputs={
+                        "effective_start": row["effective_start"],
+                        "effective_end": row["effective_end"],
+                    },
+                    outputs={
+                        "applicable": applies,
+                        "reason": "Within effective range."
+                        if applies
+                        else "Outside effective range.",
+                    },
+                )
+                if applies:
+                    active.append((line, row))
             resolution = CovenantResolution(covenant_id=covenant_id, covenant_type=source_id)
             if len(active) != 1:
                 resolution.issues.append("No unique covenant version applies to this period.")
+                log_event(
+                    logger,
+                    "covenant_resolution",
+                    covenant_id=covenant_id,
+                    inputs={"candidate_count": len(active)},
+                    outputs=resolution_output(resolution),
+                )
                 resolutions.append(resolution)
                 continue
             line, row = active[0]
@@ -126,6 +163,15 @@ class SyntheticCovenantReader:
                 resolution.covenant_type = resolution.covenant.covenant_type
             except ValueError as error:
                 resolution.issues.append(str(error))
+            log_event(
+                logger,
+                "covenant_resolution",
+                covenant_id=covenant_id,
+                source_file=str(self.csv_path),
+                source_row=line,
+                inputs={"candidate_count": len(active)},
+                outputs=resolution_output(resolution),
+            )
             resolutions.append(resolution)
         return resolutions
 
@@ -174,6 +220,17 @@ class SyntheticCovenantReader:
             "Include acquired EBITDA on a pro forma basis",
         ):
             raise ValueError("Unsupported synthetic special rule.")
+        log_event(
+            logger,
+            "synthetic_testing",
+            covenant_id=covenant_id,
+            inputs={
+                "testing_condition": condition,
+                "revolver_availability_pct": financials.metrics.get("revolver_availability_pct"),
+                "waiver_or_special_rule": special_rule,
+            },
+            outputs={"testing_status": testing_status},
+        )
         return ResolvedCovenant(
             borrower_id=row["borrower_id"],
             agreement_id=f"synthetic:{row['borrower_id']}",
@@ -219,6 +276,11 @@ class ExtractionCovenantReader:
         self.service = service
         self.bindings = bindings
 
+    @logged_operation(
+        inputs=resolution_inputs,
+        outputs=resolution_outputs,
+        context=resolution_context,
+    )
     def resolve(
         self,
         borrower_id: str,
@@ -233,55 +295,135 @@ class ExtractionCovenantReader:
                 grouped.setdefault(binding.covenant_id, []).append(binding)
         resolutions = []
         for covenant_id, bindings in grouped.items():
-            resolution = CovenantResolution(covenant_id=covenant_id, covenant_type="unknown")
-            candidates = []
-            for binding in bindings:
-                if binding.available_at is not None and binding.available_at > information_cutoff:
-                    continue
-                document = self.service.get_document_extraction(binding.document_id)
-                if document.status != "complete" or document.result is None:
-                    resolution.issues.append(f"Extraction unavailable: {binding.document_id}.")
-                    continue
-                if (
-                    document.result.validation is not None
-                    and not document.result.validation.is_valid
-                ):
-                    resolution.issues.append(
-                        f"Extraction has validation errors: {binding.document_id}."
-                    )
-                    continue
-                extraction = document.result.extraction
-                if extraction.conflicts:
-                    resolution.issues.append(f"Conflicting extracted facts: {binding.document_id}.")
-                    continue
-                for term in extraction.covenants:
-                    if term.covenant_name != binding.covenant_name:
-                        continue
-                    resolution.covenant_type = term.covenant_type
-                    for schedule in term.threshold_schedule:
-                        if applies_to_period(schedule, period_end):
-                            try:
-                                candidate = self._candidate(
-                                    binding,
-                                    term,
-                                    schedule,
-                                    extraction,
-                                    period_end,
-                                    document,
+            with logging_context(covenant_id=covenant_id):
+                resolution = CovenantResolution(covenant_id=covenant_id, covenant_type="unknown")
+                candidates = []
+                for binding in bindings:
+                    with logging_context(
+                        document_id=binding.document_id, agreement_id=binding.agreement_id
+                    ):
+                        if (
+                            binding.available_at is not None
+                            and binding.available_at > information_cutoff
+                        ):
+                            log_event(
+                                logger,
+                                "extraction_candidate",
+                                status="rejected",
+                                inputs={"available_at": binding.available_at},
+                                outputs={"reason": "Source unavailable at information cutoff."},
+                            )
+                            continue
+                        document = self.service.get_document_extraction(binding.document_id)
+                        if document.status != "complete" or document.result is None:
+                            resolution.issues.append(
+                                f"Extraction unavailable: {binding.document_id}."
+                            )
+                            log_event(
+                                logger,
+                                "extraction_candidate",
+                                status="rejected",
+                                inputs={"extraction_status": document.status},
+                                outputs={"reason": resolution.issues[-1]},
+                            )
+                            continue
+                        if (
+                            document.result.validation is not None
+                            and not document.result.validation.is_valid
+                        ):
+                            resolution.issues.append(
+                                f"Extraction has validation errors: {binding.document_id}."
+                            )
+                            log_event(
+                                logger,
+                                "extraction_candidate",
+                                status="rejected",
+                                outputs={"reason": resolution.issues[-1]},
+                            )
+                            continue
+                        extraction = document.result.extraction
+                        if extraction.conflicts:
+                            resolution.issues.append(
+                                f"Conflicting extracted facts: {binding.document_id}."
+                            )
+                            log_event(
+                                logger,
+                                "extraction_candidate",
+                                status="rejected",
+                                outputs={"reason": resolution.issues[-1]},
+                            )
+                            continue
+                        for term in extraction.covenants:
+                            if term.covenant_name != binding.covenant_name:
+                                log_event(
+                                    logger,
+                                    "extraction_candidate",
+                                    status="rejected",
+                                    inputs={
+                                        "covenant_name": term.covenant_name,
+                                        "bound_covenant_name": binding.covenant_name,
+                                    },
+                                    outputs={"reason": "Covenant name does not match the binding."},
                                 )
-                                candidates.append(candidate)
-                            except (ValueError, OSError) as error:
-                                resolution.issues.append(str(error))
-            if not resolution.issues and len(candidates) == 1:
-                resolution.covenant = candidates[0]
-                resolution.evidence = candidates[0].evidence
-            else:
-                resolution.issues.append(
-                    "No unique source-supported covenant applies to this period."
+                                continue
+                            resolution.covenant_type = term.covenant_type
+                            for schedule in term.threshold_schedule:
+                                if applies_to_period(schedule, period_end):
+                                    try:
+                                        candidate = self._candidate(
+                                            binding,
+                                            term,
+                                            schedule,
+                                            extraction,
+                                            period_end,
+                                            document,
+                                        )
+                                        candidates.append(candidate)
+                                    except (ValueError, OSError) as error:
+                                        resolution.issues.append(str(error))
+                                        log_event(
+                                            logger,
+                                            "extraction_candidate",
+                                            status="rejected",
+                                            outputs={"reason": resolution.issues[-1]},
+                                        )
+                                else:
+                                    log_event(
+                                        logger,
+                                        "extraction_candidate",
+                                        status="rejected",
+                                        inputs={"threshold": schedule.threshold},
+                                        outputs={
+                                            "reason": "Threshold schedule does not apply to period."
+                                        },
+                                    )
+                if not resolution.issues and len(candidates) == 1:
+                    resolution.covenant = candidates[0]
+                    resolution.evidence = candidates[0].evidence
+                else:
+                    resolution.issues.append(
+                        "No unique source-supported covenant applies to this period."
+                    )
+                log_event(
+                    logger,
+                    "covenant_resolution",
+                    inputs={"candidate_count": len(candidates)},
+                    outputs=resolution_output(resolution),
                 )
-            resolutions.append(resolution)
+                resolutions.append(resolution)
         return resolutions
 
+    @logged_operation(
+        inputs=lambda args: {
+            "threshold": args["schedule"].threshold,
+            "operator": args["term"].operator,
+            "effective_date_or_period": args["term"].effective_date_or_period,
+            "calculation_rules": args["binding"].calculation_rules.model_dump(mode="json")
+            if args["binding"].calculation_rules
+            else None,
+        },
+        outputs=lambda covenant: {"terms": covenant_terms(covenant)},
+    )
     def _candidate(self, binding, term, schedule, extraction, period_end, document):
         """Check selected source quotes and project only explicit period-specific facts."""
         if term.operator is None:
@@ -334,6 +476,12 @@ class ExtractionCovenantReader:
                 "suspension": "suspended",
                 "resumption": "active",
             }[event.event_type]
+        log_event(
+            logger,
+            "extracted_testing",
+            inputs={"applicable_event_types": [event.event_type for event in applicable_events]},
+            outputs={"testing_status": testing_status},
+        )
         actuals = [
             value
             for value in extraction.reported_financial_values
