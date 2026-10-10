@@ -57,6 +57,12 @@ descriptive docstrings; their `.tools` properties wrap bound methods with SDK
 `function_tool()`. Services and scope stay on tool instances, while `AgentRunState`
 contains only per-question execution state. See [tool reuse](docs/document_processing.md#reuse-the-tool-classes).
 
+For follow-up questions, use `conversation = agent.start_conversation(ticker="FMC")`
+and `await conversation.ask_async(...)` (or `conversation.ask(...)` synchronously).
+History stays in memory until closed; `close`, `done`, and `quit` end the conversation
+without calling the model. The agents notebook includes optional interactive loops
+for document research and borrower assessment. See [conversation usage](docs/document_processing.md#conversations-and-follow-up-questions).
+
 ## Setup
 
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/).

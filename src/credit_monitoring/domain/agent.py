@@ -24,11 +24,12 @@ class ToolExecution(ExtractionModel):
 class AgentAnswer(ExtractionModel):
     answer: str = Field(description="Final answer or explicit incomplete/failure explanation.")
     sources: list[SourceReference] = Field(
-        default_factory=list, description="Distinct evidence sources returned by successful tools."
+        default_factory=list,
+        description="Distinct tool sources, including prior successful conversation turns.",
     )
     tool_trace: list[ToolExecution] = Field(
         default_factory=list,
-        description="Actual tool dispatch outcomes; no private model reasoning.",
+        description="Actual tool dispatch outcomes for this question; no private model reasoning.",
     )
     complete: bool = Field(default=True, description="False for loop limits or model failures.")
     error: str | None = Field(

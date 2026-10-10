@@ -50,9 +50,9 @@ class AgentEventCallback:
             return
 
         name = self.agent.name if self.agent is not None else event.agent_name
-        # if event.kind == "model_start":
-        #    message = f"MODEL REQUEST ({name})"
-        if event.kind == "tool_call":
+        if event.kind == "model_start":
+            message = f"MODEL REQUEST ({name})"
+        elif event.kind == "tool_call":
             message = f"TOOL CALL ({name}): {event.tool_name}({event.arguments})"
         elif event.kind == "tool_result":
             outcome = event.outcome or {}

@@ -1000,3 +1000,309 @@ def test_assessment_schemas_expose_dates_only(agent_assessment_service):
             == set(schema["properties"])
             == {"period_end", "information_cutoff"}
         )
+
+
+def test_conversation_replays_evidence_and_keeps_sources_without_repeating_tools(
+    document_service_factory,
+):
+    monitor, client = agent(document_service_factory())
+    client.responses.create.side_effect = [
+        response(
+            ("search_evidence", {"query": "maximum leverage", "ticker": None}), reasoning=True
+        ),
+        response(answer="The threshold is 4.00 to 1.00. [SYN] Synthetic Issuer, Amendment."),
+        response(answer="The earlier SYN filing supports that threshold."),
+    ]
+    conversation = monitor.start_conversation(ticker="SYN")
+    first = conversation.ask("Find the leverage threshold.")
+    original_citation = first.sources[0].citation
+    # Returned outcomes must not allow a caller to modify retained evidence.
+    first.sources[0].citation = "Changed outside the conversation"
+    first.tool_trace[0].outcome.clear()
+    follow_up = conversation.ask("Which filing supports that?")
+    assert follow_up.complete and follow_up.tool_trace == []
+    assert [(s.document_id, s.citation) for s in follow_up.sources] == [("SYN", original_citation)]
+    history = client.responses.create.call_args.kwargs["input"]
+    assert json.loads(history[0]["content"])["question"] == "Find the leverage threshold."
+    assert json.loads(history[-1]["content"])["question"] == "Which filing supports that?"
+    assert any(item.get("type") == "function_call" for item in history)
+    assert "private-content" not in follow_up.model_dump_json()
+    evidence = next(item for item in history if item.get("type") == "function_call_output")
+    assert "Maximum leverage ratio" in evidence["output"]
+    assert "The threshold is 4.00" in json.dumps(history)
+
+
+def test_conversation_date_clarification_reaches_real_assessment_tools(
+    document_service_factory, agent_assessment_service
+):
+    monitor, client = agent(document_service_factory(), assessment_service=agent_assessment_service)
+    client.responses.create.side_effect = [
+        response(answer="What reporting period and information cutoff should I use?"),
+        response(("assess_covenants", ASSESSMENT_DATES)),
+        response(answer="SYN002 is compliant for the supplied period."),
+    ]
+    conversation = monitor.start_conversation(borrower_id="SYN002")
+    clarification = conversation.ask("Assess covenant compliance.")
+    assert clarification.complete and clarification.tool_trace == []
+    answer = conversation.ask("Reporting period and information cutoff are both 2025-09-30.")
+    request = client.responses.create.call_args_list[1].kwargs
+    assert "Assess covenant compliance" in json.dumps(request["input"])
+    assert "What reporting period and information cutoff" in json.dumps(request["input"])
+    assert "2025-09-30" in request["input"][-1]["content"]
+    assert answer.tool_trace[0].arguments == ASSESSMENT_DATES
+    assert answer.tool_trace[0].outcome["data"]["borrower_id"] == "SYN002"
+
+
+def test_conversation_resets_round_budget_trace_and_callback_override(document_service_factory):
+    default_handler, override = AsyncMock(), AsyncMock()
+    monitor, client = agent(
+        document_service_factory(), max_tool_rounds=1, event_stream_handler=default_handler
+    )
+    client.responses.create.side_effect = [
+        response(("list_documents", {})),
+        response(answer="First answer."),
+        response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
+        response(answer="Second answer."),
+    ]
+    conversation = monitor.start_conversation(ticker="SYN")
+    first = conversation.ask("Find filings.", event_stream_handler=override)
+    second = conversation.ask("Find their leverage evidence.")
+    assert first.complete and second.complete
+    assert [step.name for step in first.tool_trace] == ["list_documents"]
+    assert [step.name for step in second.tool_trace] == ["search_evidence"]
+    first_state = override.call_args_list[0].args[0].context
+    second_state = default_handler.call_args_list[0].args[0].context
+    assert first_state is not second_state
+    assert first_state.tool_rounds == second_state.tool_rounds == 1
+    assert override.await_count == default_handler.await_count == 5
+
+
+def test_conversations_and_independent_questions_keep_history_and_scope_separate(
+    document_service_factory,
+):
+    monitor, client = agent(document_service_factory())
+    client.responses.create.side_effect = [
+        response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
+        response(answer="Evidence for SYN."),
+        response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
+        response(answer="No evidence for OTHER."),
+        response(answer="An independent answer."),
+    ]
+    syn = monitor.start_conversation(ticker="SYN")
+    other = monitor.start_conversation(ticker="OTHER")
+    assert syn.ask("Find filing evidence.").sources
+    assert other.ask("Find different evidence.").sources == []
+    other_input = client.responses.create.call_args_list[2].kwargs["input"]
+    assert len(other_input) == 1
+    assert json.loads(other_input[0]["content"])["ticker"] == "OTHER"
+    independent = monitor.ask("A standalone question.", ticker="SYN")
+    assert independent.sources == []
+    assert len(client.responses.create.call_args.kwargs["input"]) == 1
+
+
+@pytest.mark.parametrize("command", ["close", "done", "quit", " ClOsE ", "\tDONE\n", "QUIT"])
+@pytest.mark.parametrize("use_async", [False, True])
+def test_conversation_exit_commands_clear_memory_without_model_or_tools(
+    document_service_factory, command, use_async
+):
+    service = document_service_factory()
+    handler = AsyncMock()
+    monitor, client = agent(service, event_stream_handler=handler)
+    client.responses.create.side_effect = [
+        response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
+        response(answer="Found the evidence."),
+    ]
+    conversation = monitor.start_conversation(ticker="SYN")
+    assert conversation.ask("Find evidence.").sources
+    client.responses.create.reset_mock()
+    handler.reset_mock()
+    result = (
+        asyncio.run(conversation.ask_async(command)) if use_async else conversation.ask(command)
+    )
+    assert result is None and conversation.closed
+    assert conversation._history == conversation._sources == []
+    client.responses.create.assert_not_called()
+    service.client.responses.parse.assert_not_called()
+    handler.assert_not_called()
+    conversation.close()  # Closing is idempotent.
+    with pytest.raises(RuntimeError, match="Conversation is closed"):
+        conversation.ask("Another question")
+    assert not monitor.start_conversation(ticker="SYN").closed
+
+
+@pytest.mark.parametrize("question", ["Explain the close process", "Are we done?", "How to quit?"])
+def test_conversation_exit_words_in_sentences_are_questions(document_service_factory, question):
+    monitor, client = agent(document_service_factory())
+    client.responses.create.return_value = response(answer="An ordinary answer.")
+    conversation = monitor.start_conversation()
+    assert conversation.ask(question).complete
+    assert not conversation.closed
+    client.responses.create.assert_called_once()
+
+
+def test_conversation_blank_input_keeps_memory_and_sync_usage_guard(document_service_factory):
+    monitor, client = agent(document_service_factory())
+    conversation = monitor.start_conversation()
+    with pytest.raises(ValueError, match="Question must not be empty"):
+        conversation.ask(" \t ")
+    assert not conversation.closed and conversation._history == []
+
+    async def misuse():
+        with pytest.raises(RuntimeError, match="await conversation.ask_async"):
+            conversation.ask("Question")
+
+    asyncio.run(misuse())
+    client.responses.create.assert_not_called()
+
+
+@pytest.mark.parametrize("failure", ["api", "tool_round_limit", "incomplete", "empty"])
+def test_conversation_failure_preserves_successful_history_without_partial_tools(
+    document_service_factory, failure
+):
+    monitor, client = agent(document_service_factory(), max_tool_rounds=1)
+    partial_call = response(("list_documents", {}))
+    failures = {
+        "api": APIError(
+            "Offline test failure",
+            request=httpx.Request("POST", "https://example.invalid"),
+            body=None,
+        ),
+        "tool_round_limit": response(("list_documents", {})),
+        "incomplete": response(status="incomplete"),
+        "empty": response(),
+    }
+    client.responses.create.side_effect = [
+        response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
+        response(answer="Earlier successful answer."),
+        partial_call,
+        failures[failure],
+        response(answer="Recovered answer using earlier evidence."),
+    ]
+    conversation = monitor.start_conversation(ticker="SYN")
+    first = conversation.ask("Find leverage evidence.")
+    failed = conversation.ask("Find additional documents.")
+    assert not failed.complete and len(failed.tool_trace) == 1 and not conversation.closed
+    recovered = conversation.ask("Explain the earlier evidence instead.")
+    history = client.responses.create.call_args.kwargs["input"]
+    assert "Earlier successful answer" in json.dumps(history)
+    assert "Find additional documents" in json.dumps(history)
+    assert failed.error in json.dumps(history)
+    assert "list_documents" not in json.dumps(history)
+    assert recovered.complete and recovered.sources == first.sources
+    assert recovered.tool_trace == []
+
+
+def test_conversation_rejects_overlapping_questions_and_does_not_restore_closed_memory(
+    document_service_factory,
+):
+    monitor, client = agent(document_service_factory())
+    conversation = monitor.start_conversation()
+
+    async def exercise():
+        started, release = asyncio.Event(), asyncio.Event()
+
+        async def respond(**kwargs):
+            started.set()
+            await release.wait()
+            return response(answer="Finished the pending request.")
+
+        client.responses.create.side_effect = respond
+        pending = asyncio.create_task(conversation.ask_async("First question"))
+        await started.wait()
+        try:
+            with pytest.raises(RuntimeError, match="already running"):
+                await conversation.ask_async("Overlapping question")
+            assert await conversation.ask_async("quit") is None
+        finally:
+            release.set()
+            await pending
+        assert conversation.closed
+        assert conversation._history == conversation._sources == []
+
+    asyncio.run(exercise())
+    client.responses.create.assert_called_once()
+
+
+def test_conversation_requires_assessment_service_for_borrower_scope(document_service_factory):
+    monitor, client = agent(document_service_factory())
+    with pytest.raises(ValueError, match="Configure an assessment_service"):
+        monitor.start_conversation(borrower_id="SYN002")
+    client.responses.create.assert_not_called()
+
+
+def test_failed_conversation_turn_does_not_retain_new_evidence(document_service_factory):
+    monitor, client = agent(document_service_factory())
+    client.responses.create.side_effect = [
+        response(answer="Which covenant should I research?"),
+        response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
+        APIError("Offline", request=httpx.Request("POST", "https://example.invalid"), body=None),
+        response(answer="I need to retrieve the evidence again."),
+    ]
+    conversation = monitor.start_conversation(ticker="SYN")
+    conversation.ask("Help research a covenant.")
+    failed = conversation.ask("Leverage.")
+    assert failed.sources
+    recovered = conversation.ask("Do you have supporting evidence?")
+    assert recovered.complete and recovered.sources == []
+    history = client.responses.create.call_args.kwargs["input"]
+    assert not any(item.get("type") == "function_call_output" for item in history)
+
+
+def test_conversation_follow_up_cannot_switch_issuer_scope(document_service_factory):
+    monitor, client = agent(document_service_factory())
+    client.responses.create.side_effect = [
+        response(answer="This conversation is scoped to OTHER."),
+        response(("process_document", {"document_id": "SYN"})),
+        response(answer="The requested document is outside this conversation's scope."),
+    ]
+    conversation = monitor.start_conversation(ticker="OTHER")
+    conversation.ask("What scope is configured?")
+    answer = conversation.ask("Switch to SYN and process its filing.")
+    assert answer.tool_trace[0].outcome["error"] == "service_error"
+    assert answer.sources == []
+    monitor.service.client.responses.parse.assert_not_called()
+    history = client.responses.create.call_args.kwargs["input"]
+    user_items = [item for item in history if item.get("role") == "user"]
+    assert all(json.loads(item["content"])["ticker"] == "OTHER" for item in user_items)
+
+
+def test_concurrent_conversations_keep_borrower_scope_and_follow_ups_separate(
+    document_service_factory, agent_assessment_service
+):
+    monitor, client = agent(document_service_factory(), assessment_service=agent_assessment_service)
+
+    async def respond(**kwargs):
+        await asyncio.sleep(0)
+        user_items = [item for item in kwargs["input"] if item.get("role") == "user"]
+        payload = json.loads(user_items[-1]["content"])
+        borrower = payload["borrower_id"]
+        assert all(json.loads(item["content"])["borrower_id"] == borrower for item in user_items)
+        if payload["question"] == "Explain that result.":
+            assert f"Assessment for {borrower}" in json.dumps(kwargs["input"])
+            return response(answer=f"Explanation for {borrower}.")
+        if any(item.get("type") == "function_call_output" for item in kwargs["input"]):
+            return response(answer=f"Assessment for {borrower}.")
+        return response(("assess_covenants", ASSESSMENT_DATES))
+
+    client.responses.create.side_effect = respond
+
+    async def run():
+        conversations = [
+            monitor.start_conversation(borrower_id=borrower) for borrower in ("SYN002", "SYN004")
+        ]
+        first = await asyncio.gather(*(chat.ask_async("Assess") for chat in conversations))
+        second = await asyncio.gather(
+            *(chat.ask_async("Explain that result.") for chat in conversations)
+        )
+        return first, second
+
+    first, second = asyncio.run(run())
+    assert [answer.tool_trace[0].outcome["data"]["borrower_id"] for answer in first] == [
+        "SYN002",
+        "SYN004",
+    ]
+    assert [answer.answer for answer in second] == [
+        "Explanation for SYN002.",
+        "Explanation for SYN004.",
+    ]
+    assert all(answer.tool_trace == [] for answer in second)

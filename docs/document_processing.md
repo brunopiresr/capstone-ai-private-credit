@@ -150,7 +150,9 @@ it also exposes `get_financials`, `assess_covenants`, and `predict_risk`.
 The SDK manages conversation history and tool continuation. The application retains
 argument validation, issuer/borrower scope, document processing, assessments, source collection, and the
 public `AgentAnswer` contract. Tool execution is sequential even if a response
-contains several calls. Each question has separate context, sources, and trace.
+contains several calls. Each question has separate execution context, limits, and trace.
+Independent calls also have separate sources; explicit conversations retain prior
+successful tool evidence and SDK history for follow-ups.
 See the [official OpenAI Agents SDK quickstart](https://developers.openai.com/api/docs/guides/agents/quickstart?lang=python).
 
 ### Reuse the tool classes
@@ -230,8 +232,55 @@ a semantic verification of every claim in the generated answer.
 SDK dashboard tracing is disabled by default. Set `tracing_enabled=True` on
 `CreditAssessmentAgent` to enable tracing with sensitive input/output data excluded.
 The application-owned `tool_trace` remains available with either setting. The
-current agent starts a fresh conversation per question; persistent sessions,
-token streaming, and specialist handoffs are separate extensions.
+single-question methods start fresh per question. Explicit conversations keep history
+in memory; persistence across restarts, token streaming, and specialist handoffs are
+separate extensions.
+
+### Conversations and follow-up questions
+
+Start an independent conversation to retain prior requests, clarification answers,
+tool calls/results, and source citations:
+
+```python
+conversation = agent.start_conversation(ticker="FMC")
+first = await conversation.ask_async("Find the leverage schedule and supporting passages.")
+follow_up = await conversation.ask_async("Which filing supports that threshold?")
+print(follow_up.answer)
+
+# All three commands close locally and return None. Case and whitespace are ignored.
+assert await conversation.ask_async("done") is None
+assert conversation.closed
+```
+
+Use `conversation.ask(...)` in synchronous application code. Both methods accept an
+optional `event_stream_handler`, just like the agent methods. Ordinary questions
+return `AgentAnswer`; only exact `close`, `done`, or `quit` messages return `None`.
+Blank questions raise `ValueError` (the notebook input loop ignores blanks).
+`conversation.close()` is also available and can be called repeatedly. Closing clears
+stored history and source references; further questions raise `RuntimeError`.
+
+Supply `borrower_id="SYN002"` at conversation creation to enable the configured
+assessment tools. Issuer and borrower scope cannot change within a conversation.
+Start another conversation to change scope. Explicit reporting dates and information
+cutoffs from earlier messages can be reused; missing or ambiguous dates still require
+clarification. Each conversation accepts one running question at a time.
+
+The application passes SDK `result.to_input_list()` history into the next run.
+Tool budgets and public traces reset for each question. `sources` also includes
+references from earlier successful conversation turns, so an answer using prior
+evidence can retain its citations without repeating tool calls. The source list is
+available evidence, not a guarantee that every listed source was cited in that answer.
+SDK continuation history is private and is not exposed in `AgentAnswer` or progress
+events. Incomplete runs preserve prior successful history plus the failed question
+and error message, excluding partial tool sequences and new evidence from that run.
+You may ask again; previously executed assessment or processing actions are not undone.
+
+In `notebooks/03-agents.ipynb`, set `RUN_DOCUMENT_CHAT` or `RUN_ASSESSMENT_CHAT` to
+`True` in its optional conversation cell and run that cell. The shared input loop
+displays answers, sources, traces, and live progress until an exit command, EOF, or
+keyboard interruption. Both flags default to `False` so Run All does not wait for input.
+Each interactive invocation starts fresh; history is not saved across kernel restarts
+or automatically summarized.
 
 ### View live agent progress
 

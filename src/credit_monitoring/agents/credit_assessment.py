@@ -22,6 +22,7 @@ from agents.items import TResponseInputItem
 from agents.tool_context import ToolContext
 from openai import APIError, AsyncOpenAI, OpenAI
 
+from credit_monitoring.agents.conversation import AgentConversation
 from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
 from credit_monitoring.agents.prompts.credit_assessment import CREDIT_ASSESSMENT_INSTRUCTIONS
 from credit_monitoring.agents.responses_client import AgentFailure, ResponsesClientAdapter
@@ -30,7 +31,7 @@ from credit_monitoring.agents.tools.assessment import AssessmentTools
 from credit_monitoring.agents.tools.documents import DocumentTools
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.domain.agent import AgentAnswer
+from credit_monitoring.domain.agent import AgentAnswer, SourceReference
 
 
 class _QuestionHooks(RunHooks[AgentRunState]):
@@ -152,6 +153,15 @@ class CreditAssessmentAgent:
         self.name = name
         self.event_stream_handler = event_stream_handler
 
+    def start_conversation(
+        self,
+        *,
+        ticker: str | None = None,
+        borrower_id: str | None = None,
+    ) -> AgentConversation:
+        """Start an independent in-memory conversation with fixed application scope."""
+        return AgentConversation(self, ticker=ticker, borrower_id=borrower_id)
+
     def ask(
         self,
         question: str,
@@ -182,9 +192,34 @@ class CreditAssessmentAgent:
         borrower_id: str | None = None,
         event_stream_handler: EventStreamHandler | None = None,
     ) -> AgentAnswer:
+        """Answer one independent question without retaining conversation history."""
+        answer, _ = await self._run_question(
+            question,
+            ticker,
+            borrower_id=borrower_id,
+            event_stream_handler=event_stream_handler,
+        )
+        return answer
+
+    async def _run_question(
+        self,
+        question: str,
+        ticker: str | None = None,
+        *,
+        borrower_id: str | None = None,
+        event_stream_handler: EventStreamHandler | None = None,
+        history: list[TResponseInputItem] | None = None,
+        sources: list[SourceReference] | None = None,
+    ) -> tuple[AgentAnswer, list[TResponseInputItem]]:
         if not question.strip():
             raise ValueError("Question must not be empty.")
-        state = AgentRunState(max_tool_rounds=self.max_tool_rounds)
+        state = AgentRunState(
+            max_tool_rounds=self.max_tool_rounds,
+            sources={
+                (source.document_id, source.citation): source.model_copy(deep=True)
+                for source in sources or []
+            },
+        )
         documents = DocumentTools(self.service, ticker=ticker)
         tools = documents.tools
         if borrower_id is not None:
@@ -192,8 +227,8 @@ class CreditAssessmentAgent:
                 raise ValueError("Configure an assessment_service before supplying a borrower ID.")
             assessments = AssessmentTools(self.assessment_service, borrower_id=borrower_id)
             tools += assessments.tools
-        # Each question owns its tools and trace, so issuer/borrower scope and evidence do
-        # not leak between calls. The SDK owns history and the execution loop.
+        # Each question owns its tools, limits and trace. Only an explicit conversation
+        # carries previous SDK history and source references into the next question.
         agent = Agent[AgentRunState](
             name=self.name,
             instructions=CREDIT_ASSESSMENT_INSTRUCTIONS,
@@ -231,12 +266,16 @@ class CreditAssessmentAgent:
             )
             return result
 
+        question_input = json.dumps(
+            {"question": question, "ticker": ticker, "borrower_id": borrower_id}
+        )
+        user_message: TResponseInputItem = {"role": "user", "content": question_input}
+        run_input = question_input if history is None else [*history, user_message]
+        next_history: list[TResponseInputItem] = []
         try:
             result = await Runner.run(
                 agent,
-                input=json.dumps(
-                    {"question": question, "ticker": ticker, "borrower_id": borrower_id}
-                ),
+                input=run_input,
                 context=state,
                 hooks=hooks,
                 max_turns=self.max_tool_rounds + 1,
@@ -264,8 +303,23 @@ class CreditAssessmentAgent:
                 if isinstance(text, str) and text.strip()
                 else state.answer("Model returned no answer or tool calls.", "empty_response")
             )
+            if history is not None and answer.complete:
+                next_history = result.to_input_list()
+        if history is not None and not answer.complete:
+            # Failed runs may contain unmatched calls or partial outputs. Keep the
+            # prior successful history and a plain failure exchange instead.
+            next_history = [
+                *history,
+                user_message,
+                {
+                    "role": "assistant",
+                    "content": json.dumps(
+                        {"answer": answer.answer, "complete": False, "error": answer.error}
+                    ),
+                },
+            ]
         await hooks.emit(
             RunContextWrapper(context=state),
             AgentEvent("run_end", agent.name, error=answer.error),
         )
-        return answer
+        return answer, next_history
