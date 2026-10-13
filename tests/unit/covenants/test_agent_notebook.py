@@ -10,6 +10,7 @@ import nbformat
 import pytest
 
 from credit_monitoring.agents.events import AgentEventCallback
+from credit_monitoring.domain import CovenantExtraction
 from credit_monitoring.domain.agent import AgentAnswer
 
 NOTEBOOK = Path(__file__).resolve().parents[3] / "notebooks/03-agents.ipynb"
@@ -80,9 +81,57 @@ def test_notebook_interactive_cells_do_not_prompt_during_run_all(notebook_cells,
     namespace["chat_with_agent"].assert_not_called()
 
 
-def test_notebook_schema_and_all_code_cell_syntax():
-    notebook = nbformat.read(NOTEBOOK, as_version=4)
+@pytest.mark.parametrize("name", ["01-setup.ipynb", "02-rag.ipynb", "03-agents.ipynb"])
+def test_notebook_schema_and_all_code_cell_syntax(name):
+    notebook = nbformat.read(NOTEBOOK.parent / name, as_version=4)
     nbformat.validate(notebook)
     for cell in notebook.cells:
         if cell.cell_type == "code":
             compile(cell.source, cell.id, "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+
+
+def test_streaming_demo_is_opt_in(notebook_cells):
+    namespace = {}
+    code = compile(
+        notebook_cells["streaming-demo"],
+        "streaming-demo",
+        "exec",
+        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+    )
+    asyncio.run(eval(code, namespace))
+    assert namespace["RUN_STREAMING_DEMO"] is False
+    assert callable(namespace["show_stream"])
+
+
+@pytest.mark.parametrize(
+    "cell_id", ["process-complete-fmc-document", "ac7bc8f7", "process-catalog-helper"]
+)
+def test_rag_notebook_document_processing_in_running_loop(
+    cell_id, document_service_factory, generation_response
+):
+    service = document_service_factory()
+    service.model.respond.return_value = generation_response(CovenantExtraction())
+    notebook = json.loads((NOTEBOOK.parent / "02-rag.ipynb").read_text())
+    cells = {cell["id"]: "".join(cell["source"]) for cell in notebook["cells"]}
+    # Use the local synthetic filing in place of the public FMC document.
+    source = cells[cell_id].replace('"DOC_FMC_AMD3_2025"', '"SYN"')
+    if cell_id == "process-catalog-helper":
+        source += '\noutcomes = await process_catalog(ticker="SYN")\n'
+    code = compile(source, cell_id, "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+    namespace = {"asyncio": asyncio, "processing_service": service}
+
+    async def run_cell():
+        await eval(code, namespace)
+
+    asyncio.run(run_cell())
+    outcome = service.get_document_extraction("SYN")
+    assert outcome.status == "complete" and outcome.result is not None
+    service.model.respond.assert_called_once()
+    # Repeating the actual notebook cell reuses the persistent result.
+    asyncio.run(run_cell())
+    service.model.respond.assert_called_once()
+    if cell_id == "process-complete-fmc-document":
+        assert namespace["fmc_document"].cache_hit
+    else:
+        outcomes = namespace["documents" if cell_id == "ac7bc8f7" else "outcomes"]
+        assert len(outcomes) == 1 and outcomes[0].cache_hit

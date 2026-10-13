@@ -49,13 +49,16 @@ Status: Analyst-facing Streamlit demo, CSV-to-SQLite financial loading, complete
 See [document processing and agent usage](docs/document_processing.md) for the service
 interfaces, cache behavior, tool loop, and verification migration notes.
 
-The credit assessment agent uses the OpenAI Agents SDK while retaining the document
-service and evidence trace. Use `agent.ask()` in synchronous application code or
-`await agent.ask_async()` in notebooks and asynchronous applications.
-Its reusable `DocumentTools` and `AssessmentTools` classes expose typed methods with
-descriptive docstrings; their `.tools` properties wrap bound methods with SDK
-`function_tool()`. Services and scope stay on tool instances, while `AgentRunState`
-contains only per-question execution state. See [tool reuse](docs/document_processing.md#reuse-the-tool-classes).
+The credit assessment agent uses PydanticAI. Supply a provider-qualified `model` name
+or an injected PydanticAI model; the default is `openai-responses:gpt-4o-mini`.
+Use `agent.ask()` synchronously, `await agent.ask_async()` asynchronously, or consume
+`agent.stream_async()` for progress and provisional structured answers. The final
+`AgentAnswer` includes confidence (`low` / `medium` / `high`) and an explanation.
+Sources and traces come from executed tools. See [streaming usage](docs/document_processing.md#view-live-agent-progress-and-structured-answers).
+
+Reusable `DocumentTools` and `AssessmentTools` expose typed, scoped PydanticAI tools.
+Tool registration, execution, conversation history, and display have separate owners.
+See [tool reuse](docs/document_processing.md#reuse-the-tool-classes).
 
 For follow-up questions, use `conversation = agent.start_conversation(ticker="FMC")`
 and `await conversation.ask_async(...)` (or `conversation.ask(...)` synchronously).
@@ -78,7 +81,7 @@ The scaffold import test and demo app do not need credentials or external servic
 
 Run the notebooks with the project's `.venv` kernel:
 
-- [01-setup.ipynb](notebooks/01-setup.ipynb) checks the OpenAI client setup.
+- [01-setup.ipynb](notebooks/01-setup.ipynb) checks PydanticAI model setup.
 - [02-rag.ipynb](notebooks/02-rag.ipynb) covers retrieval, narrative RAG, and direct document processing.
 - [03-agents.ipynb](notebooks/03-agents.ipynb) independently configures and runs the document research and borrower assessment agents, with tool lists, citations, and execution traces. Run its cells in order; it does not require running the RAG notebook first.
 

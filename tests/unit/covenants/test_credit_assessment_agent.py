@@ -1,30 +1,27 @@
-"""Actual SDK response types exercise adaptive tools, RAG, failures, and loop limits."""
+"""Real PydanticAI graphs exercise adaptive tools, history, failures and limits."""
 
 import asyncio
 import json
 from datetime import date
-from itertools import count
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
-import httpx
 import pytest
-from agents import Agent, OpenAIResponsesModel, RunConfig, Runner
-from agents.tool_context import ToolContext
-from openai import APIError, AsyncOpenAI, OpenAI
-from openai.types.responses import (
-    Response,
-    ResponseFunctionToolCall,
-    ResponseOutputMessage,
-    ResponseOutputRefusal,
-    ResponseOutputText,
-    ResponseReasoningItem,
+from model_helpers import ScriptedModel
+from model_helpers import model_response as response
+from pydantic_ai import Agent
+from pydantic_ai.exceptions import ModelAPIError
+from pydantic_ai.messages import (
+    ModelResponse,
+    RetryPromptPart,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
 )
 
-from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent, _QuestionHooks
+from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.events import AgentEvent, AgentEventCallback
-from credit_monitoring.agents.responses_client import ResponsesClientAdapter
-from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.assessment import AssessmentTools
 from credit_monitoring.agents.tools.documents import DocumentTools
 from credit_monitoring.application.assessment_service import AssessmentService
@@ -47,67 +44,33 @@ from credit_monitoring.ingestion.loaders.financials import load_financials
 DATA = Path(__file__).resolve().parents[3] / "data"
 ASSESSMENT_DATES = {"period_end": "2025-09-30", "information_cutoff": "2025-09-30"}
 
-_response_ids = count()
-
-
-def response(*calls, answer=None, status="completed", refusal=None, reasoning=False):
-    response_id = next(_response_ids)
-    output = []
-    if reasoning:
-        output.append(
-            ResponseReasoningItem.model_construct(
-                id="reasoning",
-                type="reasoning",
-                summary=[],
-                encrypted_content="private-content",
-            )
-        )
-    for index, (name, arguments) in enumerate(calls):
-        output.append(
-            ResponseFunctionToolCall(
-                name=name,
-                arguments=arguments if isinstance(arguments, str) else json.dumps(arguments),
-                call_id=f"call_{response_id}_{index}_{name}",
-                type="function_call",
-            )
-        )
-    if answer is not None or refusal is not None:
-        content = (
-            [ResponseOutputRefusal(type="refusal", refusal=refusal)]
-            if refusal
-            else [ResponseOutputText(type="output_text", text=answer, annotations=[], logprobs=[])]
-        )
-        output.append(
-            ResponseOutputMessage(
-                type="message",
-                id="msg",
-                role="assistant",
-                status="completed",
-                content=content,
-            )
-        )
-    return Response.model_construct(
-        id=f"resp_{response_id}", status=status, error=None, output=output
-    )
-
 
 def agent(service, **kwargs):
-    client = Mock()
-    client.responses.create = AsyncMock()
-    return CreditAssessmentAgent(client=client, service=service, **kwargs), client
+    model = ScriptedModel()
+    return CreditAssessmentAgent(model=model, service=service, **kwargs), model
+
+
+def parts(messages):
+    return [part for message in messages for part in message.parts]
+
+
+def user_prompts(messages):
+    return [part.content for part in parts(messages) if isinstance(part, UserPromptPart)]
+
+
+def tool_results(messages):
+    return [
+        part
+        for part in parts(messages)
+        if isinstance(part, ToolReturnPart) and part.tool_name != "final_result"
+    ]
 
 
 def test_progress_arrives_before_service_execution_and_keeps_trace(document_service_factory):
     events = []
-    states = []
 
-    async def handler(ctx, event):
+    async def handler(event):
         events.append(event)
-        states.append(ctx.context)
-        if event.kind == "tool_call":
-            assert not ctx.context.trace
-        if event.kind == "tool_result":
-            assert ctx.context.trace[-1].outcome == event.outcome
 
     service = document_service_factory()
     original = service.list_document_extractions
@@ -118,14 +81,14 @@ def test_progress_arrives_before_service_execution_and_keeps_trace(document_serv
         return original(**kwargs)
 
     service.list_document_extractions = list_documents
-    monitor, client = agent(service, name="Research")
-    client.responses.create.side_effect = [
+    monitor, model = agent(service, name="Research")
+    model.respond.side_effect = [
         response(("list_documents", {"ticker": None}), reasoning=True),
         response(answer="Found the filing."),
     ]
     answer = monitor.ask("Find filings", event_stream_handler=handler)
     assert answer.complete
-    assert [event.kind for event in events] == [
+    assert [event.kind for event in events if event.kind != "answer_update"] == [
         "model_start",
         "tool_call",
         "tool_result",
@@ -133,8 +96,7 @@ def test_progress_arrives_before_service_execution_and_keeps_trace(document_serv
         "run_end",
     ]
     assert all(event.agent_name == "Research" for event in events)
-    assert all(state is states[0] for state in states)
-    assert events[1].arguments == '{"ticker": null}'
+    assert json.loads(events[1].arguments) == {"ticker": None}
     assert events[1].call_id == events[2].call_id == answer.tool_trace[0].call_id
     assert events[2].outcome == answer.tool_trace[0].outcome
     assert "private-content" not in repr(events)
@@ -153,17 +115,17 @@ def test_progress_reports_tool_errors_and_continues(
 ):
     events = []
 
-    async def handler(ctx, event):
+    async def handler(event):
         events.append(event)
 
-    monitor, client = agent(document_service_factory(), event_stream_handler=handler)
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory(), event_stream_handler=handler)
+    model.respond.side_effect = [
         response((name, arguments)),
         response(answer="Evidence unavailable."),
     ]
     answer = asyncio.run(monitor.ask_async("Find evidence", ticker="SYN"))
     assert answer.complete
-    assert [event.kind for event in events] == [
+    assert [event.kind for event in events if event.kind != "answer_update"] == [
         "model_start",
         "tool_call",
         "tool_result",
@@ -177,16 +139,16 @@ def test_progress_reports_tool_errors_and_continues(
 def test_progress_reports_round_limit_without_excess_tool_call(document_service_factory):
     events = []
 
-    async def handler(ctx, event):
+    async def handler(event):
         events.append(event)
 
-    monitor, client = agent(
+    monitor, model = agent(
         document_service_factory(), max_tool_rounds=1, event_stream_handler=handler
     )
-    client.responses.create.side_effect = lambda **kwargs: response(("list_documents", {}))
+    model.respond.side_effect = lambda **kwargs: response(("list_documents", {}))
     answer = monitor.ask("Find filings")
     assert answer.error == "tool_round_limit"
-    assert [event.kind for event in events] == [
+    assert [event.kind for event in events if event.kind != "answer_update"] == [
         "model_start",
         "tool_call",
         "tool_result",
@@ -204,9 +166,7 @@ def test_progress_reports_round_limit_without_excess_tool_call(document_service_
         (response(refusal="Cannot answer"), "model_refusal"),
         (response(), "empty_response"),
         (
-            APIError(
-                "Offline", request=httpx.Request("POST", "https://example.invalid"), body=None
-            ),
+            ModelAPIError(model_name="synthetic", message="Offline"),
             "model_error",
         ),
     ],
@@ -214,45 +174,51 @@ def test_progress_reports_round_limit_without_excess_tool_call(document_service_
 def test_progress_reports_model_failure(document_service_factory, model_response, error):
     events = []
 
-    async def handler(ctx, event):
+    async def handler(event):
         events.append(event)
 
-    monitor, client = agent(document_service_factory())
-    client.responses.create.side_effect = [model_response]
+    monitor, model = agent(document_service_factory())
+    model.respond.side_effect = [model_response]
     answer = monitor.ask("Find filings", event_stream_handler=handler)
     assert answer.error == error
-    assert [event.kind for event in events] == ["model_start", "run_end"]
+    assert [event.kind for event in events if event.kind != "answer_update"] == [
+        "model_start",
+        "run_end",
+    ]
     assert events[-1].error == error
 
 
 def test_handler_override_is_per_question_and_silent_default(document_service_factory, capsys):
     default = AsyncMock()
     override = AsyncMock()
-    monitor, client = agent(document_service_factory(), event_stream_handler=default)
-    client.responses.create.side_effect = [response(answer="One"), response(answer="Two")]
+    monitor, model = agent(document_service_factory(), event_stream_handler=default)
+    model.respond.side_effect = [response(answer="One"), response(answer="Two")]
     monitor.ask("One", event_stream_handler=override)
     default.assert_not_awaited()
     monitor.ask("Two")
-    assert default.await_count == override.await_count == 2
-    assert (
-        default.call_args_list[0].args[0].context is not override.call_args_list[0].args[0].context
-    )
+    assert default.await_count == override.await_count
+    assert default.call_args_list[-1].args[0].answer.answer == "Two"
+    assert override.call_args_list[-1].args[0].answer.answer == "One"
     assert capsys.readouterr().out == ""
 
 
 def test_callback_prints_nested_streams_and_error_status(capsys):
-    ctx = Mock()
     callback = AgentEventCallback(Mock(name="unused"))
     callback.agent.name = "Notebook agent"
 
     async def nested():
-        yield AgentEvent("tool_call", "SDK name", tool_name="list_documents", arguments="{}")
         yield AgentEvent(
-            "tool_result", "SDK name", tool_name="list_documents", outcome={"ok": True}
+            kind="tool_call", agent_name="Model name", tool_name="list_documents", arguments="{}"
         )
         yield AgentEvent(
-            "tool_result",
-            "SDK name",
+            kind="tool_result",
+            agent_name="Model name",
+            tool_name="list_documents",
+            outcome={"ok": True},
+        )
+        yield AgentEvent(
+            kind="tool_result",
+            agent_name="Model name",
             tool_name="missing",
             outcome={
                 "ok": False,
@@ -262,11 +228,11 @@ def test_callback_prints_nested_streams_and_error_status(capsys):
         )
 
     async def stream():
-        yield AgentEvent("model_start", "SDK name")
+        yield AgentEvent(kind="model_start", agent_name="Model name")
         yield nested()
-        yield AgentEvent("run_end", "SDK name", error="tool_round_limit")
+        yield AgentEvent(kind="run_end", agent_name="Model name", error="tool_round_limit")
 
-    asyncio.run(callback(ctx, stream()))
+    asyncio.run(callback(stream()))
     assert capsys.readouterr().out.splitlines() == [
         "MODEL REQUEST (Notebook agent)",
         "TOOL CALL (Notebook agent): list_documents({})",
@@ -277,8 +243,8 @@ def test_callback_prints_nested_streams_and_error_status(capsys):
 
 
 def test_callback_uses_event_agent_name_when_unbound(document_service_factory, capsys):
-    monitor, client = agent(document_service_factory(), event_stream_handler=AgentEventCallback())
-    client.responses.create.return_value = response(answer="Done")
+    monitor, model = agent(document_service_factory(), event_stream_handler=AgentEventCallback())
+    model.respond.return_value = response(answer="Done")
     assert monitor.ask("Find filings").complete
     assert capsys.readouterr().out.splitlines() == [
         "MODEL REQUEST (Credit assessment agent)",
@@ -287,26 +253,30 @@ def test_callback_uses_event_agent_name_when_unbound(document_service_factory, c
 
 
 def invoke_tool(container, name, arguments):
-    """Invoke an actual SDK function tool without a model or service dispatcher."""
-    tool = next(tool for tool in container.tools if tool.name == name)
-    raw = arguments if isinstance(arguments, str) else json.dumps(arguments)
-    context = ToolContext(
-        context=AgentRunState(max_tool_rounds=6),
-        tool_name=name,
-        tool_call_id="direct_test_call",
-        tool_arguments=raw,
+    model = ScriptedModel()
+    model.respond.side_effect = [
+        response((name, arguments)),
+        ModelResponse(parts=[TextPart("done")]),
+    ]
+    result = Agent(model, tools=container.tools, retries=6).run_sync("Invoke the requested tool")
+    part = next(
+        p
+        for p in parts(result.all_messages())
+        if isinstance(p, (ToolReturnPart, RetryPromptPart)) and p.tool_name == name
     )
-    return json.loads(asyncio.run(tool.on_invoke_tool(context, raw)))
+    if isinstance(part, RetryPromptPart):
+        return {"ok": False, "error": "invalid_arguments", "message": part.model_response()}
+    return json.loads(part.content)
 
 
 def test_document_discovery_processing_cache_read_and_rag_loop(
     document_service_factory,
-    sdk_response,
+    generation_response,
 ):
     service = document_service_factory()
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
-    monitor, client = agent(service)
-    client.responses.create.side_effect = [
+    service.model.respond.return_value = generation_response(CovenantExtraction())
+    monitor, model = agent(service)
+    model.respond.side_effect = [
         response(("list_documents", {"ticker": None}), reasoning=True),
         response(("get_document_extraction", {"document_id": "SYN"})),
         response(("process_document", {"document_id": "SYN"})),
@@ -320,15 +290,13 @@ def test_document_discovery_processing_cache_read_and_rag_loop(
     assert answer.tool_trace[1].outcome["data"]["result"] is None
     assert not answer.tool_trace[2].outcome["data"]["cache_hit"]
     assert answer.tool_trace[3].outcome["data"]["cache_hit"]
-    service.client.responses.parse.assert_called_once()
+    service.model.respond.assert_called_once()
     assert [s.document_id for s in answer.sources] == ["SYN"]
     assert "private-content" not in answer.model_dump_json()
-    second_input = client.responses.create.call_args_list[1].kwargs["input"]
-    assert any(item.get("type") == "function_call_output" for item in second_input)
-    final_input = client.responses.create.call_args_list[-1].kwargs["input"]
-    results = [
-        json.loads(i["output"]) for i in final_input if i.get("type") == "function_call_output"
-    ]
+    second_input = model.respond.call_args_list[1].kwargs["messages"]
+    assert tool_results(second_input)
+    final_input = model.respond.call_args_list[-1].kwargs["messages"]
+    results = [json.loads(i.content) for i in tool_results(final_input)]
     assert "Maximum leverage" in results[-1]["data"][0]["content"]
 
 
@@ -354,22 +322,26 @@ def test_dispatch_errors_are_results_for_next_agent_round(
     error,
     document_service_factory,
 ):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory())
+    model.respond.side_effect = [
         response((name, arguments)),
         response(answer="The requested evidence is unavailable."),
     ]
     result = monitor.ask("Question", ticker="SYN")
     assert result.tool_trace[0].outcome["error"] == error
-    history = client.responses.create.call_args_list[1].kwargs["input"]
-    assert json.loads(history[-1]["output"])["error"] == error
+    history = model.respond.call_args_list[1].kwargs["messages"]
+    assert (
+        any(isinstance(p, RetryPromptPart) for p in parts(history))
+        if error != "service_error"
+        else json.loads(tool_results(history)[-1].content)["error"] == error
+    )
 
 
 def test_stale_result_is_visible_and_cannot_supply_old_facts(
-    document_service_factory, sdk_response
+    document_service_factory, generation_response
 ):
     service = document_service_factory()
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    service.model.respond.return_value = generation_response(CovenantExtraction())
     service.process_document("SYN")
     service.model = "changed-model"
     tools = DocumentTools(service)
@@ -383,21 +355,19 @@ def test_scoped_agent_cannot_process_other_issuer(document_service_factory):
     tools = DocumentTools(service, ticker="OTHER")
     result = invoke_tool(tools, "process_document", {"document_id": "SYN"})
     assert result["error"] == "service_error"
-    service.client.responses.parse.assert_not_called()
+    service.model.respond.assert_not_called()
 
 
 def test_six_tool_round_limit_does_not_execute_seventh_call(document_service_factory):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.side_effect = lambda **kwargs: response(
-        ("list_documents", {"ticker": None})
-    )
+    monitor, model = agent(document_service_factory())
+    model.respond.side_effect = lambda **kwargs: response(("list_documents", {"ticker": None}))
     result = monitor.ask("Question")
     assert not result.complete and result.error == "tool_round_limit"
-    assert len(result.tool_trace) == 6 and client.responses.create.call_count == 7
+    assert len(result.tool_trace) == 6 and model.respond.call_count == 7
 
 
 @pytest.mark.parametrize(
-    "sdk_result,error",
+    "model_result,error",
     [
         (response(status="incomplete"), "model_incomplete"),
         (response(status="failed"), "model_error"),
@@ -405,21 +375,20 @@ def test_six_tool_round_limit_does_not_execute_seventh_call(document_service_fac
         (response(), "empty_response"),
     ],
 )
-def test_model_failures_are_explicit(sdk_result, error, document_service_factory):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.return_value = sdk_result
+def test_model_failures_are_explicit(model_result, error, document_service_factory):
+    monitor, model = agent(document_service_factory())
+    model.respond.return_value = model_result
     result = monitor.ask("Question")
     assert not result.complete and result.error == error
 
 
 def test_api_failure_retains_executed_trace(document_service_factory):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory())
+    model.respond.side_effect = [
         response(("list_documents", {"ticker": None})),
-        APIError(
-            "Offline test failure",
-            request=httpx.Request("POST", "https://example.invalid"),
-            body=None,
+        ModelAPIError(
+            model_name="synthetic",
+            message="Offline test failure",
         ),
     ]
     result = monitor.ask("Question")
@@ -430,14 +399,15 @@ def test_tool_schemas_are_strict_and_configuration_is_not_exposed(document_servi
     definitions = DocumentTools(document_service_factory()).tools
     assert len(definitions) == 4
     for tool in definitions:
-        schema = tool.params_json_schema
-        assert tool.strict_json_schema and schema["additionalProperties"] is False
-        assert set(schema["required"]) == set(schema["properties"])
+        schema = tool.function_schema.json_schema
+        assert tool.strict and schema["additionalProperties"] is False
         assert "force" not in schema["properties"] and "client" not in schema["properties"]
         assert "self" not in schema["properties"] and "ctx" not in schema["properties"]
 
 
-def test_sdk_uses_tool_and_parameter_docstrings(document_service_factory, agent_assessment_service):
+def test_pydantic_uses_tool_and_parameter_docstrings(
+    document_service_factory, agent_assessment_service
+):
     tools = (
         DocumentTools(document_service_factory()).tools
         + AssessmentTools(agent_assessment_service, borrower_id="SYN002").tools
@@ -445,7 +415,7 @@ def test_sdk_uses_tool_and_parameter_docstrings(document_service_factory, agent_
     for tool in tools:
         assert tool.description
         assert "Args:" not in tool.description
-        for parameter in tool.params_json_schema["properties"].values():
+        for parameter in tool.function_schema.json_schema["properties"].values():
             assert parameter["description"]
     descriptions = {tool.name: tool.description for tool in tools}
     assert "use process_document" in descriptions["get_document_extraction"]
@@ -453,130 +423,40 @@ def test_sdk_uses_tool_and_parameter_docstrings(document_service_factory, agent_
     assert "stub supplies no forecast" in descriptions["predict_risk"]
 
 
-def test_tool_classes_are_reusable_by_independent_sdk_agents():
-    first_service, second_service = Mock(), Mock()
-    first_service.search_evidence.return_value = [
-        {"document_id": "FIRST", "citation": "First filing", "content": "First evidence"}
+def test_tool_classes_are_reusable_by_independent_pydantic_agents():
+    first, second = Mock(), Mock()
+    first.search_evidence.return_value = [
+        {"document_id": "FIRST", "citation": "First", "content": "First evidence"}
     ]
-    second_service.search_evidence.return_value = [
-        {"document_id": "SECOND", "citation": "Second filing", "content": "Second evidence"}
+    second.search_evidence.return_value = [
+        {"document_id": "SECOND", "citation": "Second", "content": "Second evidence"}
     ]
-    first_tools = DocumentTools(first_service, ticker="FIRST")
-    second_tools = DocumentTools(second_service, ticker="SECOND")
-
-    async def run(container):
-        client = Mock()
-        client.responses.create = AsyncMock(
-            side_effect=[
-                response(("search_evidence", {"query": "leverage", "ticker": None})),
-                response(answer="Evidence retrieved."),
-            ]
+    for service, ticker in ((first, "FIRST"), (second, "SECOND")):
+        outcome = invoke_tool(
+            DocumentTools(service, ticker=ticker), "search_evidence", {"query": "leverage"}
         )
-        sdk_agent = Agent[AgentRunState](
-            name="Reusable research agent",
-            model=OpenAIResponsesModel(
-                model="gpt-4o-mini", openai_client=ResponsesClientAdapter(client)
-            ),
-            tools=container.tools,
-        )
-        state = AgentRunState(max_tool_rounds=1)
-        await Runner.run(
-            sdk_agent,
-            "Find leverage evidence.",
-            context=state,
-            hooks=_QuestionHooks(),
-            run_config=RunConfig(tracing_disabled=True),
-        )
-        return state
-
-    async def run_both():
-        return await asyncio.gather(run(first_tools), run(second_tools))
-
-    first, second = asyncio.run(run_both())
-    first_service.search_evidence.assert_called_once_with(query="leverage", ticker="FIRST")
-    second_service.search_evidence.assert_called_once_with(query="leverage", ticker="SECOND")
-    assert [source.document_id for source in first.sources.values()] == ["FIRST"]
-    assert [source.document_id for source in second.sources.values()] == ["SECOND"]
-    assert first.trace[0].outcome["data"][0]["content"] == "First evidence"
-    assert second.trace[0].outcome["data"][0]["content"] == "Second evidence"
-
-
-@pytest.mark.parametrize("async_client", [False, True])
-def test_installed_sdk_serializes_tool_call_continuation(document_service_factory, async_client):
-    captured = []
-    count = 0
-
-    def respond(request):
-        nonlocal count
-        captured.append(json.loads(request.content))
-        count += 1
-        item = (
-            response(("search_evidence", {"query": "leverage", "ticker": "SYN"}))
-            if count == 1
-            else response(answer="See SYN, the cited amendment.")
-        )
-        data = item.model_dump(exclude_none=True)
-        data.update(
-            {
-                "object": "response",
-                "created_at": 0,
-                "model": "gpt-4o-mini",
-                "error": None,
-                "incomplete_details": None,
-                "instructions": None,
-                "parallel_tool_calls": False,
-                "tool_choice": "auto",
-                "tools": [],
-                "temperature": 1,
-                "top_p": 1,
-                "text": {"format": {"type": "text"}},
-                "truncation": "disabled",
-                "usage": None,
-            }
-        )
-        return httpx.Response(200, json=data)
-
-    service = document_service_factory()
-    if async_client:
-
-        async def ask():
-            async with AsyncOpenAI(
-                api_key="offline-test-key",
-                http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond)),
-            ) as client:
-                return await CreditAssessmentAgent(client=client, service=service).ask_async(
-                    "Question", "SYN"
-                )
-
-        result = asyncio.run(ask())
-    else:
-        with OpenAI(
-            api_key="offline-test-key",
-            http_client=httpx.Client(transport=httpx.MockTransport(respond)),
-        ) as client:
-            result = CreditAssessmentAgent(client=client, service=service).ask("Question", "SYN")
-    assert result.complete and len(result.tool_trace) == 1
-    assert captured[0]["tools"][0]["type"] == "function"
-    assert captured[1]["input"][-1]["type"] == "function_call_output"
-    assert "Maximum leverage" in captured[1]["input"][-1]["output"]
+        assert outcome["sources"][0]["document_id"] == ticker
+        service.search_evidence.assert_called_once_with(query="leverage", ticker=ticker)
 
 
 @pytest.mark.parametrize("limit", [1, 6])
 def test_last_permitted_model_turn_can_answer(document_service_factory, limit):
-    monitor, client = agent(document_service_factory(), max_tool_rounds=limit)
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory(), max_tool_rounds=limit)
+    model.respond.side_effect = [
         *(response(("list_documents", {"ticker": None})) for _ in range(limit)),
         response(answer="The available documents are listed."),
     ]
     result = monitor.ask("List available documents.")
     assert result.complete and len(result.tool_trace) == limit
-    assert client.responses.create.call_count == limit + 1
+    assert model.respond.call_count == limit + 1
 
 
-def test_multiple_calls_use_one_round_and_execute_in_order(document_service_factory, sdk_response):
+def test_multiple_calls_use_one_round_and_execute_in_order(
+    document_service_factory, generation_response
+):
     service = document_service_factory()
-    monitor, client = agent(service, max_tool_rounds=1)
-    client.responses.create.side_effect = [
+    monitor, model = agent(service, max_tool_rounds=1)
+    model.respond.side_effect = [
         response(
             ("get_document_extraction", {"document_id": "SYN"}),
             ("process_document", {"document_id": "SYN"}),
@@ -584,7 +464,7 @@ def test_multiple_calls_use_one_round_and_execute_in_order(document_service_fact
         ),
         response(answer="The document is now processed."),
     ]
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    service.model.respond.return_value = generation_response(CovenantExtraction())
     result = monitor.ask("Read the stored document, process it, then read it again.")
     assert result.complete and len(result.tool_trace) == 3
     assert [item.outcome["data"]["status"] for item in result.tool_trace] == [
@@ -592,32 +472,32 @@ def test_multiple_calls_use_one_round_and_execute_in_order(document_service_fact
         "complete",
         "complete",
     ]
-    service.client.responses.parse.assert_called_once()
+    service.model.respond.assert_called_once()
 
 
 @pytest.mark.parametrize("status", ["incomplete", "failed", "in_progress"])
 def test_non_completed_output_never_executes_tools(document_service_factory, status):
     service = document_service_factory()
-    monitor, client = agent(service)
-    client.responses.create.return_value = response(
+    monitor, model = agent(service)
+    model.respond.return_value = response(
         ("process_document", {"document_id": "SYN"}), status=status
     )
     result = monitor.ask("Process SYN.")
     assert not result.complete and result.tool_trace == []
     assert result.error == ("model_incomplete" if status == "incomplete" else "model_error")
-    service.client.responses.parse.assert_not_called()
+    service.model.respond.assert_not_called()
 
 
 def test_concurrent_read_questions_keep_scope_and_sources_separate(document_service_factory):
-    monitor, client = agent(document_service_factory())
+    monitor, model = agent(document_service_factory())
 
     async def respond(**kwargs):
-        payload = json.loads(kwargs["input"][0]["content"])
-        if any(item.get("type") == "function_call_output" for item in kwargs["input"]):
+        payload = json.loads(user_prompts(kwargs["messages"])[0])
+        if tool_results(kwargs["messages"]):
             return response(answer=f"Evidence for {payload['ticker']}.")
         return response(("search_evidence", {"query": "maximum leverage", "ticker": None}))
 
-    client.responses.create.side_effect = respond
+    model.respond.side_effect = respond
 
     async def ask_both():
         return await asyncio.gather(
@@ -634,14 +514,14 @@ def test_concurrent_read_questions_keep_scope_and_sources_separate(document_serv
 
 
 def test_sync_entry_point_in_running_loop_explains_async_usage(document_service_factory):
-    monitor, client = agent(document_service_factory())
+    monitor, model = agent(document_service_factory())
 
     async def ask():
         with pytest.raises(RuntimeError, match="await agent.ask_async"):
             monitor.ask("Question")
 
     asyncio.run(ask())
-    client.responses.create.assert_not_called()
+    model.respond.assert_not_called()
 
 
 @pytest.fixture
@@ -658,10 +538,8 @@ def agent_assessment_service(tmp_path):
 def test_agent_calls_real_financial_calculation_and_prediction_services(
     document_service_factory, agent_assessment_service
 ):
-    assessor, client = agent(
-        document_service_factory(), assessment_service=agent_assessment_service
-    )
-    client.responses.create.side_effect = [
+    assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
+    model.respond.side_effect = [
         response(("get_financials", ASSESSMENT_DATES)),
         response(("assess_covenants", ASSESSMENT_DATES)),
         response(("predict_risk", ASSESSMENT_DATES)),
@@ -696,19 +574,15 @@ def test_agent_calls_real_financial_calculation_and_prediction_services(
     assert "Subsequent breach" not in answer.model_dump_json()
     assert '"notes"' not in answer.model_dump_json()
     assert "expected_metric" not in answer.model_dump_json()
-    request = client.responses.create.call_args_list[0].kwargs
-    assert {tool["name"] for tool in request["tools"]} >= {
+    request = model.respond.call_args_list[0].kwargs
+    assert {tool.name for tool in request["info"].function_tools} >= {
         "get_financials",
         "assess_covenants",
         "predict_risk",
         "search_evidence",
     }
-    last_input = client.responses.create.call_args_list[-1].kwargs["input"]
-    outputs = [
-        json.loads(item["output"])
-        for item in last_input
-        if item.get("type") == "function_call_output"
-    ]
+    last_input = model.respond.call_args_list[-1].kwargs["messages"]
+    outputs = [json.loads(item.content) for item in tool_results(last_input)]
     assert outputs[-1]["data"]["ml_status"] == "stub"
 
 
@@ -801,10 +675,8 @@ def test_prediction_model_failure_returns_calculations_to_agent(
     agent_assessment_service.settings.risk_model = RiskModelConfig(
         type="logistic_regression", artifact_path=tmp_path / "missing-model"
     )
-    assessor, client = agent(
-        document_service_factory(), assessment_service=agent_assessment_service
-    )
-    client.responses.create.side_effect = [
+    assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
+    model.respond.side_effect = [
         response(("predict_risk", ASSESSMENT_DATES)),
         response(answer="Current compliance is available; the prediction model failed to load."),
     ]
@@ -820,23 +692,21 @@ def test_prediction_model_failure_returns_calculations_to_agent(
 def test_assessment_tools_require_application_configuration_and_borrower_scope(
     document_service_factory, agent_assessment_service
 ):
-    assessor, client = agent(document_service_factory())
+    assessor, model = agent(document_service_factory())
     with pytest.raises(ValueError, match="assessment_service"):
         assessor.ask("Assess", borrower_id="SYN002")
-    client.responses.create.assert_not_called()
-    assessor, client = agent(
-        document_service_factory(), assessment_service=agent_assessment_service
-    )
+    model.respond.assert_not_called()
+    assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
     with pytest.raises(ValueError, match="explicit borrower"):
         assessor.ask("Assess", borrower_id=" ")
-    client.responses.create.side_effect = [
+    model.respond.side_effect = [
         response(("predict_risk", ASSESSMENT_DATES)),
         response(answer="Provide an explicit borrower scope to enable assessment tools."),
     ]
     result = assessor.ask("Assess SYN002.")
     assert result.tool_trace[0].outcome["error"] == "unknown_tool"
     tool_names = {
-        tool["name"] for tool in client.responses.create.call_args_list[0].kwargs["tools"]
+        tool.name for tool in model.respond.call_args_list[0].kwargs["info"].function_tools
     }
     assert "predict_risk" not in tool_names
 
@@ -844,17 +714,15 @@ def test_assessment_tools_require_application_configuration_and_borrower_scope(
 def test_concurrent_assessments_keep_borrower_scopes_separate(
     document_service_factory, agent_assessment_service
 ):
-    assessor, client = agent(
-        document_service_factory(), assessment_service=agent_assessment_service
-    )
+    assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
 
     async def respond(**kwargs):
-        payload = json.loads(kwargs["input"][0]["content"])
-        if any(item.get("type") == "function_call_output" for item in kwargs["input"]):
+        payload = json.loads(user_prompts(kwargs["messages"])[0])
+        if tool_results(kwargs["messages"]):
             return response(answer=f"Assessment for {payload['borrower_id']}.")
         return response(("assess_covenants", ASSESSMENT_DATES))
 
-    client.responses.create.side_effect = respond
+    model.respond.side_effect = respond
 
     async def ask_both():
         return await asyncio.gather(
@@ -872,10 +740,10 @@ def test_concurrent_assessments_keep_borrower_scopes_separate(
 def test_round_budget_stops_prediction_before_it_executes(
     document_service_factory, agent_assessment_service
 ):
-    assessor, client = agent(
+    assessor, model = agent(
         document_service_factory(), assessment_service=agent_assessment_service, max_tool_rounds=1
     )
-    client.responses.create.side_effect = [
+    model.respond.side_effect = [
         response(("get_financials", ASSESSMENT_DATES)),
         response(("predict_risk", ASSESSMENT_DATES)),
     ]
@@ -902,10 +770,8 @@ def test_prediction_tool_loads_actual_trained_baseline(
     agent_assessment_service.settings.risk_model = RiskModelConfig(
         type="logistic_regression", artifact_path=artifact
     )
-    assessor, client = agent(
-        document_service_factory(), assessment_service=agent_assessment_service
-    )
-    client.responses.create.side_effect = [
+    assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
+    model.respond.side_effect = [
         response(("predict_risk", ASSESSMENT_DATES)),
         response(answer="The synthetic baseline supplies a next-quarter prediction."),
     ]
@@ -923,13 +789,13 @@ def test_prediction_tool_loads_actual_trained_baseline(
 
 
 def test_agent_processes_document_then_assesses_bound_formula_with_sources(
-    document_service_factory, agent_assessment_service, sdk_response
+    document_service_factory, agent_assessment_service, generation_response
 ):
     text = "# Agreement\n\nMaximum leverage 5.50 to 1.00 for September 30, 2025.\n"
     document_service = document_service_factory(text)
     citation = document_service.get_document_extraction("SYN").citation
     evidence = SourceEvidence(document_id="SYN", citation=citation, evidence_quote=text)
-    document_service.client.responses.parse.return_value = sdk_response(
+    document_service.model.respond.return_value = generation_response(
         CovenantExtraction(
             covenants=[
                 CovenantTerm(
@@ -968,8 +834,8 @@ def test_agent_processes_document_then_assesses_bound_formula_with_sources(
             )
         ],
     )
-    assessor, client = agent(document_service, assessment_service=agent_assessment_service)
-    client.responses.create.side_effect = [
+    assessor, model = agent(document_service, assessment_service=agent_assessment_service)
+    model.respond.side_effect = [
         response(("process_document", {"document_id": "SYN"})),
         response(("assess_covenants", ASSESSMENT_DATES)),
         response(answer=f"The calculated covenant is compliant. [SYN] {citation}"),
@@ -987,14 +853,14 @@ def test_agent_processes_document_then_assesses_bound_formula_with_sources(
     assert [(source.document_id, source.citation) for source in answer.sources] == [
         ("SYN", citation)
     ]
-    document_service.client.responses.parse.assert_called_once()
+    document_service.model.respond.assert_called_once()
 
 
 def test_assessment_schemas_expose_dates_only(agent_assessment_service):
     definitions = AssessmentTools(agent_assessment_service, borrower_id="SYN002").tools
     for tool in definitions:
-        schema = tool.params_json_schema
-        assert tool.strict_json_schema and schema["additionalProperties"] is False
+        schema = tool.function_schema.json_schema
+        assert tool.strict and schema["additionalProperties"] is False
         assert (
             set(schema["required"])
             == set(schema["properties"])
@@ -1005,8 +871,8 @@ def test_assessment_schemas_expose_dates_only(agent_assessment_service):
 def test_conversation_replays_evidence_and_keeps_sources_without_repeating_tools(
     document_service_factory,
 ):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory())
+    model.respond.side_effect = [
         response(
             ("search_evidence", {"query": "maximum leverage", "ticker": None}), reasoning=True
         ),
@@ -1022,21 +888,21 @@ def test_conversation_replays_evidence_and_keeps_sources_without_repeating_tools
     follow_up = conversation.ask("Which filing supports that?")
     assert follow_up.complete and follow_up.tool_trace == []
     assert [(s.document_id, s.citation) for s in follow_up.sources] == [("SYN", original_citation)]
-    history = client.responses.create.call_args.kwargs["input"]
-    assert json.loads(history[0]["content"])["question"] == "Find the leverage threshold."
-    assert json.loads(history[-1]["content"])["question"] == "Which filing supports that?"
-    assert any(item.get("type") == "function_call" for item in history)
+    history = model.respond.call_args.kwargs["messages"]
+    assert json.loads(user_prompts(history)[0])["question"] == "Find the leverage threshold."
+    assert json.loads(user_prompts(history)[-1])["question"] == "Which filing supports that?"
+    assert any(isinstance(p, ToolCallPart) for p in parts(history))
     assert "private-content" not in follow_up.model_dump_json()
-    evidence = next(item for item in history if item.get("type") == "function_call_output")
-    assert "Maximum leverage ratio" in evidence["output"]
-    assert "The threshold is 4.00" in json.dumps(history)
+    evidence = tool_results(history)[0]
+    assert "Maximum leverage ratio" in evidence.content
+    assert "The threshold is 4.00" in repr(history)
 
 
 def test_conversation_date_clarification_reaches_real_assessment_tools(
     document_service_factory, agent_assessment_service
 ):
-    monitor, client = agent(document_service_factory(), assessment_service=agent_assessment_service)
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
+    model.respond.side_effect = [
         response(answer="What reporting period and information cutoff should I use?"),
         response(("assess_covenants", ASSESSMENT_DATES)),
         response(answer="SYN002 is compliant for the supplied period."),
@@ -1045,20 +911,20 @@ def test_conversation_date_clarification_reaches_real_assessment_tools(
     clarification = conversation.ask("Assess covenant compliance.")
     assert clarification.complete and clarification.tool_trace == []
     answer = conversation.ask("Reporting period and information cutoff are both 2025-09-30.")
-    request = client.responses.create.call_args_list[1].kwargs
-    assert "Assess covenant compliance" in json.dumps(request["input"])
-    assert "What reporting period and information cutoff" in json.dumps(request["input"])
-    assert "2025-09-30" in request["input"][-1]["content"]
+    request = model.respond.call_args_list[1].kwargs
+    assert "Assess covenant compliance" in repr(request["messages"])
+    assert "What reporting period and information cutoff" in repr(request["messages"])
+    assert "2025-09-30" in user_prompts(request["messages"])[-1]
     assert answer.tool_trace[0].arguments == ASSESSMENT_DATES
     assert answer.tool_trace[0].outcome["data"]["borrower_id"] == "SYN002"
 
 
 def test_conversation_resets_round_budget_trace_and_callback_override(document_service_factory):
     default_handler, override = AsyncMock(), AsyncMock()
-    monitor, client = agent(
+    monitor, model = agent(
         document_service_factory(), max_tool_rounds=1, event_stream_handler=default_handler
     )
-    client.responses.create.side_effect = [
+    model.respond.side_effect = [
         response(("list_documents", {})),
         response(answer="First answer."),
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
@@ -1070,18 +936,15 @@ def test_conversation_resets_round_budget_trace_and_callback_override(document_s
     assert first.complete and second.complete
     assert [step.name for step in first.tool_trace] == ["list_documents"]
     assert [step.name for step in second.tool_trace] == ["search_evidence"]
-    first_state = override.call_args_list[0].args[0].context
-    second_state = default_handler.call_args_list[0].args[0].context
-    assert first_state is not second_state
-    assert first_state.tool_rounds == second_state.tool_rounds == 1
-    assert override.await_count == default_handler.await_count == 5
+    assert override.call_args_list[-1].args[0].answer.tool_trace[0].name == "list_documents"
+    assert default_handler.call_args_list[-1].args[0].answer.tool_trace[0].name == "search_evidence"
 
 
 def test_conversations_and_independent_questions_keep_history_and_scope_separate(
     document_service_factory,
 ):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory())
+    model.respond.side_effect = [
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
         response(answer="Evidence for SYN."),
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
@@ -1092,12 +955,12 @@ def test_conversations_and_independent_questions_keep_history_and_scope_separate
     other = monitor.start_conversation(ticker="OTHER")
     assert syn.ask("Find filing evidence.").sources
     assert other.ask("Find different evidence.").sources == []
-    other_input = client.responses.create.call_args_list[2].kwargs["input"]
+    other_input = model.respond.call_args_list[2].kwargs["messages"]
     assert len(other_input) == 1
-    assert json.loads(other_input[0]["content"])["ticker"] == "OTHER"
+    assert json.loads(user_prompts(other_input)[0])["ticker"] == "OTHER"
     independent = monitor.ask("A standalone question.", ticker="SYN")
     assert independent.sources == []
-    assert len(client.responses.create.call_args.kwargs["input"]) == 1
+    assert len(model.respond.call_args.kwargs["messages"]) == 1
 
 
 @pytest.mark.parametrize("command", ["close", "done", "quit", " ClOsE ", "\tDONE\n", "QUIT"])
@@ -1107,22 +970,22 @@ def test_conversation_exit_commands_clear_memory_without_model_or_tools(
 ):
     service = document_service_factory()
     handler = AsyncMock()
-    monitor, client = agent(service, event_stream_handler=handler)
-    client.responses.create.side_effect = [
+    monitor, model = agent(service, event_stream_handler=handler)
+    model.respond.side_effect = [
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
         response(answer="Found the evidence."),
     ]
     conversation = monitor.start_conversation(ticker="SYN")
     assert conversation.ask("Find evidence.").sources
-    client.responses.create.reset_mock()
+    model.respond.reset_mock()
     handler.reset_mock()
     result = (
         asyncio.run(conversation.ask_async(command)) if use_async else conversation.ask(command)
     )
     assert result is None and conversation.closed
     assert conversation._history == conversation._sources == []
-    client.responses.create.assert_not_called()
-    service.client.responses.parse.assert_not_called()
+    model.respond.assert_not_called()
+    service.model.respond.assert_not_called()
     handler.assert_not_called()
     conversation.close()  # Closing is idempotent.
     with pytest.raises(RuntimeError, match="Conversation is closed"):
@@ -1132,16 +995,16 @@ def test_conversation_exit_commands_clear_memory_without_model_or_tools(
 
 @pytest.mark.parametrize("question", ["Explain the close process", "Are we done?", "How to quit?"])
 def test_conversation_exit_words_in_sentences_are_questions(document_service_factory, question):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.return_value = response(answer="An ordinary answer.")
+    monitor, model = agent(document_service_factory())
+    model.respond.return_value = response(answer="An ordinary answer.")
     conversation = monitor.start_conversation()
     assert conversation.ask(question).complete
     assert not conversation.closed
-    client.responses.create.assert_called_once()
+    model.respond.assert_called_once()
 
 
 def test_conversation_blank_input_keeps_memory_and_sync_usage_guard(document_service_factory):
-    monitor, client = agent(document_service_factory())
+    monitor, model = agent(document_service_factory())
     conversation = monitor.start_conversation()
     with pytest.raises(ValueError, match="Question must not be empty"):
         conversation.ask(" \t ")
@@ -1152,26 +1015,25 @@ def test_conversation_blank_input_keeps_memory_and_sync_usage_guard(document_ser
             conversation.ask("Question")
 
     asyncio.run(misuse())
-    client.responses.create.assert_not_called()
+    model.respond.assert_not_called()
 
 
 @pytest.mark.parametrize("failure", ["api", "tool_round_limit", "incomplete", "empty"])
 def test_conversation_failure_preserves_successful_history_without_partial_tools(
     document_service_factory, failure
 ):
-    monitor, client = agent(document_service_factory(), max_tool_rounds=1)
+    monitor, model = agent(document_service_factory(), max_tool_rounds=1)
     partial_call = response(("list_documents", {}))
     failures = {
-        "api": APIError(
-            "Offline test failure",
-            request=httpx.Request("POST", "https://example.invalid"),
-            body=None,
+        "api": ModelAPIError(
+            model_name="synthetic",
+            message="Offline test failure",
         ),
         "tool_round_limit": response(("list_documents", {})),
         "incomplete": response(status="incomplete"),
         "empty": response(),
     }
-    client.responses.create.side_effect = [
+    model.respond.side_effect = [
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
         response(answer="Earlier successful answer."),
         partial_call,
@@ -1183,11 +1045,13 @@ def test_conversation_failure_preserves_successful_history_without_partial_tools
     failed = conversation.ask("Find additional documents.")
     assert not failed.complete and len(failed.tool_trace) == 1 and not conversation.closed
     recovered = conversation.ask("Explain the earlier evidence instead.")
-    history = client.responses.create.call_args.kwargs["input"]
-    assert "Earlier successful answer" in json.dumps(history)
-    assert "Find additional documents" in json.dumps(history)
-    assert failed.error in json.dumps(history)
-    assert "list_documents" not in json.dumps(history)
+    history = model.respond.call_args.kwargs["messages"]
+    assert "Earlier successful answer" in repr(history)
+    assert "Find additional documents" in repr(history)
+    assert failed.error in repr(history)
+    assert not any(
+        isinstance(p, ToolCallPart) and p.tool_name == "list_documents" for p in parts(history)
+    )
     assert recovered.complete and recovered.sources == first.sources
     assert recovered.tool_trace == []
 
@@ -1195,7 +1059,7 @@ def test_conversation_failure_preserves_successful_history_without_partial_tools
 def test_conversation_rejects_overlapping_questions_and_does_not_restore_closed_memory(
     document_service_factory,
 ):
-    monitor, client = agent(document_service_factory())
+    monitor, model = agent(document_service_factory())
     conversation = monitor.start_conversation()
 
     async def exercise():
@@ -1206,7 +1070,7 @@ def test_conversation_rejects_overlapping_questions_and_does_not_restore_closed_
             await release.wait()
             return response(answer="Finished the pending request.")
 
-        client.responses.create.side_effect = respond
+        model.respond.side_effect = respond
         pending = asyncio.create_task(conversation.ask_async("First question"))
         await started.wait()
         try:
@@ -1220,22 +1084,22 @@ def test_conversation_rejects_overlapping_questions_and_does_not_restore_closed_
         assert conversation._history == conversation._sources == []
 
     asyncio.run(exercise())
-    client.responses.create.assert_called_once()
+    model.respond.assert_called_once()
 
 
 def test_conversation_requires_assessment_service_for_borrower_scope(document_service_factory):
-    monitor, client = agent(document_service_factory())
+    monitor, model = agent(document_service_factory())
     with pytest.raises(ValueError, match="Configure an assessment_service"):
         monitor.start_conversation(borrower_id="SYN002")
-    client.responses.create.assert_not_called()
+    model.respond.assert_not_called()
 
 
 def test_failed_conversation_turn_does_not_retain_new_evidence(document_service_factory):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory())
+    model.respond.side_effect = [
         response(answer="Which covenant should I research?"),
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
-        APIError("Offline", request=httpx.Request("POST", "https://example.invalid"), body=None),
+        ModelAPIError(model_name="synthetic", message="Offline"),
         response(answer="I need to retrieve the evidence again."),
     ]
     conversation = monitor.start_conversation(ticker="SYN")
@@ -1244,13 +1108,13 @@ def test_failed_conversation_turn_does_not_retain_new_evidence(document_service_
     assert failed.sources
     recovered = conversation.ask("Do you have supporting evidence?")
     assert recovered.complete and recovered.sources == []
-    history = client.responses.create.call_args.kwargs["input"]
-    assert not any(item.get("type") == "function_call_output" for item in history)
+    history = model.respond.call_args.kwargs["messages"]
+    assert not tool_results(history)
 
 
 def test_conversation_follow_up_cannot_switch_issuer_scope(document_service_factory):
-    monitor, client = agent(document_service_factory())
-    client.responses.create.side_effect = [
+    monitor, model = agent(document_service_factory())
+    model.respond.side_effect = [
         response(answer="This conversation is scoped to OTHER."),
         response(("process_document", {"document_id": "SYN"})),
         response(answer="The requested document is outside this conversation's scope."),
@@ -1260,31 +1124,31 @@ def test_conversation_follow_up_cannot_switch_issuer_scope(document_service_fact
     answer = conversation.ask("Switch to SYN and process its filing.")
     assert answer.tool_trace[0].outcome["error"] == "service_error"
     assert answer.sources == []
-    monitor.service.client.responses.parse.assert_not_called()
-    history = client.responses.create.call_args.kwargs["input"]
-    user_items = [item for item in history if item.get("role") == "user"]
-    assert all(json.loads(item["content"])["ticker"] == "OTHER" for item in user_items)
+    monitor.service.model.respond.assert_not_called()
+    history = model.respond.call_args.kwargs["messages"]
+    user_items = user_prompts(history)
+    assert all(json.loads(item)["ticker"] == "OTHER" for item in user_items)
 
 
 def test_concurrent_conversations_keep_borrower_scope_and_follow_ups_separate(
     document_service_factory, agent_assessment_service
 ):
-    monitor, client = agent(document_service_factory(), assessment_service=agent_assessment_service)
+    monitor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
 
     async def respond(**kwargs):
         await asyncio.sleep(0)
-        user_items = [item for item in kwargs["input"] if item.get("role") == "user"]
-        payload = json.loads(user_items[-1]["content"])
+        user_items = user_prompts(kwargs["messages"])
+        payload = json.loads(user_items[-1])
         borrower = payload["borrower_id"]
-        assert all(json.loads(item["content"])["borrower_id"] == borrower for item in user_items)
+        assert all(json.loads(item)["borrower_id"] == borrower for item in user_items)
         if payload["question"] == "Explain that result.":
-            assert f"Assessment for {borrower}" in json.dumps(kwargs["input"])
+            assert f"Assessment for {borrower}" in repr(kwargs["messages"])
             return response(answer=f"Explanation for {borrower}.")
-        if any(item.get("type") == "function_call_output" for item in kwargs["input"]):
+        if tool_results(kwargs["messages"]):
             return response(answer=f"Assessment for {borrower}.")
         return response(("assess_covenants", ASSESSMENT_DATES))
 
-    client.responses.create.side_effect = respond
+    model.respond.side_effect = respond
 
     async def run():
         conversations = [

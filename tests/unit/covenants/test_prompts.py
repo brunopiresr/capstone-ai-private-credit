@@ -2,7 +2,8 @@
 
 import json
 from pathlib import Path
-from unittest.mock import Mock
+
+from model_helpers import ScriptedModel
 
 from credit_monitoring.agents.prompts.assembly import build_prompt
 from credit_monitoring.agents.prompts.extraction import EXTRACTION_INSTRUCTIONS
@@ -15,15 +16,17 @@ def test_authoritative_prompt_matches_agreed_version_snapshot():
     assert EXTRACTION_INSTRUCTIONS == snapshot.read_text()
 
 
-def test_untrusted_injected_excerpt_does_not_change_instructions(synthetic_records, sdk_response):
+def test_untrusted_injected_excerpt_does_not_change_instructions(
+    synthetic_records, generation_response
+):
     record = synthetic_records["injection"]
     expected = CovenantExtraction(gaps=["No covenant identified in supplied synthetic excerpt."])
-    client = Mock()
-    client.responses.parse.return_value = sdk_response(expected)
-    result = extract_covenants("Extract supported facts", [record], client=client)
-    call = client.responses.parse.call_args.kwargs
-    assert call["instructions"] == EXTRACTION_INSTRUCTIONS
-    payload = json.loads(call["input"])
+    model = ScriptedModel()
+    model.respond.return_value = generation_response(expected)
+    result = extract_covenants("Extract supported facts", [record], model=model)
+    call = model.respond.call_args.kwargs
+    assert call["info"].instructions == EXTRACTION_INSTRUCTIONS.strip()
+    payload = json.loads(call["messages"][0].parts[0].content)
     assert payload["retrieved_records"][0]["text"] == record["content"]
     assert result.extraction.covenants == [] and result.extraction.compliance_disclosures == []
 

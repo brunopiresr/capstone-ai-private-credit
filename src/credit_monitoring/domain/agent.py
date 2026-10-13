@@ -1,6 +1,6 @@
 """Public agent outcomes contain executed tools and sources, never private reasoning."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -13,7 +13,7 @@ class SourceReference(ExtractionModel):
 
 
 class ToolExecution(ExtractionModel):
-    call_id: str = Field(description="SDK tool call ID corresponding to its returned output.")
+    call_id: str = Field(description="Model tool call ID corresponding to its returned output.")
     name: str = Field(description="Requested tool name; unknown names are recorded as errors.")
     arguments: dict[str, Any] | None = Field(
         description="Decoded arguments, or null for malformed JSON/non-object arguments."
@@ -21,8 +21,19 @@ class ToolExecution(ExtractionModel):
     outcome: dict[str, Any] = Field(description="Executed tool result or explicit dispatch error.")
 
 
-class AgentAnswer(ExtractionModel):
-    answer: str = Field(description="Final answer or explicit incomplete/failure explanation.")
+class AnswerContent(ExtractionModel):
+    """Generated content; defaults allow provisional streaming snapshots."""
+
+    answer: str = Field(default="", description="Cited answer or clarification request.")
+    confidence: Literal["low", "medium", "high"] | None = Field(
+        default=None, description="Model-assessed evidence support, not a credit-risk probability."
+    )
+    confidence_explanation: str = Field(
+        default="", description="Evidence and limitations supporting the confidence assessment."
+    )
+
+
+class AgentAnswer(AnswerContent):
     sources: list[SourceReference] = Field(
         default_factory=list,
         description="Distinct tool sources, including prior successful conversation turns.",

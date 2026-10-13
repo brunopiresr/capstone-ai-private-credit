@@ -22,7 +22,7 @@ flowchart LR
 
 ```python
 from pathlib import Path
-from openai import OpenAI
+from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.observability.logging import configure_logging
@@ -31,7 +31,7 @@ from credit_monitoring.observability.logging import configure_logging
 configure_logging()
 
 service = DocumentProcessingService(
-    client=OpenAI(),
+    model=DEFAULT_MODEL,
     source_file=Path("data/public_sec_documents.csv"),
     html_dir=Path("data/sec_documents/html"),
     markdown_dir=Path("data/sec_documents/markdown"),
@@ -55,7 +55,7 @@ failures = [(item.document_id, item.error) for item in outcomes if item.status =
 documents = service.list_document_extractions(ticker="FMC")
 passages = service.search_evidence("interest coverage", ticker="FMC")
 
-agent = CreditAssessmentAgent(client=service.client, service=service)
+agent = CreditAssessmentAgent(model=service.model, service=service)
 answer = agent.ask("Show FMC's complete covenant schedules with filing evidence.", ticker="FMC")
 print(answer.answer)
 print(answer.sources)
@@ -82,15 +82,15 @@ In notebooks or asynchronous application code, use the asynchronous entry point:
 answer = await agent.ask_async("Show FMC's covenant schedules with filing evidence.", ticker="FMC")
 ```
 
-`ask()` uses a synchronous entry point and raises a usage error when an event loop
-is already running. The agent accepts the existing synchronous `OpenAI` client;
-model requests and tools run in worker threads as needed. For asynchronous
-applications, an `AsyncOpenAI` client can instead be supplied to the agent and reused
-within the application's event loop. The extraction service still uses its own
-synchronous client.
+`ask()` raises a usage error when an event loop is already running; use `ask_async()`
+in that case. Both consume the same streaming execution path. Supply a provider-qualified
+model name or a PydanticAI `Model` instance through `model=`. The default is
+`openai-responses:gpt-4o-mini`, using `OPENAI_API_KEY`. Model-specific client configuration
+belongs to the injected PydanticAI provider. Synchronous document processing remains
+available; agent service tools run blocking operations in worker threads.
 
 `notebooks/02-rag.ipynb` demonstrates narrative RAG and direct document processing.
-`notebooks/03-agents.ipynb` is the independent SDK agent walkthrough: client and service
+`notebooks/03-agents.ipynb` is the independent PydanticAI agent walkthrough: model and service
 setup, tool inspection, document questions, synthetic financial loading, and borrower
 calculations/predictions with answer and trace inspection. Run its cells in order;
 it does not depend on state from the RAG notebook. Notebook model cells require API
@@ -141,86 +141,57 @@ question; the agent chooses tools, not which sections ingestion should read.
 
 ## Agent behavior
 
-The loop uses the OpenAI Agents SDK (`openai-agents`, imported as `agents`).
-`CreditAssessmentAgent` configures an SDK `Agent` and invokes `Runner.run()` using the
-Responses model adapter and four document tools:
-`list_documents`, `get_document_extraction`, `search_evidence`, and `process_document`.
-With an injected `AssessmentService` and an explicit `borrower_id` on the question,
-it also exposes `get_financials`, `assess_covenants`, and `predict_risk`.
-The SDK manages conversation history and tool continuation. The application retains
-argument validation, issuer/borrower scope, document processing, assessments, source collection, and the
-public `AgentAnswer` contract. Tool execution is sequential even if a response
-contains several calls. Each question has separate execution context, limits, and trace.
-Independent calls also have separate sources; explicit conversations retain prior
-successful tool evidence and SDK history for follow-ups.
-See the [official OpenAI Agents SDK quickstart](https://developers.openai.com/api/docs/guides/agents/quickstart?lang=python).
+The loop uses PydanticAI. `CreditAssessmentAgent` builds a scoped `Agent` and drives
+`agent.iter()`, streaming model requests and tool-node execution. The four document tools
+are `list_documents`, `get_document_extraction`, `search_evidence`, and `process_document`.
+An injected `AssessmentService` and explicit `borrower_id` add `get_financials`,
+`assess_covenants`, and `predict_risk`.
+
+The model generates only `AnswerContent`: answer, confidence, and confidence explanation.
+The application assembles `AgentAnswer` with actual tool sources and traces, completion
+status, and errors. Confidence is `low`, `medium`, or `high`, reflecting evidence support;
+it is not a calibrated probability, credit-risk prediction, or verification result.
+Successful output requires all three generated fields. Failures have null confidence
+and explain why confidence is unavailable. Older serialized answers remain readable.
+
+Provider flexibility uses PydanticAI's model interface. Application answers and events
+are framework independent; no interchangeable agent-framework abstraction is added.
+See [PydanticAI structured streaming](https://ai.pydantic.dev/output/#making-structured-responses-appear-faster).
 
 ### Reuse the tool classes
 
 `DocumentTools` and `AssessmentTools` expose explicit methods and a `.tools` property.
-The property wraps their bound methods with SDK `function_tool()`. Tool descriptions
-and argument descriptions come from each method's docstring; type annotations supply
-the schemas. There are no separate tool-definition dictionaries or service dispatchers.
-`self` and `ToolContext` are excluded from model-visible arguments.
-
-Each instance owns its service and issuer/borrower scope. Another agent can reuse the
-classes with its own configured services:
+The property creates PydanticAI `Tool` objects from bound methods, with strict argument
+validation and sequential execution. Signatures and docstrings define their schemas;
+services and scope remain on the tool instances and are not model-visible arguments.
 
 ```python
-from agents import Agent, RunConfig, Runner, ToolExecutionConfig
-from credit_monitoring.agents.run_state import AgentRunState
+from pydantic_ai import Agent
 from credit_monitoring.agents.tools.documents import DocumentTools
-from credit_monitoring.agents.tools.assessment import AssessmentTools
 
-documents = DocumentTools(service, ticker="FMC")
-tools = documents.tools
-
-# Optional: assessment_service must already be configured, and the application
-# must explicitly establish this borrower's relationship to the issuer.
-# assessments = AssessmentTools(assessment_service, borrower_id="BORROWER_ID")
-# tools += assessments.tools
-
-research_agent = Agent[AgentRunState](
-    name="Filing research agent",
-    model="gpt-4o-mini",
+tools = DocumentTools(service, ticker="FMC").tools
+research_agent = Agent(
+    model=service.model,
     instructions="Use filing tools to answer questions with exact source citations.",
     tools=tools,
 )
-result = await Runner.run(
-    research_agent,
-    "Find FMC's leverage covenant and supporting filing passages.",
-    context=AgentRunState(max_tool_rounds=6),
-    max_turns=7,
-    run_config=RunConfig(
-        tracing_disabled=True,
-        tool_execution=ToolExecutionConfig(max_function_tool_concurrency=1),
-    ),
-)
-print(result.final_output)
+result = await research_agent.run("Find FMC's leverage covenant and supporting passages.")
+print(result.output)
 ```
 
-This direct SDK example returns SDK results. Use `CreditAssessmentAgent` for the
-public `AgentAnswer`, collected citations and trace, custom round budget, and raw
-response validation described below. Its SDK hooks collect successful and failed
-tool outcomes. `AgentRunState` holds only execution counters, pending arguments,
-sources and trace; it contains no services. Adding a service requires its tool
-class and agent registration rather than a new context field. Create fresh tool
-instances and state for each question to keep scope and execution state separate.
+This example shows direct tool reuse. `CreditAssessmentAgent` adds public outcomes,
+evidence collection, tool-round budgets and UI events. Adding a tool changes its tool
+collection, without changing the streaming runner. Expected service errors are returned
+to the model; invalid arguments and unknown tools use PydanticAI's retry feedback and
+are normalized in public traces. Unexpected application exceptions propagate.
 
-The shared validation helper rejects unexpected raw arguments before service
-execution, including attempts to supply `force`, borrower overrides, or model
-configuration. Expected argument and service failures remain JSON error results
-the model can use on its next turn.
-
-The default permits six tool rounds plus one model response to finish. A further
-tool request returns `complete=False`, `error="tool_round_limit"`, and the existing
-sources and trace. Model refusals, incomplete responses, empty responses and API
-failures also return explicit incomplete outcomes. A client adapter rejects raw
-non-completed Responses and refusals before tool dispatch. An SDK lifecycle hook
-enforces the round budget before any calls in an excess round execute; the SDK's
-maximum-turn setting also bounds the run. Multiple calls in one response count as
-one tool round. Expected tool failures and unknown tools return error results the
-agent can use to explain missing information.
+The default permits six tool rounds and at most seven model requests, including output
+validation retries. Several calls in one response count as one tool round. A further
+round returns `complete=False`, `error="tool_round_limit"` before its tools execute.
+The structured-output tool is excluded from budgets and public traces. Refused, failed,
+incomplete and empty responses return explicit failures. Response checks run before
+service-tool dispatch. Exhaustive handling retains accompanying service calls when the
+model also emits an output in the same response.
 
 Ticker scope is enforced by the tool adapters. The agent cannot force reprocessing;
 that remains an explicit application action. The trace records requested arguments
@@ -229,12 +200,11 @@ is retained only as needed for model continuation and is excluded from public ou
 `sources` lists evidence references actually returned by successful tools; it is not
 a semantic verification of every claim in the generated answer.
 
-SDK dashboard tracing is disabled by default. Set `tracing_enabled=True` on
-`CreditAssessmentAgent` to enable tracing with sensitive input/output data excluded.
-The application-owned `tool_trace` remains available with either setting. The
-single-question methods start fresh per question. Explicit conversations keep history
-in memory; persistence across restarts, token streaming, and specialist handoffs are
-separate extensions.
+Tracing is disabled by default. `tracing_enabled=True` enables PydanticAI OpenTelemetry
+instrumentation with content capture disabled; exporters are configured by the host
+application. Console progress and the public tool trace are independent of tracing.
+Single-question methods start fresh; explicit conversations keep history in memory.
+No hosted monitoring, persistent chat storage, or live Streamlit integration is added.
 
 ### Conversations and follow-up questions
 
@@ -265,12 +235,12 @@ Start another conversation to change scope. Explicit reporting dates and informa
 cutoffs from earlier messages can be reused; missing or ambiguous dates still require
 clarification. Each conversation accepts one running question at a time.
 
-The application passes SDK `result.to_input_list()` history into the next run.
+The application passes PydanticAI `result.all_messages()` history into the next run.
 Tool budgets and public traces reset for each question. `sources` also includes
 references from earlier successful conversation turns, so an answer using prior
 evidence can retain its citations without repeating tool calls. The source list is
 available evidence, not a guarantee that every listed source was cited in that answer.
-SDK continuation history is private and is not exposed in `AgentAnswer` or progress
+PydanticAI continuation history is private and is not exposed in `AgentAnswer` or progress
 events. Incomplete runs preserve prior successful history plus the failed question
 and error message, excluding partial tool sequences and new evidence from that run.
 You may ask again; previously executed assessment or processing actions are not undone.
@@ -282,36 +252,41 @@ keyboard interruption. Both flags default to `False` so Run All does not wait fo
 Each interactive invocation starts fresh; history is not saved across kernel restarts
 or automatically summarized.
 
-### View live agent progress
+### View live agent progress and structured answers
 
-Pass an `event_stream_handler` to `ask()` or `ask_async()` to see progress while the
-agent runs. Both agents in `notebooks/03-agents.ipynb` use this callback:
+`stream_async()` is an async iterator of JSON-serializable `AgentEvent` objects. Events
+are `model_start`, `tool_call`, `tool_result`, `answer_update`, and `run_end`. Tool events
+retain call IDs. `answer_update.output` is an accumulated, provisional `AnswerContent`
+snapshot: replace the displayed value on each update rather than appending it.
+Missing confidence fields are normal during generation. Only `run_end.answer` is the
+authoritative, validated `AgentAnswer`. Failed runs also finish with a `run_end` event.
+Private reasoning and SDK objects are never included in these events.
 
 ```python
-from credit_monitoring.agents.events import AgentEventCallback
+from contextlib import aclosing
 
-answer = await agent.ask_async(
-    "Find FMC's leverage covenant and supporting filing passages.",
-    ticker="FMC",
-    event_stream_handler=AgentEventCallback(agent),
-)
+async with aclosing(agent.stream_async("Find FMC's leverage covenant.", ticker="FMC")) as events:
+    async for event in events:
+        if event.kind == "answer_update":
+            render_answer(event.output.answer)  # application-specific rendering
+        elif event.kind == "run_end":
+            render_final_answer(event.answer)
+        else:
+            render_progress(event.model_dump(mode="json"))
 ```
 
-The callback prints model requests, tool names and JSON arguments before execution,
-tool success/error status, and the final complete/incomplete status. Output is flushed
-immediately. Set `name="Filing research agent"` when constructing an agent to label its
-events. This observes SDK lifecycle hooks; it does not stream model tokens or print
-private reasoning or full tool payloads. Final answers, citations, and `tool_trace`
-remain available as before, independently of dashboard tracing.
+Conversations expose the same streaming method. Use `aclosing` when a consumer may stop
+early. Closing or cancelling a stream discards provisional conversation state and closes
+model resources; already completed service actions are not undone. Cancellation propagates.
 
-A handler can also be configured on `CreditAssessmentAgent(event_stream_handler=...)`;
-a per-question handler overrides that default. Without a handler, runs stay quiet.
-Custom async handlers receive `(ctx, event)`, where `ctx.context` is the current
-`AgentRunState` and `event` is an `AgentEvent` with `kind`, `agent_name`, and relevant
-tool metadata (`tool_name`, `call_id`, raw `arguments`, or the result `outcome`).
-Kinds are `model_start`, `tool_call`, `tool_result`, and `run_end`; the last includes
-an `error` code for incomplete answers. `AgentEventCallback` also accepts nested async
-event streams. Callback exceptions propagate to the caller.
+For console progress, pass `event_stream_handler=AgentEventCallback(agent)` to `ask()`,
+`ask_async()` or `stream_async()`. A custom callback is `async def handler(event)` and is
+awaited before the event is yielded. A per-call handler overrides the constructor default.
+Callback exceptions propagate and prevent committing that turn to conversation memory.
+The console callback summarizes progress and leaves snapshots for a UI to render.
+
+The agent notebook includes an opt-in `show_stream()` demonstration, including final
+confidence. The current Streamlit cockpit remains a mock application.
 
 ## Verification and limitations
 
@@ -325,7 +300,7 @@ unverified results.
 Result wrappers use schema version `2.1`; `validation: null` means verification did
 not run. Callers must handle null rather than dereferencing `validation.is_valid`.
 The LLM's V2 fact schema and required evidence are unchanged. Pydantic parsing and
-SDK error handling remain active. Prompt versions are now extraction/batch `v2.1`;
+model error handling remain active. Prompt versions are now extraction/batch `v2.1`;
 the old `v2.0` prompt snapshot is retained alongside the new snapshot.
 
 The agent reports source-supported facts and gaps. Calculations and configured-term
@@ -357,7 +332,7 @@ assessment_service = AssessmentService(
     ),
 )
 agent = CreditAssessmentAgent(
-    client=service.client, service=service, assessment_service=assessment_service,
+    model=service.model, service=service, assessment_service=assessment_service,
 )
 answer = agent.ask(
     "Assess covenant compliance and headroom for 2025-09-30, using an information "
@@ -403,7 +378,25 @@ partitioned losslessly into 107 sections with the default budget.
 
 SDK migration verification on October 5, 2026: all 148 tests passed, Ruff,
 formatting, whitespace, and offline lockfile checks passed, and both notebooks
-passed JSON/Python syntax inspection. The agent tests use the real SDK runner with
+passed JSON/Python syntax inspection. At that revision, the agent tests used the SDK runner with
 mocked model responses, including synchronous and asynchronous HTTP clients,
 tool ordering, round limits, failure handling, and concurrent read-only issuer scope.
 No live model requests were made during implementation or verification.
+
+## PydanticAI migration
+
+Application generation uses `pydantic-ai-slim[openai]`; direct OpenAI clients and the
+OpenAI Agents SDK adapter are removed. Extraction and narrative RAG accept `model=`.
+Extraction schemas, prompt versions, segmentation and verification settings remain
+unchanged. Cache configuration now includes provider/model identity, so existing rows
+remain stored but may be stale once after migration. New cache entries still support
+persistent reuse and section resume. The isolated offline judge environment is unchanged.
+
+Tests use PydanticAI `FunctionModel` and `TestModel` with real requests disabled. Provider
+contract tests use a mocked HTTP transport. These tests establish wiring and behavior,
+not live-model answer accuracy or calibrated confidence.
+
+Migration validation: the full offline suite passed 393 tests. The 37 failing local
+SEC gold-cache comparisons also failed on the original revision against the same
+read-only database, with identical case IDs. No cached extraction facts or gold labels
+were changed. Ruff, package build and schema/syntax checks for all notebooks passed.

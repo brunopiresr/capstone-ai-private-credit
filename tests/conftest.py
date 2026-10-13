@@ -3,20 +3,21 @@
 import csv
 import json
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
-from openai.types.responses import (
-    ParsedResponse,
-    ParsedResponseOutputMessage,
-    ParsedResponseOutputText,
-    ResponseOutputRefusal,
-)
-from openai.types.responses.response import IncompleteDetails
+from model_helpers import ScriptedModel, model_response
+from pydantic_ai import models
 
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.domain import SourceEvidence
 from credit_monitoring.ingestion.converters.sec_markdown import CONVERSION_VERSION
+
+models.ALLOW_MODEL_REQUESTS = False
+
+
+@pytest.fixture(autouse=True)
+def quiet_framework_banner(monkeypatch):
+    monkeypatch.setenv("PYDANTIC_AI_NO_BANNER", "1")
 
 
 @pytest.fixture
@@ -67,7 +68,7 @@ def document_service_factory(tmp_path):
             html_dir=tmp_path / "html",
             markdown_dir=markdown_dir,
             database_path=tmp_path / "documents.sqlite3",
-            client=options.pop("client", Mock()),
+            model=options.pop("model", ScriptedModel()),
             **options,
         )
 
@@ -75,39 +76,5 @@ def document_service_factory(tmp_path):
 
 
 @pytest.fixture
-def sdk_response():
-    """Construct the installed SDK's actual types without sending a request."""
-
-    def build(extraction=None, *, status="completed", refusal=None):
-        content = []
-        if refusal is not None:
-            content.append(ResponseOutputRefusal(type="refusal", refusal=refusal))
-        elif extraction is not None:
-            content.append(
-                ParsedResponseOutputText.model_construct(
-                    type="output_text",
-                    text=extraction.model_dump_json(),
-                    parsed=extraction,
-                    annotations=[],
-                    logprobs=[],
-                )
-            )
-        return ParsedResponse.model_construct(
-            id="resp_synthetic",
-            status=status,
-            error=None,
-            incomplete_details=IncompleteDetails(reason="max_output_tokens")
-            if status == "incomplete"
-            else None,
-            output=[
-                ParsedResponseOutputMessage.model_construct(
-                    type="message",
-                    id="msg_synthetic",
-                    role="assistant",
-                    status="completed",
-                    content=content,
-                )
-            ],
-        )
-
-    return build
+def generation_response():
+    return lambda extraction=None, **kwargs: model_response(extraction=extraction, **kwargs)

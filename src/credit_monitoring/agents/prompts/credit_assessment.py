@@ -68,3 +68,11 @@ an application-configured assessment service and explicit borrower scope.
 If tools cannot supply an answer, state what information is missing.
 Return a concise cited answer once enough evidence has been gathered.
 """
+
+CONFIDENCE_INSTRUCTIONS = """
+Return answer, confidence, and confidence_explanation in the structured output.
+Confidence assesses evidence supporting this answer, not credit risk or a calibrated probability.
+Use high for well-supported answers, medium for material limitations, and low for substantial
+gaps, missing context, or unresolved conflicts. Name the evidence and limitations in a concise
+confidence_explanation. Do not imply that unverified extraction or generated prose is verified.
+"""

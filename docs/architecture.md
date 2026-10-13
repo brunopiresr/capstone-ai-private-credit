@@ -3,7 +3,7 @@
 The package separates analyst interaction, orchestration, retrieval, structured financial data, deterministic calculation, assessment synthesis, and verification. The current analyst app is a mock-only demonstration that reads pre-labeled synthetic benchmark cases; it does not connect to a model, live retrieval, calculation workflow, or verifier.
 
 The application-service layer now includes complete-document extraction with SQLite
-caching and a `CreditAssessmentAgent` using the OpenAI Agents SDK with document,
+caching and a `CreditAssessmentAgent` using the PydanticAI with document,
 financial, calculation and prediction tools when the assessment service is configured.
 These are demonstrated in `notebooks/03-agents.ipynb` and remain independent of the mocked
 web app. Automatic post-extraction

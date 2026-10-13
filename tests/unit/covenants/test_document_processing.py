@@ -6,9 +6,9 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
+from model_helpers import ScriptedModel
 
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.covenants.assembly import combine_extractions
@@ -26,7 +26,7 @@ FIXTURE = Path(__file__).parents[2] / "fixtures/sec_covenant_v2/fmc_amendment_sc
 
 
 @pytest.fixture
-def multi_document_service(document_service_factory, sdk_response):
+def multi_document_service(document_service_factory, generation_response):
     service = document_service_factory()
     original = service.catalog_record("SYN")
     rows = [
@@ -42,7 +42,7 @@ def multi_document_service(document_service_factory, sdk_response):
         document_id = row["document_id"]
         (service.markdown_dir / f"{document_id}.md").write_text("Maximum leverage ratio 4.00x.")
         (service.markdown_dir / f".{document_id}.conversion-version").write_text(CONVERSION_VERSION)
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    service.model.respond.return_value = generation_response(CovenantExtraction())
     return service
 
 
@@ -51,17 +51,17 @@ def test_process_all_documents_preserves_order_cache_and_force(multi_document_se
     first = service.process_all_documents()
     assert [outcome.document_id for outcome in first] == ["SYN", "SECOND", "THIRD"]
     assert all(outcome.status == "complete" and not outcome.cache_hit for outcome in first)
-    assert service.client.responses.parse.call_count == 3
+    assert service.model.respond.call_count == 3
     cached = service.process_all_documents()
     assert all(outcome.cache_hit and outcome.result is not None for outcome in cached)
-    assert service.client.responses.parse.call_count == 3
+    assert service.model.respond.call_count == 3
     forced = service.process_all_documents(force=True)
     assert all(outcome.status == "complete" and not outcome.cache_hit for outcome in forced)
-    assert service.client.responses.parse.call_count == 6
+    assert service.model.respond.call_count == 6
 
 
 def test_batch_logs_live_progress_timings_and_cache_reuse(
-    multi_document_service, sdk_response, caplog
+    multi_document_service, generation_response, caplog
 ):
     service = multi_document_service
     caplog.set_level(logging.INFO, logger="credit_monitoring")
@@ -69,9 +69,9 @@ def test_batch_logs_live_progress_timings_and_cache_reuse(
     def respond(**kwargs):
         # The caller can see the active section before the blocking request returns.
         assert caplog.records[-1].getMessage().startswith("Extract section started")
-        return sdk_response(CovenantExtraction())
+        return generation_response(CovenantExtraction())
 
-    service.client.responses.parse.side_effect = respond
+    service.model.respond.side_effect = respond
     service.process_all_documents(ticker="SYN")
     messages = [record.getMessage() for record in caplog.records]
     assert any("document=1/2 document_id=SYN" in message for message in messages)
@@ -92,7 +92,7 @@ def test_batch_logs_live_progress_timings_and_cache_reuse(
             message.startswith(f"{action} complete") and "elapsed_s=" in message
             for message in messages
         )
-    assert "section=1/1 model=gpt-4o-mini chars=" in caplog.text
+    assert "section=1/1 model=function:synthetic chars=" in caplog.text
     assert "Batch summary total_documents=2 completed=2 failed=0 cache_hits=0" in caplog.text
     assert "Maximum leverage" not in caplog.text
     assert "retrieved_records" not in caplog.text
@@ -102,7 +102,7 @@ def test_batch_logs_live_progress_timings_and_cache_reuse(
     assert "Extraction cache hit document_id=SYN" in caplog.text
     assert "Extract section started" not in caplog.text
     assert "Batch summary total_documents=2 completed=2 failed=0 cache_hits=2" in caplog.text
-    assert service.client.responses.parse.call_count == 2
+    assert service.model.respond.call_count == 2
 
 
 def test_process_all_documents_filters_ticker(multi_document_service):
@@ -110,14 +110,14 @@ def test_process_all_documents_filters_ticker(multi_document_service):
     outcomes = service.process_all_documents(ticker="SYN")
     assert [outcome.document_id for outcome in outcomes] == ["SYN", "THIRD"]
     assert service.get_document_extraction("SECOND").status == "missing"
-    assert service.client.responses.parse.call_count == 2
+    assert service.model.respond.call_count == 2
     assert service.process_all_documents(ticker="UNKNOWN") == []
-    assert service.client.responses.parse.call_count == 2
+    assert service.model.respond.call_count == 2
 
 
 @pytest.mark.parametrize("failure_stage", ["source", "model"])
 def test_process_all_documents_continues_after_failure(
-    failure_stage, multi_document_service, sdk_response, monkeypatch, caplog
+    failure_stage, multi_document_service, generation_response, monkeypatch, caplog
 ):
     service = multi_document_service
     caplog.set_level(logging.INFO, logger="credit_monitoring")
@@ -133,10 +133,10 @@ def test_process_all_documents_continues_after_failure(
             failing_source,
         )
     else:
-        service.client.responses.parse.side_effect = [
-            sdk_response(CovenantExtraction()),
-            sdk_response(status="incomplete"),
-            sdk_response(CovenantExtraction()),
+        service.model.respond.side_effect = [
+            generation_response(CovenantExtraction()),
+            generation_response(status="incomplete"),
+            generation_response(CovenantExtraction()),
         ]
     outcomes = service.process_all_documents()
     assert [outcome.status for outcome in outcomes] == ["complete", "failed", "complete"]
@@ -170,10 +170,12 @@ def test_process_all_documents_empty_catalog_and_invalid_catalog(multi_document_
     with pytest.raises(ValueError, match="Catalog rows require"):
         service.process_all_documents()
     assert "Load and validate catalog failed" in caplog.text
-    service.client.responses.parse.assert_not_called()
+    service.model.respond.assert_not_called()
 
 
-def test_fmc_all_quarters_reach_model_and_survive_json(document_service_factory, sdk_response):
+def test_fmc_all_quarters_reach_model_and_survive_json(
+    document_service_factory, generation_response
+):
     text = FIXTURE.read_text()
     service = document_service_factory(text)
     record = service.catalog_record("SYN")
@@ -213,9 +215,9 @@ def test_fmc_all_quarters_reach_model_and_survive_json(document_service_factory,
             )
         )
     expected = CovenantExtraction(issuer=record["company"], covenants=terms)
-    service.client.responses.parse.return_value = sdk_response(expected)
+    service.model.respond.return_value = generation_response(expected)
     result = service.process_document("SYN")
-    payload = json.loads(service.client.responses.parse.call_args.kwargs["input"])
+    payload = json.loads(service.model.respond.call_args.kwargs["messages"][0].parts[0].content)
     assert payload["retrieved_records"][0]["text"] == text
     assert "| December 31, 2027 |" in payload["retrieved_records"][0]["text"]
     assert result.result.extraction == expected
@@ -227,13 +229,15 @@ def test_fmc_all_quarters_reach_model_and_survive_json(document_service_factory,
     assert result.result.validation is None and serialized["result"]["validation"] is None
 
 
-def test_cache_survives_new_service_and_force_reprocesses(document_service_factory, sdk_response):
+def test_cache_survives_new_service_and_force_reprocesses(
+    document_service_factory, generation_response
+):
     service = document_service_factory()
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    service.model.respond.return_value = generation_response(CovenantExtraction())
     first = service.process_document("SYN")
     assert not first.cache_hit and first.status == "complete"
     restored = DocumentProcessingService(
-        client=Mock(),
+        model=ScriptedModel(),
         source_file=service.source_file,
         html_dir=service.html_dir,
         markdown_dir=service.markdown_dir,
@@ -241,19 +245,19 @@ def test_cache_survives_new_service_and_force_reprocesses(document_service_facto
     )
     cached = restored.process_document("SYN")
     assert cached.cache_hit and cached.cache_key == first.cache_key
-    restored.client.responses.parse.assert_not_called()
+    restored.model.respond.assert_not_called()
     forced = service.process_document("SYN", force=True)
-    assert not forced.cache_hit and service.client.responses.parse.call_count == 2
+    assert not forced.cache_hit and service.model.respond.call_count == 2
 
 
 @pytest.mark.parametrize(
     "change", ["content", "metadata", "model", "budget", "prompt", "schema", "segmentation"]
 )
 def test_changed_inputs_invalidate_cache(
-    change, document_service_factory, sdk_response, monkeypatch
+    change, document_service_factory, generation_response, monkeypatch
 ):
     service = document_service_factory()
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    service.model.respond.return_value = generation_response(CovenantExtraction())
     first = service.process_document("SYN")
     if change == "content":
         path = service.markdown_dir / "SYN.md"
@@ -266,7 +270,7 @@ def test_changed_inputs_invalidate_cache(
             writer.writeheader()
             writer.writerows(rows)
     elif change == "model":
-        service.model = "another-test-model"
+        service.model._model_name = "another-test-model"
     elif change == "budget":
         service.max_chars = 1000
     else:
@@ -283,43 +287,45 @@ def test_changed_inputs_invalidate_cache(
     assert stale.status == "stale" and stale.result is None
     second = service.process_document("SYN")
     assert second.cache_key != first.cache_key and not second.cache_hit
-    assert service.client.responses.parse.call_count == 2
+    assert service.model.respond.call_count == 2
 
 
 def test_failed_sections_resume_without_publishing_partial_facts(
-    document_service_factory, sdk_response, caplog
+    document_service_factory, generation_response, caplog
 ):
     text = "# Source\n\n" + "\n\n".join("Paragraph " + str(i) + " x" * 20 for i in range(8))
     service = document_service_factory(text, max_chars=150)
     count = len(split_document(text, max_chars=150))
     assert count > 2
-    service.client.responses.parse.side_effect = [
-        sdk_response(CovenantExtraction(gaps=["First section gap"])),
-        sdk_response(status="incomplete"),
+    service.model.respond.side_effect = [
+        generation_response(CovenantExtraction(gaps=["First section gap"])),
+        generation_response(status="incomplete"),
     ]
     with pytest.raises(ExtractionIncompleteError):
         service.process_document("SYN")
     failed = service.get_document_extraction("SYN")
     assert failed.status == "failed" and failed.result is None
     assert failed.completed_sections == 1
-    service.client.responses.parse.reset_mock()
-    service.client.responses.parse.side_effect = None
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    service.model.respond.reset_mock()
+    service.model.respond.side_effect = None
+    service.model.respond.return_value = generation_response(CovenantExtraction())
     caplog.set_level(logging.INFO, logger="credit_monitoring")
     resumed = service.process_document("SYN")
     assert resumed.status == "complete" and resumed.completed_sections == count
-    assert service.client.responses.parse.call_count == count - 1
+    assert service.model.respond.call_count == count - 1
     assert resumed.result.extraction.gaps == ["First section gap"]
     assert f"total_sections={count} cached_sections=1" in caplog.text
     assert f"Section cache hit document_id=SYN section=1/{count}" in caplog.text
     assert f"Extract section started document_id=SYN section=1/{count}" not in caplog.text
 
 
-def test_failed_forced_run_does_not_return_previous_success(document_service_factory, sdk_response):
+def test_failed_forced_run_does_not_return_previous_success(
+    document_service_factory, generation_response
+):
     service = document_service_factory()
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    service.model.respond.return_value = generation_response(CovenantExtraction())
     service.process_document("SYN")
-    service.client.responses.parse.return_value = sdk_response(status="incomplete")
+    service.model.respond.return_value = generation_response(status="incomplete")
     with pytest.raises(ExtractionIncompleteError):
         service.process_document("SYN", force=True)
     result = service.get_document_extraction("SYN")
@@ -335,8 +341,7 @@ def test_search_and_discovery_do_not_call_model_or_require_stored_facts(document
     assert results and results[0]["content"] == (service.markdown_dir / "SYN.md").read_text()
     assert results[0]["offset_coordinate_system"] == "markdown"
     assert service.search_evidence("leverage", "OTHER") == []
-    service.client.responses.parse.assert_not_called()
-    service.client.responses.create.assert_not_called()
+    service.model.respond.assert_not_called()
 
 
 def test_search_indexes_later_rows_without_keyword_filtering(document_service_factory):
@@ -357,7 +362,7 @@ def test_unknown_unavailable_and_oversized_sources_are_explicit(document_service
     assert service.get_document_extraction("SYN").result is None
     (service.markdown_dir / "SYN.md").unlink()
     assert service.get_document_extraction("SYN").status == "unavailable"
-    service.client.responses.parse.assert_not_called()
+    service.model.respond.assert_not_called()
 
 
 def test_malformed_catalog_is_an_explicit_error(document_service_factory):
@@ -365,17 +370,19 @@ def test_malformed_catalog_is_an_explicit_error(document_service_factory):
     service.source_file.write_text("document_id,company\nSYN,Synthetic\n")
     with pytest.raises(ValueError, match="Catalog rows require"):
         service.list_document_extractions()
-    service.client.responses.parse.assert_not_called()
+    service.model.respond.assert_not_called()
 
 
-def test_disabled_validators_are_not_invoked(document_service_factory, sdk_response, monkeypatch):
+def test_disabled_validators_are_not_invoked(
+    document_service_factory, generation_response, monkeypatch
+):
     def fail(*args, **kwargs):
         raise AssertionError("Automatic verification should be disabled")
 
     monkeypatch.setattr("credit_monitoring.verification.extraction.validate_extraction", fail)
     monkeypatch.setattr("credit_monitoring.verification.extraction.validate_all_companies", fail)
     service = document_service_factory()
-    service.client.responses.parse.return_value = sdk_response(CovenantExtraction())
+    service.model.respond.return_value = generation_response(CovenantExtraction())
     assert service.process_document("SYN").result.validation is None
 
 

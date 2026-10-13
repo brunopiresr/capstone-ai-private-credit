@@ -1,12 +1,15 @@
 """Explicit, scoped conversation memory for the credit assessment agent."""
 
 import asyncio
+from collections.abc import AsyncIterator
+from contextlib import aclosing
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
-from agents.items import TResponseInputItem
+from pydantic_ai.messages import ModelMessage
 
-from credit_monitoring.agents.events import EventStreamHandler
+from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
+from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.domain.agent import AgentAnswer, SourceReference
 
 if TYPE_CHECKING:
@@ -14,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class AgentConversation:
-    """Retain successful SDK history until closed; accept one question at a time.
+    """Retain successful PydanticAI history until closed; accept one question at a time.
 
     Scope is fixed at construction. Exact close/done/quit messages close locally
     and return None. Blank questions raise ValueError, like single-question calls.
@@ -32,7 +35,7 @@ class AgentConversation:
         self._agent = agent
         self._ticker = ticker
         self._borrower_id = borrower_id
-        self._history: list[TResponseInputItem] = []
+        self._history: list[ModelMessage] = []
         self._sources: list[SourceReference] = []
         self._closed = False
         self._in_progress = False
@@ -70,28 +73,50 @@ class AgentConversation:
         event_stream_handler: EventStreamHandler | None = None,
     ) -> AgentAnswer | None:
         """Answer with prior context, or return None for a local closing command."""
+        answer = None
+        async with aclosing(
+            self.stream_async(question, event_stream_handler=event_stream_handler)
+        ) as stream:
+            async for event in stream:
+                if event.kind == "run_end":
+                    answer = event.answer
+        return answer
+
+    async def stream_async(
+        self,
+        question: str,
+        *,
+        event_stream_handler: EventStreamHandler | None = None,
+    ) -> AsyncIterator[AgentEvent]:
+        """Stream one turn, committing only its terminal outcome to memory."""
         if self.closed:
             raise RuntimeError("Conversation is closed; start a new conversation.")
         if question.strip().casefold() in {"close", "done", "quit"}:
             self.close()
-            return None
+            return
         if self._in_progress:
             raise RuntimeError("A question is already running in this conversation.")
         self._in_progress = True
+        state = AgentRunState(
+            max_tool_rounds=self._agent.max_tool_rounds,
+            sources={(s.document_id, s.citation): s.model_copy(deep=True) for s in self._sources},
+        )
         try:
-            answer, history = await self._agent._run_question(
-                question,
-                self._ticker,
-                borrower_id=self._borrower_id,
-                event_stream_handler=event_stream_handler,
-                history=deepcopy(self._history),
-                sources=self._sources,
-            )
-            # Closing during a running question must never restore cleared memory.
-            if not self.closed:
-                self._history = history
-                if answer.complete:
-                    self._sources = [source.model_copy(deep=True) for source in answer.sources]
-            return answer
+            async with aclosing(
+                self._agent._stream_question(
+                    question,
+                    state,
+                    self._ticker,
+                    borrower_id=self._borrower_id,
+                    event_stream_handler=event_stream_handler,
+                    history=deepcopy(self._history),
+                )
+            ) as stream:
+                async for event in stream:
+                    if event.kind == "run_end" and not self.closed:
+                        self._history = state.history
+                        if event.answer.complete:
+                            self._sources = [s.model_copy(deep=True) for s in event.answer.sources]
+                    yield event
         finally:
             self._in_progress = False

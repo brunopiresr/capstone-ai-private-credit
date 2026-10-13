@@ -3,8 +3,8 @@
 from datetime import date
 
 import pytest
-from openai.lib._parsing._responses import type_to_text_format_param
 from pydantic import ValidationError
+from pydantic_ai.profiles.openai import OpenAIJsonSchemaTransformer
 
 from credit_monitoring import domain
 from credit_monitoring.domain import (
@@ -29,10 +29,8 @@ def test_every_exported_model_field_has_a_description():
 
 
 @pytest.mark.parametrize("model", [CovenantExtraction, AllCompanyCovenantExtraction])
-def test_installed_sdk_builds_strict_json_schema(model):
-    format_param = type_to_text_format_param(model)
-    assert format_param["strict"] is True
-    schema = format_param["schema"]
+def test_provider_builds_strict_json_schema(model):
+    schema = OpenAIJsonSchemaTransformer(model.model_json_schema(), strict=True).walk()
     assert schema["additionalProperties"] is False
     assert set(schema["required"]) == set(schema["properties"])
     for child in schema.get("$defs", {}).values():

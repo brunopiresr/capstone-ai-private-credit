@@ -1,15 +1,12 @@
-"""Reusable document methods wrapped as SDK tools from signatures and docstrings."""
+"""Reusable document methods wrapped as PydanticAI tools from signatures and docstrings."""
 
-from agents import FunctionTool, function_tool
-from agents.tool_context import ToolContext
 from pydantic import StrictStr
+from pydantic_ai import Tool
 
-from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.common import (
     NonEmptyString,
-    tool_error,
+    service_errors,
     tool_result,
-    validate_call,
 )
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.domain.processing import DocumentExtraction
@@ -21,9 +18,9 @@ class DocumentTools:
         self.ticker = ticker
 
     @property
-    def tools(self) -> list[FunctionTool]:
+    def tools(self) -> list[Tool]:
         return [
-            function_tool(method, failure_error_function=tool_error)
+            Tool(service_errors(method), strict=True, sequential=True)
             for method in (
                 self.list_documents,
                 self.get_document_extraction,
@@ -32,9 +29,7 @@ class DocumentTools:
             )
         ]
 
-    def list_documents(
-        self, ctx: ToolContext[AgentRunState], ticker: StrictStr | None = None
-    ) -> str:
+    def list_documents(self, ticker: StrictStr | None = None) -> str:
         """Discover available documents and their processing states.
 
         Use this tool to obtain valid document IDs before reading extractions or
@@ -50,7 +45,6 @@ class DocumentTools:
             JSON containing document metadata and processing states. Extracted
             facts are excluded from this listing.
         """
-        validate_call(ctx, self.list_documents)
         documents = self.service.list_document_extractions(
             ticker=self._resolve_ticker(ticker), include_results=False
         )
@@ -58,9 +52,7 @@ class DocumentTools:
             [document.model_dump(mode="json", exclude={"result"}) for document in documents]
         )
 
-    def get_document_extraction(
-        self, ctx: ToolContext[AgentRunState], document_id: NonEmptyString
-    ) -> str:
+    def get_document_extraction(self, document_id: NonEmptyString) -> str:
         """Read the stored extraction for a catalog document.
 
         Use a document ID obtained from list_documents. If the extraction is
@@ -74,14 +66,12 @@ class DocumentTools:
             and current, and source citations. Other states are reported
             explicitly without supplying old facts.
         """
-        validate_call(ctx, self.get_document_extraction)
         self._check_document_scope(document_id)
         document = self.service.get_document_extraction(document_id)
         return self._document_result(document)
 
     def search_evidence(
         self,
-        ctx: ToolContext[AgentRunState],
         query: NonEmptyString,
         ticker: StrictStr | None = None,
     ) -> str:
@@ -100,7 +90,6 @@ class DocumentTools:
             JSON containing matching passages, document IDs, and exact
             citations. This tool does not generate an answer.
         """
-        validate_call(ctx, self.search_evidence)
         passages = self.service.search_evidence(query=query, ticker=self._resolve_ticker(ticker))
         return tool_result(
             passages,
@@ -110,7 +99,7 @@ class DocumentTools:
             ],
         )
 
-    def process_document(self, ctx: ToolContext[AgentRunState], document_id: NonEmptyString) -> str:
+    def process_document(self, document_id: NonEmptyString) -> str:
         """Extract supported facts from a complete catalog document.
 
         Use this when needed facts have no complete, current extraction. A
@@ -125,7 +114,6 @@ class DocumentTools:
             cache-hit information, and source citations. Processing failures
             remain explicit in the result.
         """
-        validate_call(ctx, self.process_document)
         self._check_document_scope(document_id)
         document = self.service.process_document(document_id)
         return self._document_result(document)

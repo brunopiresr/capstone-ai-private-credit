@@ -28,8 +28,8 @@ errors do not cause a synthetic correction or an automatic retry.
 ```python
 from credit_monitoring.covenants.extraction import extract_covenants
 
-# Supply an existing OpenAI client and already-retrieved record dictionaries.
-result = extract_covenants(query, search_results, client=client)
+# Supply a PydanticAI model and already-retrieved record dictionaries.
+result = extract_covenants(query, search_results, model=model)
 print(result.extraction.model_dump_json(indent=2))
 print(result.validation.model_dump_json(indent=2))
 # Persist the full wrapper if validation/version information must travel with facts.
@@ -63,7 +63,7 @@ from credit_monitoring.ingestion.loaders.sec import build_company_catalog
 result = extract_all_companies(
     query, documents,
     company_by_ticker=build_company_catalog(filing_documents),
-    client=client,
+    model=model,
 )
 for company in result.extraction.companies:
     print(company.ticker, company.extraction.model_dump())
@@ -88,7 +88,7 @@ All module paths below are relative to `src/credit_monitoring`.
 | Conversion | `ingestion/converters/sec_markdown.py`: existing cache/versioned HTML-to-Markdown conversion |
 | Chunking | `ingestion/chunking/evidence.py`: keyword neighbors, truncation, existing gitsource chunking, record preparation |
 | Retrieval | `retrieval/lexical/sec.py`: MinSearch index, ticker filter, two ranked records per filing |
-| Extraction | `covenants/extraction.py`: existing Responses parse API, single/batch flows, typed failures |
+| Extraction | `covenants/extraction.py`: PydanticAI structured output, single/batch flows, typed failures |
 | Verification | `verification/extraction.py`: exact provenance and structural checks |
 | Narrative | `application/rag_service.py`: reusable model invocation and RAG orchestration |
 
@@ -158,8 +158,8 @@ Keep facts from different excerpts separate or flag unresolved support.
 
 Typed generation failures are `ExtractionInputError`, `ExtractionRefusalError`,
 `ExtractionIncompleteError`, `ExtractionParseError`, and `ExtractionResponseError`.
-Response-level errors retain the SDK response ID when available; SDK exceptions
-are chained. The SDK can raise a parsing exception before returning a response
+Response-level errors retain the provider response ID when available; model exceptions
+are chained. PydanticAI can raise a parsing exception before returning a response
 for malformed partial JSON; that case surfaces as `ExtractionParseError` rather
 than inventing an unavailable incomplete-response status or ID.
 
@@ -185,8 +185,7 @@ New tests live in:
 
 The controlled snippets cover all ten guide acceptance categories. Unit tests
 check expected-output preservation and deterministic validation. Integration
-tests use actual SDK response types and a mocked HTTP transport through the
-installed SDK. Injection tests establish instruction/data isolation, not live
+tests use PydanticAI models and mocked provider HTTP transports. Injection tests establish instruction/data isolation, not live
 model compliance. None downloads SEC documents or needs API credentials; the
 optional local-source regression skips when the ignored file is absent.
 
@@ -199,6 +198,5 @@ uv run pytest tests/unit/covenants tests/unit/verification/test_extraction.py \
 uv run pytest tests/evaluation/extraction/test_local_sec_regression.py
 ```
 
-Pydantic V2 is now explicit (`>=2.12.5,<3`), and the OpenAI minimum is the already
-locked `2.30.0`, whose `responses.parse(..., text_format=...)` interface is used.
-The lockfile keeps existing resolved versions and reflects these direct requirements.
+Pydantic V2 remains explicit (`>=2.12.5,<3`). Application generation uses
+`pydantic-ai-slim[openai]`, with resolved versions recorded in `uv.lock`.

@@ -7,6 +7,9 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any
 
+from pydantic_ai.models import Model
+
+from credit_monitoring.agents.models import DEFAULT_MODEL, model_identity
 from credit_monitoring.agents.prompts.extraction import EXTRACTION_PROMPT_VERSION
 from credit_monitoring.covenants.assembly import combine_extractions
 from credit_monitoring.covenants.extraction import extract_covenants
@@ -49,19 +52,17 @@ class DocumentProcessingService:
     def __init__(
         self,
         *,
-        client: Any,
         source_file: Path,
         html_dir: Path,
         markdown_dir: Path,
         database_path: Path,
-        model: str = "gpt-4o-mini",
+        model: Model | str = DEFAULT_MODEL,
         user_agent: str = "",
         converter: Any = None,
         max_chars: int = DEFAULT_MAX_CHARS,
     ) -> None:
         if max_chars <= 0:
             raise ValueError("max_chars must be positive.")
-        self.client = client
         self.source_file = Path(source_file)
         self.html_dir = Path(html_dir).resolve()
         self.markdown_dir = Path(markdown_dir).resolve()
@@ -77,7 +78,7 @@ class DocumentProcessingService:
     @property
     def configuration(self) -> dict:
         return {
-            "model": self.model,
+            "model": model_identity(self.model),
             "schema_version": RESULT_SCHEMA_VERSION,
             "prompt_version": EXTRACTION_PROMPT_VERSION,
             "segmentation_version": SEGMENTATION_VERSION,
@@ -235,7 +236,7 @@ class DocumentProcessingService:
                             "Extract section",
                             document_id=document_id,
                             section=progress,
-                            model=self.model,
+                            model=model_identity(self.model),
                             chars=section.end
                             - section.start
                             + sum(b - a for a, b in section.context),
@@ -243,7 +244,6 @@ class DocumentProcessingService:
                             result = extract_covenants(
                                 DOCUMENT_QUERY,
                                 section.records(document),
-                                client=self.client,
                                 model=self.model,
                             )
                         with log_step(

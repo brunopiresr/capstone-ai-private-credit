@@ -1,12 +1,21 @@
-"""Structured SEC fact extraction using the existing OpenAI Responses parse API."""
+"""Structured SEC fact extraction through injected PydanticAI models."""
 
 import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from openai import APIError, APIResponseValidationError
 from pydantic import ValidationError
+from pydantic_ai import Agent, ToolOutput, capture_run_messages
+from pydantic_ai.exceptions import ModelAPIError, UnexpectedModelBehavior
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.models import Model
 
+from credit_monitoring.agents.models import (
+    DEFAULT_MODEL,
+    ModelFailure,
+    check_response,
+    resolve_model,
+)
 from credit_monitoring.agents.prompts.assembly import build_prompt
 from credit_monitoring.agents.prompts.batch import ALL_COMPANY_INSTRUCTIONS, BATCH_PROMPT_VERSION
 from credit_monitoring.agents.prompts.extraction import (
@@ -40,7 +49,7 @@ class ExtractionInputError(ExtractionError):
 
 
 class ExtractionRefusalError(ExtractionError):
-    """The SDK response contains refusal content."""
+    """The model response contains refusal content."""
 
 
 class ExtractionIncompleteError(ExtractionError):
@@ -48,11 +57,11 @@ class ExtractionIncompleteError(ExtractionError):
 
 
 class ExtractionParseError(ExtractionError):
-    """SDK JSON/Pydantic parsing failed, or completed output has no parsed object."""
+    """Structured output parsing failed, or completed output has no parsed object."""
 
 
 class ExtractionResponseError(ExtractionError):
-    """SDK/API request or response failed."""
+    """Model/API request or response failed."""
 
 
 def _records(values: Iterable[RetrievedRecord | Mapping[str, Any]]) -> list[RetrievedRecord]:
@@ -67,48 +76,49 @@ def _records(values: Iterable[RetrievedRecord | Mapping[str, Any]]) -> list[Retr
     return records
 
 
-def _parse(*, client: Any, model: str, instructions: str, prompt: str, schema: type) -> Any:
-    try:
-        response = client.responses.parse(
-            model=model,
-            instructions=instructions,
-            input=prompt,
-            text_format=schema,
-        )
-    except (ValidationError, json.JSONDecodeError) as exc:
-        raise ExtractionParseError(f"Structured extraction could not be parsed: {exc}") from exc
-    except (APIResponseValidationError, APIError) as exc:
-        raise ExtractionResponseError(f"Extraction SDK request/response failed: {exc}") from exc
-    response_id = response.id
-    for output in response.output:
-        if output.type == "message":
-            for content in output.content:
-                if content.type == "refusal":
-                    raise ExtractionRefusalError(content.refusal, response_id=response_id)
-    if response.status == "incomplete":
-        reason = (
-            response.incomplete_details.reason if response.incomplete_details else "unspecified"
-        )
-        raise ExtractionIncompleteError(f"Incomplete generation: {reason}", response_id=response_id)
-    if response.status != "completed" or response.error is not None:
-        raise ExtractionResponseError(
-            f"Extraction response status={response.status}; error={response.error}",
-            response_id=response_id,
-        )
-    parsed = response.output_parsed
-    if parsed is None or not isinstance(parsed, schema):
-        raise ExtractionParseError(
-            "No parsed extraction of the requested type.", response_id=response_id
-        )
-    return parsed
+def _parse(*, model: Model | str, instructions: str, prompt: str, schema: type) -> Any:
+    agent = Agent(
+        resolve_model(model),
+        instructions=instructions,
+        output_type=ToolOutput(schema, strict=True),
+        retries=0,
+    )
+    with capture_run_messages() as messages:
+        try:
+            result = agent.run_sync(prompt)
+        except (ValidationError, UnexpectedModelBehavior, ModelAPIError) as exc:
+            failure = exc
+        else:
+            failure = None
+        response = next((m for m in reversed(messages) if isinstance(m, ModelResponse)), None)
+        if response is not None:
+            try:
+                check_response(response)
+            except ModelFailure as exc:
+                error_type = {
+                    "model_refusal": ExtractionRefusalError,
+                    "model_incomplete": ExtractionIncompleteError,
+                    "empty_response": ExtractionParseError,
+                }.get(exc.code, ExtractionResponseError)
+                raise error_type(str(exc), response_id=exc.response_id) from exc
+        if failure is not None:
+            error_type = (
+                ExtractionResponseError
+                if isinstance(failure, ModelAPIError)
+                else ExtractionParseError
+            )
+            raise error_type(
+                f"Structured extraction failed: {failure}",
+                response_id=response.provider_response_id if response else None,
+            ) from failure
+    return result.output
 
 
 def extract_covenants(
     query: str,
     search_results: Iterable[RetrievedRecord | Mapping[str, Any]],
     *,
-    client: Any,
-    model: str = "gpt-4o-mini",
+    model: Model | str = DEFAULT_MODEL,
 ) -> ExtractionResult:
     """Extract facts unchanged; validation is null while POC verification is disabled."""
     records = _records(search_results)
@@ -116,7 +126,6 @@ def extract_covenants(
         extraction = CovenantExtraction(gaps=["No relevant evidence was retrieved."])
     else:
         extraction = _parse(
-            client=client,
             model=model,
             instructions=EXTRACTION_INSTRUCTIONS,
             prompt=build_prompt(query, records),
@@ -136,8 +145,7 @@ def extract_all_companies(
     documents: Iterable[RetrievedRecord | Mapping[str, Any]],
     *,
     company_by_ticker: Mapping[str, str],
-    client: Any,
-    model: str = "gpt-4o-mini",
+    model: Model | str = DEFAULT_MODEL,
 ) -> AllCompanyExtractionResult:
     """One request for all companies; automatic post-extraction verification is disabled."""
     records = _records(documents)
@@ -166,7 +174,6 @@ def extract_all_companies(
             for ticker, company in sorted(company_by_ticker.items())
         ]
         extraction = _parse(
-            client=client,
             model=model,
             instructions=ALL_COMPANY_INSTRUCTIONS,
             prompt=json.dumps(payload, ensure_ascii=False, indent=2),

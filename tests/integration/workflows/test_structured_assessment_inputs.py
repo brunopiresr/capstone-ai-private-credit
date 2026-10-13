@@ -23,7 +23,7 @@ from credit_monitoring.ingestion.loaders.financials import load_financials
 
 
 @pytest.fixture
-def stored_terms(document_service_factory, sdk_response):
+def stored_terms(document_service_factory, generation_response):
     text = "# Synthetic agreement\n\nMaximum leverage 5.00x; reported actual 4.50x.\n"
     service = document_service_factory(text)
     citation = service.get_document_extraction("SYN").citation
@@ -56,7 +56,7 @@ def stored_terms(document_service_factory, sdk_response):
             )
         ],
     )
-    service.client.responses.parse.return_value = sdk_response(extraction)
+    service.model.respond.return_value = generation_response(extraction)
     service.process_document("SYN")
     reader = ExtractionCovenantReader(
         service,
@@ -92,7 +92,7 @@ def test_existing_extraction_is_consumed_without_reprocessing(stored_terms, tmp_
     assert assessment.results[0].headroom == 0.5
     assert assessment.results[0].financial_inputs["result_basis"] == "reported"
     assert "reported actual" in assessment.narrative
-    assert service.client.responses.parse.call_count == 1
+    assert service.model.respond.call_count == 1
     assert not reader.resolve(
         "SYN001", period, period, FinancialPeriod(borrower_id="SYN001", period_end=period)
     )
@@ -118,7 +118,7 @@ def test_existing_extraction_is_consumed_without_reprocessing(stored_terms, tmp_
 
 
 @pytest.mark.parametrize("condition", ["wrong_period", "stale", "future", "ambiguous", "bad_quote"])
-def test_unresolved_document_inputs(stored_terms, condition, sdk_response, caplog):
+def test_unresolved_document_inputs(stored_terms, condition, generation_response, caplog):
     caplog.set_level(logging.INFO, logger="credit_monitoring")
     service, reader, extraction = stored_terms
     period = date(2025, 9, 30)
@@ -142,7 +142,7 @@ def test_unresolved_document_inputs(stored_terms, condition, sdk_response, caplo
         reader.bindings.append(reader.bindings[0])
     elif condition == "bad_quote":
         extraction.covenants[0].evidence.evidence_quote = "Invented source quote"
-        service.client.responses.parse.return_value = sdk_response(extraction)
+        service.model.respond.return_value = generation_response(extraction)
         service.process_document("SYN", force=True)
     financials = FinancialPeriod(borrower_id="BORROWER", period_end=period)
     resolution = reader.resolve("BORROWER", period, period, financials)[0]
@@ -157,7 +157,7 @@ def test_unresolved_document_inputs(stored_terms, condition, sdk_response, caplo
         assert all(r.document_id == "SYN" and r.outputs["reason"] for r in rejected)
 
 
-def test_testing_event_preserves_waiver(stored_terms, sdk_response):
+def test_testing_event_preserves_waiver(stored_terms, generation_response):
     service, reader, extraction = stored_terms
     period = date(2025, 9, 30)
     extraction.testing_events = [
@@ -168,7 +168,7 @@ def test_testing_event_preserves_waiver(stored_terms, sdk_response):
             evidence=extraction.covenants[0].evidence,
         )
     ]
-    service.client.responses.parse.return_value = sdk_response(extraction)
+    service.model.respond.return_value = generation_response(extraction)
     service.process_document("SYN", force=True)
     resolution = reader.resolve(
         "BORROWER", period, period, FinancialPeriod(borrower_id="BORROWER", period_end=period)
@@ -176,7 +176,7 @@ def test_testing_event_preserves_waiver(stored_terms, sdk_response):
     assert resolution.covenant.testing_status == "waived"
 
 
-def test_group_waiver_does_not_imply_active_compliance(stored_terms, sdk_response):
+def test_group_waiver_does_not_imply_active_compliance(stored_terms, generation_response):
     service, reader, extraction = stored_terms
     period = date(2025, 9, 30)
     extraction.testing_events = [
@@ -187,7 +187,7 @@ def test_group_waiver_does_not_imply_active_compliance(stored_terms, sdk_respons
             evidence=extraction.covenants[0].evidence,
         ),
     ]
-    service.client.responses.parse.return_value = sdk_response(extraction)
+    service.model.respond.return_value = generation_response(extraction)
     service.process_document("SYN", force=True)
     financials = FinancialPeriod(borrower_id="BORROWER", period_end=period)
     resolution = reader.resolve("BORROWER", period, period, financials)[0]

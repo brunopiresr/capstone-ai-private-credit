@@ -1,6 +1,6 @@
 """Importable extraction and structured assessment contracts."""
 
-from .agent import AgentAnswer, SourceReference, ToolExecution
+from .agent import AgentAnswer, AnswerContent, SourceReference, ToolExecution
 from .assessment import (
     CovenantResolution,
     CovenantResult,
@@ -34,6 +34,7 @@ from .validation import (
 
 __all__ = [
     "AgentAnswer",
+    "AnswerContent",
     "AgreementAmendment",
     "AllCompanyCovenantExtraction",
     "AllCompanyExtractionResult",

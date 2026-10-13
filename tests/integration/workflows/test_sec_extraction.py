@@ -2,12 +2,11 @@
 
 import json
 from datetime import date
-from unittest.mock import Mock
 
-import httpx
 import pytest
-from openai import APIError, OpenAI
+from model_helpers import ScriptedModel, model_response
 from pydantic import ValidationError
+from pydantic_ai.exceptions import ModelAPIError
 
 from credit_monitoring.agents.prompts.batch import ALL_COMPANY_INSTRUCTIONS
 from credit_monitoring.agents.prompts.extraction import EXTRACTION_INSTRUCTIONS
@@ -57,7 +56,7 @@ def expected_extraction(record, evidence_for):
     )
 
 
-def test_retrieval_to_installed_sdk_parse_to_unverified_json(synthetic_records, evidence_for):
+def test_retrieval_to_pydantic_model_to_unverified_json(synthetic_records, evidence_for):
     record = {
         **synthetic_records["base"],
         "document_type": "Synthetic agreement",
@@ -74,61 +73,15 @@ def test_retrieval_to_installed_sdk_parse_to_unverified_json(synthetic_records, 
     )
     assert len(results) == 1
     expected = expected_extraction(record, evidence_for)
-    captured = []
-
-    def respond(request):
-        captured.append(json.loads(request.content))
-        return httpx.Response(
-            200,
-            json={
-                "id": "resp_synthetic",
-                "object": "response",
-                "created_at": 0,
-                "model": "gpt-4o-mini",
-                "status": "completed",
-                "error": None,
-                "incomplete_details": None,
-                "instructions": None,
-                "metadata": {},
-                "parallel_tool_calls": False,
-                "tool_choice": "auto",
-                "tools": [],
-                "temperature": 1.0,
-                "top_p": 1.0,
-                "text": {"format": {"type": "text"}},
-                "truncation": "disabled",
-                "usage": None,
-                "output": [
-                    {
-                        "id": "msg_synthetic",
-                        "type": "message",
-                        "status": "completed",
-                        "role": "assistant",
-                        "content": [
-                            {
-                                "type": "output_text",
-                                "text": expected.model_dump_json(),
-                                "annotations": [],
-                                "logprobs": [],
-                            }
-                        ],
-                    }
-                ],
-            },
-        )
-
-    with OpenAI(
-        api_key="synthetic-test-key",
-        http_client=httpx.Client(
-            transport=httpx.MockTransport(respond),
-        ),
-    ) as client:
-        result = extract_covenants("Extract synthetic terms", results, client=client)
+    model = ScriptedModel(response=model_response(extraction=expected))
+    result = extract_covenants("Extract synthetic terms", results, model=model)
     assert result.validation is None
     assert result.extraction == expected
     assert result.schema_version == "2.1"
-    assert len(captured) == 1 and captured[0]["instructions"] == EXTRACTION_INSTRUCTIONS
-    assert captured[0]["text"]["format"]["name"] == "CovenantExtraction"
+    model.respond.assert_called_once()
+    request = model.respond.call_args.kwargs
+    assert request["info"].instructions == EXTRACTION_INSTRUCTIONS.strip()
+    assert request["info"].output_tools[0].parameters_json_schema["title"] == "CovenantExtraction"
     output = json.loads(result.model_dump_json())
     assert output["extraction"]["covenants"][0]["threshold_schedule"][0]["period_end_dates"] == [
         "2025-03-31",
@@ -137,7 +90,9 @@ def test_retrieval_to_installed_sdk_parse_to_unverified_json(synthetic_records, 
     assert "validation" in output and "prompt_version" in output
 
 
-def test_one_batch_request_and_nested_v2_results(synthetic_records, evidence_for, sdk_response):
+def test_one_batch_request_and_nested_v2_results(
+    synthetic_records, evidence_for, generation_response
+):
     expected = AllCompanyCovenantExtraction(
         summary="Synthetic evidence summary",
         companies=[
@@ -155,24 +110,27 @@ def test_one_batch_request_and_nested_v2_results(synthetic_records, evidence_for
             ),
         ],
     )
-    client = Mock()
-    client.responses.parse.return_value = sdk_response(expected)
+    model = ScriptedModel()
+    model.respond.return_value = generation_response(expected)
     result = extract_all_companies(
         "Extract all",
         [synthetic_records["base"]],
-        client=client,
+        model=model,
         company_by_ticker={"SYN": "Synthetic Issuer Inc.", "SPARSE": "Sparse Synthetic Issuer"},
     )
-    client.responses.parse.assert_called_once()
+    model.respond.assert_called_once()
     assert result.validation is None and len(result.extraction.companies) == 2
-    assert client.responses.parse.call_args.kwargs["instructions"] == ALL_COMPANY_INSTRUCTIONS
-    assert client.responses.parse.call_args.kwargs["text_format"] is AllCompanyCovenantExtraction
+    assert model.respond.call_args.kwargs["info"].instructions == ALL_COMPANY_INSTRUCTIONS.strip()
+    assert (
+        model.respond.call_args.kwargs["info"].output_tools[0].parameters_json_schema["title"]
+        == "AllCompanyCovenantExtraction"
+    )
 
 
 def test_batch_coverage_and_cross_company_provenance_errors(
     synthetic_records,
     evidence_for,
-    sdk_response,
+    generation_response,
 ):
     expected = AllCompanyCovenantExtraction(
         summary="Synthetic fixture",
@@ -190,18 +148,19 @@ def test_batch_coverage_and_cross_company_provenance_errors(
             ),
         ],
     )
-    client = Mock()
-    client.responses.parse.return_value = sdk_response(expected)
+    model = ScriptedModel()
+    model.respond.return_value = generation_response(expected)
     result = extract_all_companies(
         "Extract",
         [synthetic_records["base"]],
-        client=client,
+        model=model,
         company_by_ticker={"SYN": "Synthetic Issuer Inc.", "OTHER": "Other Synthetic Issuer"},
     )
     assert result.validation is None
     # The retained verifier can still be explicitly invoked outside extraction.
     report = validate_all_companies(
-        result.extraction, [synthetic_records["base"]],
+        result.extraction,
+        [synthetic_records["base"]],
         {"SYN": "Synthetic Issuer Inc.", "OTHER": "Other Synthetic Issuer"},
     )
     codes = {issue.code for issue in report.issues}
@@ -216,12 +175,12 @@ def test_batch_coverage_and_cross_company_provenance_errors(
 
 
 def test_empty_evidence_skips_single_and_batch_model_calls():
-    client = Mock()
-    single = extract_covenants("Extract", [], client=client)
+    model = ScriptedModel()
+    single = extract_covenants("Extract", [], model=model)
     batch = extract_all_companies(
-        "Extract", [], client=client, company_by_ticker={"SYN": "Synthetic Issuer Inc."}
+        "Extract", [], model=model, company_by_ticker={"SYN": "Synthetic Issuer Inc."}
     )
-    client.responses.parse.assert_not_called()
+    model.respond.assert_not_called()
     assert single.extraction.gaps and batch.extraction.companies[0].extraction.gaps
     assert batch.extraction.companies[0].ticker == "SYN"
 
@@ -235,46 +194,46 @@ def test_empty_evidence_skips_single_and_batch_model_calls():
         ("failed", None, ExtractionResponseError),
     ],
 )
-def test_sdk_response_failure_types(status, refusal, error, synthetic_records, sdk_response):
-    client = Mock()
-    client.responses.parse.return_value = sdk_response(status=status, refusal=refusal)
+def test_generation_response_failure_types(
+    status, refusal, error, synthetic_records, generation_response
+):
+    model = ScriptedModel()
+    model.respond.return_value = generation_response(status=status, refusal=refusal)
     with pytest.raises(error) as info:
-        extract_covenants("Extract", [synthetic_records["base"]], client=client)
+        extract_covenants("Extract", [synthetic_records["base"]], model=model)
     assert info.value.response_id == "resp_synthetic"
 
 
-def test_sdk_pydantic_parse_failure_is_typed(synthetic_records):
+def test_model_pydantic_parse_failure_is_typed(synthetic_records):
     with pytest.raises(ValidationError) as invalid:
         CovenantExtraction.model_validate({"covenants": [{"operator": "approximately"}]})
-    client = Mock()
-    client.responses.parse.side_effect = invalid.value
+    model = ScriptedModel()
+    model.respond.side_effect = invalid.value
     with pytest.raises(ExtractionParseError):
-        extract_covenants("Extract", [synthetic_records["base"]], client=client)
+        extract_covenants("Extract", [synthetic_records["base"]], model=model)
 
 
-def test_sdk_request_failure_is_typed(synthetic_records):
-    client = Mock()
-    client.responses.parse.side_effect = APIError(
-        "Synthetic failure",
-        request=httpx.Request("POST", "https://example.invalid"),
-        body=None,
-    )
+def test_model_request_failure_is_typed(synthetic_records):
+    model = ScriptedModel()
+    model.respond.side_effect = ModelAPIError(model_name="synthetic", message="Synthetic failure")
     with pytest.raises(ExtractionResponseError):
-        extract_covenants("Extract", [synthetic_records["base"]], client=client)
+        extract_covenants("Extract", [synthetic_records["base"]], model=model)
 
 
 def test_missing_input_provenance_fails_before_model_call():
-    client = Mock()
+    model = ScriptedModel()
     with pytest.raises(ExtractionInputError):
-        extract_covenants("Extract", [{"content": "synthetic covenant"}], client=client)
-    client.responses.parse.assert_not_called()
+        extract_covenants("Extract", [{"content": "synthetic covenant"}], model=model)
+    model.respond.assert_not_called()
 
 
-def test_invalid_facts_are_returned_unverified(synthetic_records, evidence_for, sdk_response):
+def test_invalid_facts_are_returned_unverified(
+    synthetic_records, evidence_for, generation_response
+):
     expected = expected_extraction(synthetic_records["base"], evidence_for)
     expected.covenants[0].evidence.evidence_quote = "Invented quotation"
-    client = Mock()
-    client.responses.parse.return_value = sdk_response(expected)
-    result = extract_covenants("Extract", [synthetic_records["base"]], client=client)
+    model = ScriptedModel()
+    model.respond.return_value = generation_response(expected)
+    result = extract_covenants("Extract", [synthetic_records["base"]], model=model)
     assert result.validation is None and result.extraction == expected
     assert not validate_extraction(result.extraction, [synthetic_records["base"]]).is_valid

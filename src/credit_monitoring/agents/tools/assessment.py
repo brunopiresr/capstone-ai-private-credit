@@ -1,18 +1,15 @@
-"""Borrower-scoped SDK tools over the existing calculation and prediction workflow."""
+"""Borrower-scoped PydanticAI tools over the existing calculation and prediction workflow."""
 
 import json
 from datetime import date
 
-from agents import FunctionTool, function_tool
-from agents.tool_context import ToolContext
+from pydantic_ai import Tool
 
-from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.common import (
     InvalidToolArguments,
     ISODate,
-    tool_error,
+    service_errors,
     tool_result,
-    validate_call,
 )
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
@@ -28,15 +25,14 @@ class AssessmentTools:
         self.borrower_id = borrower_id
 
     @property
-    def tools(self) -> list[FunctionTool]:
+    def tools(self) -> list[Tool]:
         return [
-            function_tool(method, failure_error_function=tool_error)
+            Tool(service_errors(method), strict=True, sequential=True)
             for method in (self.get_financials, self.assess_covenants, self.predict_risk)
         ]
 
     def get_financials(
         self,
-        ctx: ToolContext[AgentRunState],
         period_end: ISODate,
         information_cutoff: ISODate,
     ) -> str:
@@ -58,13 +54,11 @@ class AssessmentTools:
             provenance, and missing-data or availability issues. No alternative
             reporting period is substituted.
         """
-        validate_call(ctx, self.get_financials)
         period, cutoff = self._dates(period_end, information_cutoff)
         return json.dumps(self._financials(period, cutoff), ensure_ascii=False)
 
     def assess_covenants(
         self,
-        ctx: ToolContext[AgentRunState],
         period_end: ISODate,
         information_cutoff: ISODate,
     ) -> str:
@@ -84,14 +78,12 @@ class AssessmentTools:
             headroom, verification, provenance, and run IDs. Missing inputs and
             unresolved terms remain explicit.
         """
-        validate_call(ctx, self.assess_covenants)
         period, cutoff = self._dates(period_end, information_cutoff)
         assessment = self.service.assess(self.borrower_id, period, cutoff, ml_enabled=False)
         return self._assessment_result(assessment)
 
     def predict_risk(
         self,
-        ctx: ToolContext[AgentRunState],
         period_end: ISODate,
         information_cutoff: ISODate,
     ) -> str:
@@ -115,7 +107,6 @@ class AssessmentTools:
             probabilities, the exact feature snapshot, and model metadata.
             Valid calculations are retained when prediction fails.
         """
-        validate_call(ctx, self.predict_risk)
         period, cutoff = self._dates(period_end, information_cutoff)
         assessment = self.service.assess(self.borrower_id, period, cutoff, ml_enabled=True)
         return self._assessment_result(assessment)

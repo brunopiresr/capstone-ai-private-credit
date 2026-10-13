@@ -54,6 +54,8 @@ def test_batch_extraction_preserves_company_grouping():
 def test_answer_preserves_actual_trace_and_marks_incomplete_outputs(synthetic_records):
     answer = AgentAnswer(
         answer="Supported answer",
+        confidence="medium",
+        confidence_explanation="Limited supporting evidence.",
         tool_trace=[
             ToolExecution(
                 call_id="call",
@@ -66,6 +68,8 @@ def test_answer_preserves_actual_trace_and_marks_incomplete_outputs(synthetic_re
     captured = capture_answer("case", "What threshold?", answer, [synthetic_records["base"]])
     assert captured["tool_trace"][0]["outcome"] == answer.tool_trace[0].outcome
     assert captured["metadata"]["complete"] is True
+    assert captured["metadata"]["confidence"] == "medium"
+    assert captured["metadata"]["confidence_explanation"] == "Limited supporting evidence."
     incomplete = answer.model_copy(update={"complete": False, "error": "tool_round_limit"})
     assert capture_answer("case", "Question", incomplete, [])["output"] is None
 

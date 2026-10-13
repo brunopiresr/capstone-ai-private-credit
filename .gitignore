@@ -10,8 +10,8 @@ build/
 dist/
 *.egg-info/
 /data/sec_documents/*
-/data/processed/*.sqlite3
-/data/processed/*.sqlite3-*
-/data/synthetic_training/
-/data/models/
+# /data/processed/*.sqlite3
+# /data/processed/*.sqlite3-*
+#/data/synthetic_training/
+#/data/models/
 /data/processed/judges*/

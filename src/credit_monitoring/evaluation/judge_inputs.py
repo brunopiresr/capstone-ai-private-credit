@@ -81,7 +81,12 @@ def capture_answer(
     }
     if isinstance(answer, AgentAnswer):
         captured["tool_trace"] = [item.model_dump(mode="json") for item in answer.tool_trace]
-        captured["metadata"] = {"complete": answer.complete, "error": answer.error}
+        captured["metadata"] = {
+            "complete": answer.complete,
+            "error": answer.error,
+            "confidence": answer.confidence,
+            "confidence_explanation": answer.confidence_explanation,
+        }
         if not answer.complete:
             captured["output"] = None
     return captured
