@@ -14,8 +14,7 @@ from credit_monitoring.agents.conversation import AgentConversation
 from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
 from credit_monitoring.agents.models import DEFAULT_MODEL, resolve_model
 from credit_monitoring.agents.prompts.credit_assessment import (
-    CONFIDENCE_INSTRUCTIONS,
-    CREDIT_ASSESSMENT_INSTRUCTIONS,
+    build_credit_assessment_instructions,
 )
 from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.streaming import run_stream
@@ -137,7 +136,9 @@ class CreditAssessmentAgent:
         agent = Agent(
             resolve_model(self.model),
             name=self.name,
-            instructions=CREDIT_ASSESSMENT_INSTRUCTIONS + CONFIDENCE_INSTRUCTIONS,
+            instructions=build_credit_assessment_instructions(
+                assessment_enabled=borrower_id is not None
+            ),
             output_type=ToolOutput(AnswerContent, name="final_result", strict=True),
             tools=tools,
             end_strategy="exhaustive",

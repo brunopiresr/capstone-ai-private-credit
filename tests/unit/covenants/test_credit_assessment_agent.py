@@ -465,8 +465,8 @@ def test_pydantic_uses_tool_and_parameter_docstrings(
             assert parameter["description"]
     descriptions = {tool.name: tool.description for tool in tools}
     assert "use process_document" in descriptions["get_document_extraction"]
-    assert "does not invoke ML" in descriptions["assess_covenants"]
-    assert "stub supplies no forecast" in descriptions["predict_risk"]
+    assert "ML is disabled" in descriptions["assess_covenants"]
+    assert "service determines the forecast horizon" in descriptions["predict_risk"]
 
 
 def test_tool_classes_are_reusable_by_independent_pydantic_agents():
@@ -615,6 +615,14 @@ def test_agent_calls_real_financial_calculation_and_prediction_services(
     assert calculated.ml_status == "disabled" and calculated.prediction is None
     assert predicted.verification.is_valid
     assert predicted.ml_status == "stub"
+    assert (
+        "The configured model is a stub; no forecast or risk probability is available."
+        in predicted.issues
+    )
+    assert (
+        "Source availability dates are unknown; point-in-time forecast reliability "
+        "is not established." in calculated.issues
+    )
     assert predicted.prediction.breach_probability is None
     assert predicted.prediction.snapshot_id == predicted.feature_snapshot.snapshot_id
     assert (

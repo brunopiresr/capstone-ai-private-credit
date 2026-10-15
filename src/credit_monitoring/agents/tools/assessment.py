@@ -35,23 +35,18 @@ class AssessmentTools:
         period_end: ISODate,
         information_cutoff: ISODate,
     ) -> FinancialReview:
-        """Read source financial metrics and history for the borrower.
+        """Read source financial metrics and history before requesting calculations.
 
-        Use this to inspect inputs before requesting calculations. Borrower
-        scope comes from the application. Obtain both dates from the analyst;
-        do not substitute today's date.
+        Missing inputs and unknown availability remain explicit; no alternative
+        reporting period is substituted.
 
         Args:
-            period_end: The financial reporting period used as input, formatted
-                as YYYY-MM-DD. Use the analyst's reporting date, not a future
-                forecast date.
-            information_cutoff: The information cutoff, formatted as YYYY-MM-DD.
-                It must be on or after period_end.
+            period_end: Analyst-supplied reporting date, YYYY-MM-DD.
+            information_cutoff: Analyst-supplied cutoff, YYYY-MM-DD;
+                must be on or after period_end.
 
         Returns:
-            A financial review containing current metrics, earlier periods, source
-            provenance, and missing-data or availability issues. No alternative
-            reporting period is substituted.
+            Current metrics, earlier periods, provenance and availability issues.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
         return self._financials(period, cutoff)
@@ -63,50 +58,85 @@ class AssessmentTools:
     ) -> RiskAssessment:
         """Calculate and verify current covenant compliance and headroom.
 
-        Use this for deterministic covenant assessments. The service resolves
-        configured terms, applies established formulas, and persists results.
-        This tool does not invoke ML.
+        Resolve configured terms with established formulas; ML is disabled.
+        Distinguish source-disclosed actuals from calculated values.
 
         Args:
-            period_end: The reporting date, formatted as YYYY-MM-DD.
-            information_cutoff: The information cutoff, formatted as YYYY-MM-DD.
-                It must be on or after period_end.
+            period_end: Analyst-supplied reporting date, YYYY-MM-DD.
+            information_cutoff: Analyst-supplied cutoff, YYYY-MM-DD;
+                must be on or after period_end.
 
         Returns:
-            A risk assessment containing ratios, applicable thresholds, compliance,
-            headroom, verification, provenance, and run IDs. Missing inputs and
-            unresolved terms remain explicit.
+            Calculations, applicability, provenance, run IDs and limitations.
+            Verification covers structured results, not generated prose.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        return self.service.assess(self.borrower_id, period, cutoff, ml_enabled=False)
+        return self._with_context(
+            self.service.assess(self.borrower_id, period, cutoff, ml_enabled=False)
+        )
 
     def predict_risk(
         self,
         period_end: ISODate,
         information_cutoff: ISODate,
     ) -> RiskAssessment:
-        """Run covenant calculations and the configured risk model.
+        """Calculate current covenants and run the configured next-quarter model.
 
-        Use this when the analyst requests a forecast. Report current observed
-        compliance separately from the next-quarter prediction. The application
-        selects the model; a stub supplies no forecast.
-        Keep the analyst's input dates unchanged from the current assessment.
-        The service handles the forecast horizon; do not advance either date.
+        Use for forecast requests. Keep the analyst's input dates unchanged;
+        the service determines the forecast horizon. Distinguish predicted risk
+        from current observed compliance and disclosed actuals from calculations.
+        Report supplied model name/version, horizon, probability and snapshot_id.
 
         Args:
-            period_end: The financial reporting period used as input, formatted
-                as YYYY-MM-DD. Use the analyst's reporting date, not a future
-                forecast date.
-            information_cutoff: The information cutoff, formatted as YYYY-MM-DD.
-                It must be on or after period_end.
+            period_end: Analyst-supplied reporting date, YYYY-MM-DD.
+            information_cutoff: Analyst-supplied cutoff, YYYY-MM-DD;
+                must be on or after period_end.
 
         Returns:
-            A risk assessment containing covenant results, prediction status, supplied
-            probabilities, the exact feature snapshot, and model metadata.
-            Valid calculations are retained when prediction fails.
+            Calculations, model output, provenance and applicable limitations.
+            Verification covers structured results, not generated prose.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        return self.service.assess(self.borrower_id, period, cutoff, ml_enabled=True)
+        return self._with_context(
+            self.service.assess(self.borrower_id, period, cutoff, ml_enabled=True)
+        )
+
+    @staticmethod
+    def _with_context(assessment: RiskAssessment) -> RiskAssessment:
+        """Describe applicable limitations without mutating service-owned results."""
+        result = assessment.model_copy(deep=True)
+        caveats = []
+        if result.ml_status == "stub":
+            caveats.append(
+                "The configured model is a stub; no forecast or risk probability is available."
+            )
+        elif result.ml_status in ("failed", "unavailable"):
+            caveats.append(
+                "Model output is unavailable; deterministic results retain their reported status."
+            )
+        elif (
+            result.ml_status == "complete"
+            and result.prediction is not None
+            and result.prediction.model_name == "logistic_regression"
+        ):
+            caveats.append(
+                "The Logistic Regression baseline was trained and evaluated on synthetic "
+                "borrower histories, not real credit outcomes."
+            )
+        if any(
+            issue.code == "information_availability_unknown" for issue in result.verification.issues
+        ) or (
+            result.feature_snapshot is not None
+            and not result.feature_snapshot.features.information_availability_known
+        ):
+            caveats.append(
+                "Source availability dates are unknown; point-in-time forecast reliability "
+                "is not established."
+            )
+        for caveat in caveats:
+            if caveat not in result.issues:
+                result.issues.append(caveat)
+        return result
 
     @staticmethod
     def _dates(period_end: str, information_cutoff: str) -> tuple[date, date]:

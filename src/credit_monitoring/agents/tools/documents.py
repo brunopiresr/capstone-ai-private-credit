@@ -30,20 +30,15 @@ class DocumentTools:
         ]
 
     def list_documents(self, ticker: StrictStr | None = None) -> list[DocumentSummary]:
-        """Discover available documents and their processing states.
+        """Discover catalog documents, including unprocessed ones, and processing states.
 
-        Use this tool to obtain valid document IDs before reading extractions or
-        processing documents. Catalog descriptions identify documents; they are
-        not evidence of financial facts.
+        Obtain document IDs here before reading extractions or processing.
 
         Args:
-            ticker: Restrict results to this catalog ticker, or None. An
-                application-configured ticker takes precedence; requests for a
-                different ticker are rejected.
+            ticker: Catalog ticker, or None; other configured-scope tickers are rejected.
 
         Returns:
-            Document summaries containing metadata and processing states. Extracted
-            facts are excluded from this listing.
+            Metadata and processing states without extraction payloads.
         """
         documents = self.service.list_document_extractions(
             ticker=self._resolve_ticker(ticker), include_results=False
@@ -51,18 +46,15 @@ class DocumentTools:
         return [DocumentSummary.from_extraction(document) for document in documents]
 
     def get_document_extraction(self, document_id: NonEmptyString) -> DocumentExtraction:
-        """Read the stored extraction for a catalog document.
+        """Read stored extractions first for complete covenant terms and fiscal-quarter schedules.
 
-        Use a document ID obtained from list_documents. If the extraction is
-        missing or stale, use process_document when current facts are needed.
+        If missing, stale, failed or unavailable, use process_document when facts are needed.
 
         Args:
             document_id: The exact catalog document ID.
 
         Returns:
-            A document result containing processing status, extracted facts when complete
-            and current, and source citations. Other states are reported
-            explicitly without supplying old facts.
+            Status, complete current facts and citations; other states exclude old facts.
         """
         self._check_document_scope(document_id)
         return self.service.get_document_extraction(document_id)
@@ -72,38 +64,30 @@ class DocumentTools:
         query: NonEmptyString,
         ticker: StrictStr | None = None,
     ) -> list[RetrievedRecord]:
-        """Retrieve filing passages that support an analyst question.
+        """Retrieve supporting filing passages and evidence beyond stored facts.
 
-        Use this tool for supporting source text or questions beyond stored
-        facts. Read stored extractions for complete covenant schedules; search
-        returns only selected passages.
+        Search returns selected passages; use stored extractions for complete schedules.
 
         Args:
-            query: The question or terms to search for in filings.
-            ticker: Restrict results to this catalog ticker, or None. Requests
-                outside the configured ticker scope are rejected.
+            query: Question or terms to search for in filings.
+            ticker: Catalog ticker, or None; requests outside configured scope are rejected.
 
         Returns:
-            Retrieved records containing matching passages, document IDs, and exact
-            citations. This tool does not generate an answer.
+            Passages with document IDs and exact citations.
         """
         passages = self.service.search_evidence(query=query, ticker=self._resolve_ticker(ticker))
         return [RetrievedRecord.from_record(passage) for passage in passages]
 
     def process_document(self, document_id: NonEmptyString) -> DocumentExtraction:
-        """Extract supported facts from a complete catalog document.
+        """Process the entire catalog document when needed facts lack a current extraction.
 
-        Use this when needed facts have no complete, current extraction. A
-        successful current extraction is reused from cache. This tool does not
-        permit forced reprocessing.
+        Reuse successful current extractions from cache; forced reprocessing is unavailable.
 
         Args:
             document_id: The exact document ID from list_documents.
 
         Returns:
-            A document result containing processing status, extracted facts when successful,
-            cache-hit information, and source citations. Processing failures
-            remain explicit in the result.
+            Status, extracted facts, cache-hit information and citations; failures stay explicit.
         """
         self._check_document_scope(document_id)
         return self.service.process_document(document_id)

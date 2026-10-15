@@ -396,6 +396,50 @@ retained conversation evidence. Use `model_dump(mode="json")` or `model_dump_jso
 only when exporting or displaying serialized data; exported traces contain the direct
 domain result in `outcome`. Database formats and synchronous/async APIs are unchanged.
 
+### Agent context ownership
+
+The analyst prompt version is `credit-assessment-agent-v4`.
+`build_credit_assessment_instructions(assessment_enabled=...)` combines core evidence,
+scope, citation and confidence rules with assessment date rules only when those tools
+are registered. Document-only conversations instead explain that calculations and
+predictions require an application-configured assessment service and borrower scope.
+Tool docstrings own discovery, extraction, processing, search and forecast guidance;
+PydanticAI exposes their descriptions and argument descriptions to the model.
+
+Assessment tools copy the service's `RiskAssessment` before adding applicable caveats
+to `issues`: stub or unavailable model output, synthetic baseline training/evaluation,
+and unknown source availability. Existing issues, calculation values, predictions,
+verification and persisted records are unchanged. The caveats describe limitations,
+not instructions. Financial reviews retain their existing availability warnings.
+For example, a stub result with unknown availability includes:
+
+```python
+assessment.ml_status  # "stub"
+assessment.prediction.breach_probability  # None
+assessment.issues  # Existing issues plus applicable messages such as:
+# "The configured model is a stub; no forecast or risk probability is available."
+# "Source availability dates are unknown; point-in-time forecast reliability is not established."
+```
+
+Scope and date format/order remain enforced by application code. The requirement
+that dates originate in analyst messages remains an instruction-level rule. No
+guidance retrieval tool, dependency-injection rewrite or storage migration is required;
+extraction and batch prompts retain their existing versions.
+
+Offline measurements against `credit-assessment-agent-v3` captured the actual
+model-facing instructions and enabled function descriptions, including argument
+descriptions, with the same question and tool sets:
+
+| Conversation | Instruction words, before → after | Combined words, before → after | Combined characters, before → after |
+| --- | --- | --- | --- |
+| Document-only (4 tools) | 677 → 210 | 944 → 373 | 7,266 → 3,093 (57.4% reduction) |
+| Assessment-enabled (7 tools) | 677 → 243 | 1,222 → 577 | 9,423 → 4,920 (47.8% reduction) |
+
+These are text counts, not tokenizer or billing estimates. Retrieved evidence,
+tool results, history and structural schemas are outside this measurement. Mocked
+provider tests verify that the conditional instructions and tool guidance reach the
+provider; they do not establish live-model adherence or answer accuracy.
+
 The public `sources` collection retains filing citations, including those returned
 by document-backed assessments. Financial CSV provenance, applied term evidence,
 calculation IDs, feature snapshots and model metadata are available in `tool_trace`

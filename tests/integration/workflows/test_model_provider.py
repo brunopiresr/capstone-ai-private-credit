@@ -14,6 +14,9 @@ from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
+from credit_monitoring.agents.prompts.credit_assessment import (
+    build_credit_assessment_instructions,
+)
 from credit_monitoring.agents.tools.common import ToolCollection, domain_tool
 from credit_monitoring.covenants.extraction import extract_covenants
 from credit_monitoring.domain import (
@@ -124,6 +127,62 @@ def test_provider_never_dispatches_tools_from_rejected_response(
     assert answer.error == error and not answer.complete
     assert answer.tool_trace == []
     service.process_document.assert_not_called()
+
+
+@pytest.mark.parametrize("assessment_enabled", [False, True])
+def test_provider_receives_scoped_instructions_and_relocated_tool_guidance(
+    monkeypatch, assessment_enabled
+):
+    monkeypatch.setattr(models, "ALLOW_MODEL_REQUESTS", True)
+    requests = []
+
+    def respond(request):
+        requests.append(json.loads(request.content))
+        # Stop after capturing the real provider request, without executing tools.
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            content=sse_events("incomplete"),
+        )
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            model = OpenAIResponsesModel(
+                "gpt-4o-mini",
+                provider=OpenAIProvider(api_key="synthetic-test-key", http_client=client),
+            )
+            return await CreditAssessmentAgent(
+                service=Mock(), assessment_service=Mock(), model=model
+            ).ask_async("Summarize evidence", borrower_id="SYN" if assessment_enabled else None)
+
+    answer = asyncio.run(run())
+    assert answer.error == "model_incomplete" and answer.tool_trace == []
+    assert len(requests) == 1
+    payload = requests[0]
+    assert payload["instructions"] == build_credit_assessment_instructions(
+        assessment_enabled=assessment_enabled
+    )
+    tools = {tool["name"]: tool for tool in payload["tools"]}
+    assert "including unprocessed ones" in tools["list_documents"]["description"]
+    extraction = tools["get_document_extraction"]["description"]
+    assert "complete covenant terms and fiscal-quarter schedules" in extraction
+    assert "missing, stale, failed or unavailable" in extraction
+    assert "selected passages" in tools["search_evidence"]["description"]
+    processing = tools["process_document"]["description"]
+    assert "entire catalog document" in processing and "cache" in processing
+    if assessment_enabled:
+        assert "before requesting calculations" in tools["get_financials"]["description"]
+        assert "ML is disabled" in tools["assess_covenants"]["description"]
+        forecast = tools["predict_risk"]
+        assert "Keep the analyst's input dates unchanged" in forecast["description"]
+        assert "service determines the forecast horizon" in forecast["description"]
+        assert "predicted risk" in forecast["description"]
+        assert "not generated prose" in forecast["description"]
+        parameters = forecast["parameters"]["properties"]
+        assert "Analyst-supplied reporting date" in parameters["period_end"]["description"]
+        assert "on or after period_end" in parameters["information_cutoff"]["description"]
+    else:
+        assert not {"get_financials", "assess_covenants", "predict_risk"} & tools.keys()
 
 
 def test_extraction_uses_provider_output_schema_and_preserves_facts(
