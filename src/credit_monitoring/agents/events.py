@@ -1,12 +1,13 @@
 """Serializable UI events and an optional console consumer."""
 
 from collections.abc import AsyncIterable, Awaitable, Callable
-from typing import Any, Literal, Protocol
+from typing import Literal, Protocol
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
-from credit_monitoring.domain.agent import AgentAnswer, AnswerContent
+from credit_monitoring.domain.agent import AgentAnswer, AnswerContent, SourceReference
 from credit_monitoring.domain.base import ExtractionModel
+from credit_monitoring.domain.tool_results import ToolFailure, ToolOutcome
 
 
 class AgentEvent(ExtractionModel):
@@ -19,7 +20,8 @@ class AgentEvent(ExtractionModel):
     tool_name: str | None = None
     call_id: str | None = None
     arguments: str | None = None
-    outcome: dict[str, Any] | None = None
+    outcome: ToolOutcome | None = None
+    sources: list[SourceReference] = Field(default_factory=list)
     output: AnswerContent | None = None
     answer: AgentAnswer | None = None
     error: str | None = None
@@ -49,8 +51,10 @@ class AgentEventCallback:
         elif event.kind == "tool_call":
             message = f"TOOL CALL ({name}): {event.tool_name}({event.arguments})"
         elif event.kind == "tool_result":
-            outcome = event.outcome or {}
-            status = "ok" if outcome.get("ok") else f"error: {outcome.get('error', 'unknown')}"
+            if isinstance(event.outcome, ToolFailure):
+                status = f"error: {event.outcome.code}"
+            else:
+                status = "ok" if event.outcome is not None else "error: unknown"
             message = f"TOOL RESULT ({name}): {event.tool_name} — {status}"
         elif event.kind == "answer_update":
             return  # UI consumers can render snapshots; console progress stays concise.

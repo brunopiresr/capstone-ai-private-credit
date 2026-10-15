@@ -366,6 +366,36 @@ calculation call. Model failures preserve the calculation results and appear as
 explicit ML status and issues. Missing terms, unresolved formulas, waived tests and
 missing inputs retain their existing abstention/status behavior.
 
+Tools return Pydantic domain objects directly: `get_financials` returns a
+`FinancialReview` containing `FinancialPeriod` objects; calculation and prediction
+tools return `RiskAssessment`. Document tools return `DocumentExtraction`, lists of
+`DocumentSummary` (without extraction payloads), or lists of `RetrievedRecord`.
+PydanticAI serializes these objects for the model. A framework-only `RootModel`
+adapter preserves list serialization, including empty `[]` results; public tool
+methods and event/trace outcomes retain ordinary typed lists. Application code uses attributes:
+
+```python
+from credit_monitoring.domain import FinancialReview, RiskAssessment, ToolFailure
+
+for execution in answer.tool_trace:
+    outcome = execution.outcome
+    if isinstance(outcome, ToolFailure):
+        print(outcome.code, outcome.message)
+    elif isinstance(outcome, FinancialReview):
+        print(outcome.current, outcome.history, outcome.issues)
+    elif isinstance(outcome, RiskAssessment):
+        print(outcome.results, outcome.ml_status, outcome.prediction)
+    print(execution.sources)
+```
+
+The former JSON-string `ok/data/sources` envelope is removed. Recoverable service
+errors and invalid/unknown calls appear as `ToolFailure`; document processing and ML
+statuses remain fields on their domain results. `tool_result` events and trace entries
+carry source references separately in `sources`. Their snapshots are independent of
+retained conversation evidence. Use `model_dump(mode="json")` or `model_dump_json()`
+only when exporting or displaying serialized data; exported traces contain the direct
+domain result in `outcome`. Database formats and synchronous/async APIs are unchanged.
+
 The public `sources` collection retains filing citations, including those returned
 by document-backed assessments. Financial CSV provenance, applied term evidence,
 calculation IDs, feature snapshots and model metadata are available in `tool_trace`

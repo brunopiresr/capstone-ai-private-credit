@@ -1,6 +1,5 @@
 """Borrower-scoped PydanticAI tools over the existing calculation and prediction workflow."""
 
-import json
 from datetime import date
 
 from pydantic_ai import Tool
@@ -8,11 +7,11 @@ from pydantic_ai import Tool
 from credit_monitoring.agents.tools.common import (
     InvalidToolArguments,
     ISODate,
-    service_errors,
-    tool_result,
+    domain_tool,
 )
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
+from credit_monitoring.domain.tool_results import FinancialReview
 
 
 class AssessmentTools:
@@ -27,7 +26,7 @@ class AssessmentTools:
     @property
     def tools(self) -> list[Tool]:
         return [
-            Tool(service_errors(method), strict=True, sequential=True)
+            domain_tool(method)
             for method in (self.get_financials, self.assess_covenants, self.predict_risk)
         ]
 
@@ -35,7 +34,7 @@ class AssessmentTools:
         self,
         period_end: ISODate,
         information_cutoff: ISODate,
-    ) -> str:
+    ) -> FinancialReview:
         """Read source financial metrics and history for the borrower.
 
         Use this to inspect inputs before requesting calculations. Borrower
@@ -50,18 +49,18 @@ class AssessmentTools:
                 It must be on or after period_end.
 
         Returns:
-            JSON containing current financial metrics, earlier periods, source
+            A financial review containing current metrics, earlier periods, source
             provenance, and missing-data or availability issues. No alternative
             reporting period is substituted.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        return json.dumps(self._financials(period, cutoff), ensure_ascii=False)
+        return self._financials(period, cutoff)
 
     def assess_covenants(
         self,
         period_end: ISODate,
         information_cutoff: ISODate,
-    ) -> str:
+    ) -> RiskAssessment:
         """Calculate and verify current covenant compliance and headroom.
 
         Use this for deterministic covenant assessments. The service resolves
@@ -74,19 +73,18 @@ class AssessmentTools:
                 It must be on or after period_end.
 
         Returns:
-            JSON containing calculated ratios, applicable thresholds, compliance,
+            A risk assessment containing ratios, applicable thresholds, compliance,
             headroom, verification, provenance, and run IDs. Missing inputs and
             unresolved terms remain explicit.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        assessment = self.service.assess(self.borrower_id, period, cutoff, ml_enabled=False)
-        return self._assessment_result(assessment)
+        return self.service.assess(self.borrower_id, period, cutoff, ml_enabled=False)
 
     def predict_risk(
         self,
         period_end: ISODate,
         information_cutoff: ISODate,
-    ) -> str:
+    ) -> RiskAssessment:
         """Run covenant calculations and the configured risk model.
 
         Use this when the analyst requests a forecast. Report current observed
@@ -103,13 +101,12 @@ class AssessmentTools:
                 It must be on or after period_end.
 
         Returns:
-            JSON containing covenant results, prediction status, supplied
+            A risk assessment containing covenant results, prediction status, supplied
             probabilities, the exact feature snapshot, and model metadata.
             Valid calculations are retained when prediction fails.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        assessment = self.service.assess(self.borrower_id, period, cutoff, ml_enabled=True)
-        return self._assessment_result(assessment)
+        return self.service.assess(self.borrower_id, period, cutoff, ml_enabled=True)
 
     @staticmethod
     def _dates(period_end: str, information_cutoff: str) -> tuple[date, date]:
@@ -122,17 +119,7 @@ class AssessmentTools:
             raise InvalidToolArguments("Information cutoff must be on or after the reporting date.")
         return period, cutoff
 
-    @staticmethod
-    def _assessment_result(assessment: RiskAssessment) -> str:
-        sources = [
-            {"document_id": evidence["document_id"], "citation": evidence["citation"]}
-            for result in assessment.results + assessment.history
-            for evidence in result.evidence
-            if evidence.get("document_id") and evidence.get("citation")
-        ]
-        return tool_result(assessment.model_dump(mode="json"), sources=sources)
-
-    def _financials(self, period_end: date, cutoff: date) -> dict:
+    def _financials(self, period_end: date, cutoff: date) -> FinancialReview:
         rows = self.service.financial_repository.get_history(
             self.borrower_id, as_of=period_end.isoformat()
         )
@@ -150,17 +137,11 @@ class AssessmentTools:
             issues.append(
                 "Source availability dates are unknown; load times are not publication dates."
             )
-        return {
-            "ok": True,
-            "data": {
-                "borrower_id": self.borrower_id,
-                "period_end": period_end.isoformat(),
-                "information_cutoff": cutoff.isoformat(),
-                "current": current.model_dump(mode="json") if current else None,
-                "history": [
-                    item.model_dump(mode="json") for item in periods if item.period_end < period_end
-                ],
-                "issues": issues,
-            },
-            "sources": [],
-        }
+        return FinancialReview(
+            borrower_id=self.borrower_id,
+            period_end=period_end,
+            information_cutoff=cutoff,
+            current=current,
+            history=[item for item in periods if item.period_end < period_end],
+            issues=issues,
+        )

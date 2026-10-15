@@ -69,7 +69,7 @@ def capture_answer(
     answer: AgentAnswer | str,
     records: Iterable[RetrievedRecord | Mapping[str, Any]],
 ) -> dict:
-    """Capture an agent/RAG/narrator answer with source text, not just source IDs."""
+    """Export answers and native domain traces to the judges' JSON-compatible boundary."""
     captured = {
         "case_id": case_id,
         "judge": "answer",

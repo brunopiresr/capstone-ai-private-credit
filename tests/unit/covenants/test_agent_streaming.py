@@ -12,6 +12,7 @@ from pydantic_ai.models.test import TestModel
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.events import AgentEvent
+from credit_monitoring.agents.tools.common import tool_outcome
 from credit_monitoring.domain.agent import AgentAnswer
 
 
@@ -175,6 +176,53 @@ def test_unexpected_service_exception_propagates(document_service_factory):
     model = ScriptedModel(response=model_response(("list_documents", {})))
     with pytest.raises(RuntimeError, match="Programming error"):
         CreditAssessmentAgent(service=service, model=model).ask("List")
+
+
+@pytest.mark.parametrize("delivery", ["callback", "iterator"])
+def test_mutating_events_cannot_change_trace_sources_or_conversation_history(
+    document_service_factory, delivery
+):
+    model = ScriptedModel()
+    model.respond.side_effect = [
+        model_response(("search_evidence", {"query": "maximum leverage"})),
+        model_response(answer="The threshold is in SYN."),
+        model_response(answer="The earlier SYN filing supports it."),
+    ]
+    agent = CreditAssessmentAgent(service=document_service_factory(), model=model)
+    chat = agent.start_conversation(ticker="SYN")
+    original_citation = agent.service.get_document_extraction("SYN").citation
+
+    async def mutate(event):
+        assert AgentEvent.model_validate_json(event.model_dump_json()) == event
+        if event.kind == "tool_result":
+            event.outcome[0].text = "Changed by consumer"
+            event.sources[0].citation = "Changed by consumer"
+        elif event.kind == "run_end":
+            event.answer.sources[0].citation = "Changed by consumer"
+            event.answer.tool_trace[0].outcome[0].text = "Changed by consumer"
+
+    async def run():
+        if delivery == "callback":
+            answer = await chat.ask_async("Find evidence", event_stream_handler=mutate)
+            assert answer.sources[0].citation == original_citation
+            assert "Maximum leverage" in answer.tool_trace[0].outcome[0].text
+        else:
+            async with aclosing(chat.stream_async("Find evidence")) as stream:
+                async for event in stream:
+                    await mutate(event)
+        return await chat.ask_async("Which filing supports it?")
+
+    follow_up = asyncio.run(run())
+    assert follow_up.complete and follow_up.sources[0].citation == original_citation
+    history = model.respond.call_args.kwargs["messages"]
+    evidence = next(
+        tool_outcome(part.content)[0]
+        for message in history
+        for part in message.parts
+        if getattr(part, "tool_name", None) == "search_evidence" and hasattr(part, "content")
+    )
+    assert "Maximum leverage" in evidence.text
+    assert evidence.citation == original_citation
 
 
 def test_injected_test_model_and_legacy_answers(document_service_factory):

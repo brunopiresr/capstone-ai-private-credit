@@ -2,17 +2,32 @@
 
 import asyncio
 import json
+from datetime import date
 from unittest.mock import Mock
 
 import httpx2 as httpx
 import pytest
-from pydantic_ai import models
+from pydantic import TypeAdapter
+from pydantic_ai import Agent, models
+from pydantic_ai.messages import ToolReturnPart
 from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
+from credit_monitoring.agents.tools.common import ToolCollection, domain_tool
 from credit_monitoring.covenants.extraction import extract_covenants
-from credit_monitoring.domain import CovenantExtraction
+from credit_monitoring.domain import (
+    CovenantExtraction,
+    DocumentExtraction,
+    DocumentSummary,
+    FinancialPeriod,
+    FinancialReview,
+    RetrievedRecord,
+    RiskAssessment,
+    RiskPrediction,
+    ToolFailure,
+    ToolOutcome,
+)
 
 
 def response_body(status, output=()):
@@ -157,3 +172,103 @@ def test_extraction_uses_provider_output_schema_and_preserves_facts(
     schema = requests[0]["tools"][0]["parameters"]
     assert schema["additionalProperties"] is False
     assert set(schema["required"]) == set(schema["properties"])
+
+
+@pytest.mark.parametrize(
+    "expected",
+    [
+        FinancialReview(
+            borrower_id="SYN",
+            period_end=date(2025, 9, 30),
+            information_cutoff=date(2025, 10, 15),
+            current=FinancialPeriod(
+                borrower_id="SYN",
+                period_end=date(2025, 9, 30),
+                metrics={"reported_ebitda": 26, "cash": None},
+                source_file="finanças.csv",
+            ),
+            issues=["Publication date unknown"],
+        ),
+        RiskAssessment(
+            assessment_run_id="run_synthetic",
+            borrower_id="SYN",
+            period_end=date(2025, 9, 30),
+            information_cutoff=date(2025, 10, 15),
+            results=[],
+            ml_status="stub",
+            prediction=RiskPrediction(
+                borrower_id="SYN",
+                period_end=date(2025, 9, 30),
+                model_name="stub",
+                model_version="v1",
+                prediction_status="stub",
+            ),
+        ),
+        DocumentExtraction(document_id="SYN", citation="Synthetic", status="missing"),
+        [DocumentSummary(document_id="SYN", citation="Synthetic", status="complete")],
+        [RetrievedRecord(document_id="SYN", citation="Synthetic — €", text="Leverage ≤ 4.00x")],
+        [],
+        ToolFailure(code="service_error", message="Source unavailable"),
+    ],
+)
+def test_provider_serializes_domain_results_once_and_keeps_native_history(monkeypatch, expected):
+    monkeypatch.setattr(models, "ALLOW_MODEL_REQUESTS", True)
+    requests = []
+
+    def read_result() -> ToolOutcome:
+        return expected
+
+    def respond(request):
+        payload = json.loads(request.content)
+        requests.append(payload)
+        if len(requests) == 1:
+            output = [
+                {
+                    "type": "function_call",
+                    "id": "fc_read",
+                    "call_id": "read_call",
+                    "name": "read_result",
+                    "arguments": "{}",
+                    "status": "completed",
+                }
+            ]
+        else:
+            output = [
+                {
+                    "type": "message",
+                    "id": "msg_answer",
+                    "role": "assistant",
+                    "status": "completed",
+                    "content": [{"type": "output_text", "text": "Done", "annotations": []}],
+                }
+            ]
+        return httpx.Response(200, json=response_body("completed", output))
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            model = OpenAIResponsesModel(
+                "gpt-4o-mini",
+                provider=OpenAIProvider(api_key="synthetic-test-key", http_client=client),
+            )
+            return await Agent(model, tools=[domain_tool(read_result)]).run(
+                "Read the domain result"
+            )
+
+    result = asyncio.run(run())
+    assert result.output == "Done" and len(requests) == 2
+    returned = next(
+        part
+        for message in result.all_messages()
+        for part in message.parts
+        if isinstance(part, ToolReturnPart)
+    )
+    if isinstance(expected, list):
+        assert isinstance(returned.content, ToolCollection)
+        assert returned.content.root == expected
+    else:
+        assert type(returned.content) is type(expected) and returned.content == expected
+    wire_result = next(
+        item for item in requests[1]["input"] if item.get("type") == "function_call_output"
+    )["output"]
+    # One decode must produce structured data, rather than another encoded JSON string.
+    assert json.loads(wire_result) == TypeAdapter(ToolOutcome).dump_python(expected, mode="json")

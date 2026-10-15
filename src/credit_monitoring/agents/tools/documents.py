@@ -5,11 +5,11 @@ from pydantic_ai import Tool
 
 from credit_monitoring.agents.tools.common import (
     NonEmptyString,
-    service_errors,
-    tool_result,
+    domain_tool,
 )
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.domain.processing import DocumentExtraction
+from credit_monitoring.domain.documents import RetrievedRecord
+from credit_monitoring.domain.processing import DocumentExtraction, DocumentSummary
 
 
 class DocumentTools:
@@ -20,7 +20,7 @@ class DocumentTools:
     @property
     def tools(self) -> list[Tool]:
         return [
-            Tool(service_errors(method), strict=True, sequential=True)
+            domain_tool(method)
             for method in (
                 self.list_documents,
                 self.get_document_extraction,
@@ -29,7 +29,7 @@ class DocumentTools:
             )
         ]
 
-    def list_documents(self, ticker: StrictStr | None = None) -> str:
+    def list_documents(self, ticker: StrictStr | None = None) -> list[DocumentSummary]:
         """Discover available documents and their processing states.
 
         Use this tool to obtain valid document IDs before reading extractions or
@@ -42,17 +42,15 @@ class DocumentTools:
                 different ticker are rejected.
 
         Returns:
-            JSON containing document metadata and processing states. Extracted
+            Document summaries containing metadata and processing states. Extracted
             facts are excluded from this listing.
         """
         documents = self.service.list_document_extractions(
             ticker=self._resolve_ticker(ticker), include_results=False
         )
-        return tool_result(
-            [document.model_dump(mode="json", exclude={"result"}) for document in documents]
-        )
+        return [DocumentSummary.from_extraction(document) for document in documents]
 
-    def get_document_extraction(self, document_id: NonEmptyString) -> str:
+    def get_document_extraction(self, document_id: NonEmptyString) -> DocumentExtraction:
         """Read the stored extraction for a catalog document.
 
         Use a document ID obtained from list_documents. If the extraction is
@@ -62,19 +60,18 @@ class DocumentTools:
             document_id: The exact catalog document ID.
 
         Returns:
-            JSON containing processing status, extracted facts when complete
+            A document result containing processing status, extracted facts when complete
             and current, and source citations. Other states are reported
             explicitly without supplying old facts.
         """
         self._check_document_scope(document_id)
-        document = self.service.get_document_extraction(document_id)
-        return self._document_result(document)
+        return self.service.get_document_extraction(document_id)
 
     def search_evidence(
         self,
         query: NonEmptyString,
         ticker: StrictStr | None = None,
-    ) -> str:
+    ) -> list[RetrievedRecord]:
         """Retrieve filing passages that support an analyst question.
 
         Use this tool for supporting source text or questions beyond stored
@@ -87,19 +84,13 @@ class DocumentTools:
                 outside the configured ticker scope are rejected.
 
         Returns:
-            JSON containing matching passages, document IDs, and exact
+            Retrieved records containing matching passages, document IDs, and exact
             citations. This tool does not generate an answer.
         """
         passages = self.service.search_evidence(query=query, ticker=self._resolve_ticker(ticker))
-        return tool_result(
-            passages,
-            sources=[
-                {"document_id": passage["document_id"], "citation": passage["citation"]}
-                for passage in passages
-            ],
-        )
+        return [RetrievedRecord.from_record(passage) for passage in passages]
 
-    def process_document(self, document_id: NonEmptyString) -> str:
+    def process_document(self, document_id: NonEmptyString) -> DocumentExtraction:
         """Extract supported facts from a complete catalog document.
 
         Use this when needed facts have no complete, current extraction. A
@@ -110,13 +101,12 @@ class DocumentTools:
             document_id: The exact document ID from list_documents.
 
         Returns:
-            JSON containing processing status, extracted facts when successful,
+            A document result containing processing status, extracted facts when successful,
             cache-hit information, and source citations. Processing failures
             remain explicit in the result.
         """
         self._check_document_scope(document_id)
-        document = self.service.process_document(document_id)
-        return self._document_result(document)
+        return self.service.process_document(document_id)
 
     def _resolve_ticker(self, requested: str | None) -> str | None:
         if self.ticker and requested not in (None, self.ticker):
@@ -128,10 +118,3 @@ class DocumentTools:
             record = self.service.catalog_record(document_id)
             if record.get("ticker") != self.ticker:
                 raise ValueError("Document is outside the requested issuer scope.")
-
-    @staticmethod
-    def _document_result(document: DocumentExtraction) -> str:
-        sources = []
-        if document.status == "complete":
-            sources.append({"document_id": document.document_id, "citation": document.citation})
-        return tool_result(document.model_dump(mode="json"), sources=sources)

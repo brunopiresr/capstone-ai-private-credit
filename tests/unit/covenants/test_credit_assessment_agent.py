@@ -23,7 +23,9 @@ from pydantic_ai.messages import (
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.events import AgentEvent, AgentEventCallback
 from credit_monitoring.agents.tools.assessment import AssessmentTools
+from credit_monitoring.agents.tools.common import tool_outcome
 from credit_monitoring.agents.tools.documents import DocumentTools
+from credit_monitoring.agents.tools.sources import result_sources
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import (
@@ -35,9 +37,17 @@ from credit_monitoring.covenants.structured import (
 from credit_monitoring.domain import (
     CovenantExtraction,
     CovenantTerm,
+    DocumentExtraction,
+    DocumentSummary,
+    ExtractionResult,
+    FinancialReview,
+    RetrievedRecord,
+    RiskAssessment,
     SourceEvidence,
     ThresholdScheduleEntry,
+    ToolFailure,
 )
+from credit_monitoring.domain.agent import AgentAnswer
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
 
@@ -132,7 +142,7 @@ def test_progress_reports_tool_errors_and_continues(
         "model_start",
         "run_end",
     ]
-    assert events[2].outcome["error"] == error
+    assert events[2].outcome.code == error
     assert events[2].outcome == answer.tool_trace[0].outcome
 
 
@@ -214,17 +224,13 @@ def test_callback_prints_nested_streams_and_error_status(capsys):
             kind="tool_result",
             agent_name="Model name",
             tool_name="list_documents",
-            outcome={"ok": True},
+            outcome=[],
         )
         yield AgentEvent(
             kind="tool_result",
             agent_name="Model name",
             tool_name="missing",
-            outcome={
-                "ok": False,
-                "error": "unknown_tool",
-                "message": "private payload",
-            },
+            outcome=ToolFailure(code="unknown_tool", message="private payload"),
         )
 
     async def stream():
@@ -265,8 +271,9 @@ def invoke_tool(container, name, arguments):
         if isinstance(p, (ToolReturnPart, RetryPromptPart)) and p.tool_name == name
     )
     if isinstance(part, RetryPromptPart):
-        return {"ok": False, "error": "invalid_arguments", "message": part.model_response()}
-    return json.loads(part.content)
+        return ToolFailure(code="invalid_arguments", message=part.model_response())
+    assert not isinstance(part.content, (str, dict))
+    return tool_outcome(part.content)
 
 
 def test_document_discovery_processing_cache_read_and_rag_loop(
@@ -286,18 +293,24 @@ def test_document_discovery_processing_cache_read_and_rag_loop(
     ]
     answer = monitor.ask("Show the schedule and supporting filing text.", ticker="SYN")
     assert answer.complete and len(answer.tool_trace) == 5
-    assert answer.tool_trace[0].outcome["data"][0]["status"] == "missing"
-    assert answer.tool_trace[1].outcome["data"]["result"] is None
-    assert not answer.tool_trace[2].outcome["data"]["cache_hit"]
-    assert answer.tool_trace[3].outcome["data"]["cache_hit"]
+    assert isinstance(answer.tool_trace[0].outcome[0], DocumentSummary)
+    assert "result" not in type(answer.tool_trace[0].outcome[0]).model_fields
+    assert isinstance(answer.tool_trace[1].outcome, DocumentExtraction)
+    assert isinstance(answer.tool_trace[2].outcome, DocumentExtraction)
+    assert isinstance(answer.tool_trace[4].outcome[0], RetrievedRecord)
+    assert answer.tool_trace[0].outcome[0].status == "missing"
+    assert answer.tool_trace[1].outcome.result is None
+    assert not answer.tool_trace[2].outcome.cache_hit
+    assert answer.tool_trace[3].outcome.cache_hit
     service.model.respond.assert_called_once()
     assert [s.document_id for s in answer.sources] == ["SYN"]
     assert "private-content" not in answer.model_dump_json()
     second_input = model.respond.call_args_list[1].kwargs["messages"]
     assert tool_results(second_input)
     final_input = model.respond.call_args_list[-1].kwargs["messages"]
-    results = [json.loads(i.content) for i in tool_results(final_input)]
-    assert "Maximum leverage" in results[-1]["data"][0]["content"]
+    results = [tool_outcome(i.content) for i in tool_results(final_input)]
+    assert "Maximum leverage" in results[-1][0].text
+    assert AgentAnswer.model_validate_json(answer.model_dump_json()) == answer
 
 
 @pytest.mark.parametrize(
@@ -328,12 +341,12 @@ def test_dispatch_errors_are_results_for_next_agent_round(
         response(answer="The requested evidence is unavailable."),
     ]
     result = monitor.ask("Question", ticker="SYN")
-    assert result.tool_trace[0].outcome["error"] == error
+    assert result.tool_trace[0].outcome.code == error
     history = model.respond.call_args_list[1].kwargs["messages"]
     assert (
         any(isinstance(p, RetryPromptPart) for p in parts(history))
         if error != "service_error"
-        else json.loads(tool_results(history)[-1].content)["error"] == error
+        else tool_results(history)[-1].content.code == error
     )
 
 
@@ -346,15 +359,48 @@ def test_stale_result_is_visible_and_cannot_supply_old_facts(
     service.model = "changed-model"
     tools = DocumentTools(service)
     result = invoke_tool(tools, "get_document_extraction", {"document_id": "SYN"})
-    assert result["data"]["status"] == "stale" and result["data"]["result"] is None
-    assert result["sources"] == []
+    assert result.status == "stale" and result.result is None
+    assert result_sources(result) == []
+
+
+@pytest.mark.parametrize(
+    "status", ["missing", "stale", "processing", "failed", "complete", "unavailable"]
+)
+def test_document_tool_preserves_processing_state_and_only_complete_sources(status):
+    expected = DocumentExtraction(
+        document_id="SYN",
+        citation="Synthetic filing",
+        status=status,
+        result=ExtractionResult(prompt_version="test", extraction=CovenantExtraction())
+        if status == "complete"
+        else None,
+        error="Processing failed" if status == "failed" else None,
+    )
+    service = Mock()
+    service.get_document_extraction.return_value = expected
+    outcome = invoke_tool(DocumentTools(service), "get_document_extraction", {"document_id": "SYN"})
+    assert isinstance(outcome, DocumentExtraction) and outcome == expected
+    assert [source.document_id for source in result_sources(outcome)] == (
+        ["SYN"] if status == "complete" else []
+    )
+
+
+def test_sources_deduplicate_records_without_treating_discovery_as_evidence():
+    records = [
+        RetrievedRecord(document_id="SYN", citation="Synthetic filing", text="First passage"),
+        RetrievedRecord(document_id="SYN", citation="Synthetic filing", text="Second passage"),
+        RetrievedRecord(document_id="OTHER", citation="Other filing", text="Third passage"),
+    ]
+    assert [source.document_id for source in result_sources(records)] == ["SYN", "OTHER"]
+    summaries = [DocumentSummary(document_id="SYN", citation="Synthetic filing", status="complete")]
+    assert result_sources(summaries) == []
 
 
 def test_scoped_agent_cannot_process_other_issuer(document_service_factory):
     service = document_service_factory()
     tools = DocumentTools(service, ticker="OTHER")
     result = invoke_tool(tools, "process_document", {"document_id": "SYN"})
-    assert result["error"] == "service_error"
+    assert result.code == "service_error"
     service.model.respond.assert_not_called()
 
 
@@ -435,7 +481,7 @@ def test_tool_classes_are_reusable_by_independent_pydantic_agents():
         outcome = invoke_tool(
             DocumentTools(service, ticker=ticker), "search_evidence", {"query": "leverage"}
         )
-        assert outcome["sources"][0]["document_id"] == ticker
+        assert result_sources(outcome)[0].document_id == ticker
         service.search_evidence.assert_called_once_with(query="leverage", ticker=ticker)
 
 
@@ -467,7 +513,7 @@ def test_multiple_calls_use_one_round_and_execute_in_order(
     service.model.respond.return_value = generation_response(CovenantExtraction())
     result = monitor.ask("Read the stored document, process it, then read it again.")
     assert result.complete and len(result.tool_trace) == 3
-    assert [item.outcome["data"]["status"] for item in result.tool_trace] == [
+    assert [item.outcome.status for item in result.tool_trace] == [
         "missing",
         "complete",
         "complete",
@@ -511,6 +557,14 @@ def test_concurrent_read_questions_keep_scope_and_sources_separate(document_serv
     assert other.sources == []
     assert len(syn.tool_trace) == len(other.tool_trace) == 1
     assert syn.answer == "Evidence for SYN." and other.answer == "Evidence for OTHER."
+    assert other.tool_trace[0].outcome == []
+
+
+def test_empty_document_discovery_returns_native_list(document_service_factory):
+    result = invoke_tool(
+        DocumentTools(document_service_factory()), "list_documents", {"ticker": "OTHER"}
+    )
+    assert result == []
 
 
 def test_sync_entry_point_in_running_loop_explains_async_usage(document_service_factory):
@@ -549,24 +603,27 @@ def test_agent_calls_real_financial_calculation_and_prediction_services(
         "Assess and forecast SYN002 for the supplied dates.", borrower_id="SYN002"
     )
     assert answer.complete and len(answer.tool_trace) == 3
-    financials, calculated, predicted = [item.outcome["data"] for item in answer.tool_trace]
-    assert financials["current"]["metrics"]["reported_ebitda"] == 26
-    assert len(financials["history"]) == 2
-    assert calculated["results"][0]["actual_value"] == pytest.approx(135 / 26)
-    assert calculated["results"][0]["headroom"] == pytest.approx(5.5 - 135 / 26)
-    assert calculated["results"][0]["compliance_status"] == "compliant"
-    assert calculated["ml_status"] == "disabled" and calculated["prediction"] is None
-    assert predicted["verification"]["is_valid"]
-    assert predicted["ml_status"] == "stub"
-    assert predicted["prediction"]["breach_probability"] is None
-    assert predicted["prediction"]["snapshot_id"] == predicted["feature_snapshot"]["snapshot_id"]
+    financials, calculated, predicted = [item.outcome for item in answer.tool_trace]
+    assert isinstance(financials, FinancialReview)
+    assert isinstance(calculated, RiskAssessment) and isinstance(predicted, RiskAssessment)
+    assert financials.period_end == date(2025, 9, 30)
+    assert financials.current.metrics["reported_ebitda"] == 26
+    assert len(financials.history) == 2
+    assert calculated.results[0].actual_value == pytest.approx(135 / 26)
+    assert calculated.results[0].headroom == pytest.approx(5.5 - 135 / 26)
+    assert calculated.results[0].compliance_status == "compliant"
+    assert calculated.ml_status == "disabled" and calculated.prediction is None
+    assert predicted.verification.is_valid
+    assert predicted.ml_status == "stub"
+    assert predicted.prediction.breach_probability is None
+    assert predicted.prediction.snapshot_id == predicted.feature_snapshot.snapshot_id
     assert (
         len(
             agent_assessment_service.result_repository.get_history(
                 "SYN002",
                 period_end=date(2025, 9, 30),
                 information_cutoff=date(2025, 9, 30),
-                assessment_run_id=predicted["assessment_run_id"],
+                assessment_run_id=predicted.assessment_run_id,
             )
         )
         == 3
@@ -582,8 +639,9 @@ def test_agent_calls_real_financial_calculation_and_prediction_services(
         "search_evidence",
     }
     last_input = model.respond.call_args_list[-1].kwargs["messages"]
-    outputs = [json.loads(item.content) for item in tool_results(last_input)]
-    assert outputs[-1]["data"]["ml_status"] == "stub"
+    outputs = [tool_outcome(item.content) for item in tool_results(last_input)]
+    assert outputs[-1].ml_status == "stub"
+    assert AgentAnswer.model_validate_json(answer.model_dump_json()) == answer
 
 
 @pytest.mark.parametrize(
@@ -603,12 +661,12 @@ def test_tools_preserve_contractual_applicability_and_missing_inputs(
     outcome = invoke_tool(
         tools, "assess_covenants", {"period_end": period, "information_cutoff": period}
     )
-    assert outcome["ok"]
-    assert outcome["data"]["results"][0]["compliance_status"] == status
-    assert outcome["data"]["results"][0]["threshold"] == threshold
-    assert outcome["data"]["ml_status"] == "disabled"
+    assert isinstance(outcome, RiskAssessment)
+    assert outcome.results[0].compliance_status == status
+    assert outcome.results[0].threshold == threshold
+    assert outcome.ml_status == "disabled"
     if status in ("waived", "incomplete"):
-        assert outcome["data"]["results"][0]["headroom"] is None
+        assert outcome.results[0].headroom is None
 
 
 @pytest.mark.parametrize(
@@ -635,7 +693,7 @@ def test_assessment_arguments_cannot_change_scope_or_configuration(
     result = invoke_tool(
         AssessmentTools(agent_assessment_service, borrower_id="SYN002"), "predict_risk", arguments
     )
-    assert result["error"] == "invalid_arguments"
+    assert result.code == "invalid_arguments"
     assess.assert_not_called()
 
 
@@ -644,17 +702,17 @@ def test_financial_tools_do_not_substitute_another_reporting_period(agent_assess
     result = invoke_tool(
         tools, "get_financials", {"period_end": "2025-08-31", "information_cutoff": "2025-08-31"}
     )
-    assert result["data"]["current"] is None
-    assert len(result["data"]["history"]) == 2
-    assert result["data"]["issues"]
+    assert result.current is None
+    assert len(result.history) == 2
+    assert result.issues
     unknown = invoke_tool(
         AssessmentTools(agent_assessment_service, borrower_id="UNKNOWN"),
         "predict_risk",
         ASSESSMENT_DATES,
     )
-    assert unknown["data"]["results"] == []
-    assert unknown["data"]["ml_status"] == "unavailable"
-    assert unknown["data"]["prediction"] is None
+    assert unknown.results == []
+    assert unknown.ml_status == "unavailable"
+    assert unknown.prediction is None
 
 
 def test_financial_tools_respect_known_availability(agent_assessment_service, monkeypatch):
@@ -665,8 +723,8 @@ def test_financial_tools_respect_known_availability(agent_assessment_service, mo
     )
     tools = AssessmentTools(agent_assessment_service, borrower_id="SYN002")
     result = invoke_tool(tools, "get_financials", ASSESSMENT_DATES)
-    assert result["data"]["current"] is None and result["data"]["history"] == []
-    assert any("exceed the cutoff" in issue for issue in result["data"]["issues"])
+    assert result.current is None and result.history == []
+    assert any("exceed the cutoff" in issue for issue in result.issues)
 
 
 def test_prediction_model_failure_returns_calculations_to_agent(
@@ -682,11 +740,11 @@ def test_prediction_model_failure_returns_calculations_to_agent(
     ]
     result = assessor.ask("Assess and predict risk.", borrower_id="SYN002")
     assert result.complete
-    data = result.tool_trace[0].outcome["data"]
-    assert data["ml_status"] == "failed"
-    assert data["results"][0]["compliance_status"] == "compliant"
-    assert data["prediction"]["breach_probability"] is None
-    assert data["verification"]["is_valid"]
+    data = result.tool_trace[0].outcome
+    assert data.ml_status == "failed"
+    assert data.results[0].compliance_status == "compliant"
+    assert data.prediction.breach_probability is None
+    assert data.verification.is_valid
 
 
 def test_assessment_tools_require_application_configuration_and_borrower_scope(
@@ -704,7 +762,7 @@ def test_assessment_tools_require_application_configuration_and_borrower_scope(
         response(answer="Provide an explicit borrower scope to enable assessment tools."),
     ]
     result = assessor.ask("Assess SYN002.")
-    assert result.tool_trace[0].outcome["error"] == "unknown_tool"
+    assert result.tool_trace[0].outcome.code == "unknown_tool"
     tool_names = {
         tool.name for tool in model.respond.call_args_list[0].kwargs["info"].function_tools
     }
@@ -731,8 +789,8 @@ def test_concurrent_assessments_keep_borrower_scopes_separate(
         )
 
     first, second = asyncio.run(ask_both())
-    assert first.tool_trace[0].outcome["data"]["borrower_id"] == "SYN002"
-    assert second.tool_trace[0].outcome["data"]["borrower_id"] == "SYN004"
+    assert first.tool_trace[0].outcome.borrower_id == "SYN002"
+    assert second.tool_trace[0].outcome.borrower_id == "SYN004"
     assert first.answer == "Assessment for SYN002."
     assert second.answer == "Assessment for SYN004."
 
@@ -776,16 +834,16 @@ def test_prediction_tool_loads_actual_trained_baseline(
         response(answer="The synthetic baseline supplies a next-quarter prediction."),
     ]
     answer = assessor.ask("Predict next-quarter breach risk.", borrower_id="SYN002")
-    data = answer.tool_trace[0].outcome["data"]
-    assert answer.complete and data["ml_status"] == "complete"
-    prediction = data["prediction"]
-    assert 0 <= prediction["breach_probability"] <= 1
-    assert prediction["model_name"] == "logistic_regression"
-    assert prediction["model_artifact_hash"]
-    assert prediction["snapshot_id"] == data["feature_snapshot"]["snapshot_id"]
-    assert data["results"][0]["compliance_status"] == "compliant"
-    stored = agent_assessment_service.prediction_repository.get(prediction["prediction_id"])
-    assert stored.breach_probability == prediction["breach_probability"]
+    data = answer.tool_trace[0].outcome
+    assert answer.complete and data.ml_status == "complete"
+    prediction = data.prediction
+    assert 0 <= prediction.breach_probability <= 1
+    assert prediction.model_name == "logistic_regression"
+    assert prediction.model_artifact_hash
+    assert prediction.snapshot_id == data.feature_snapshot.snapshot_id
+    assert data.results[0].compliance_status == "compliant"
+    stored = agent_assessment_service.prediction_repository.get(prediction.prediction_id)
+    assert stored.breach_probability == prediction.breach_probability
 
 
 def test_agent_processes_document_then_assesses_bound_formula_with_sources(
@@ -844,12 +902,12 @@ def test_agent_processes_document_then_assesses_bound_formula_with_sources(
         "Process and assess the configured agreement.", ticker="SYN", borrower_id="SYN002"
     )
     assert answer.complete
-    result = answer.tool_trace[-1].outcome["data"]["results"][0]
-    assert result["actual_value"] == pytest.approx(135 / 26)
-    assert result["headroom"] == pytest.approx(5.5 - 135 / 26)
-    assert result["financial_inputs"]["result_basis"] == "calculated"
-    assert result["compliance_status"] == "compliant"
-    assert answer.tool_trace[-1].outcome["sources"]
+    result = answer.tool_trace[-1].outcome.results[0]
+    assert result.actual_value == pytest.approx(135 / 26)
+    assert result.headroom == pytest.approx(5.5 - 135 / 26)
+    assert result.financial_inputs["result_basis"] == "calculated"
+    assert result.compliance_status == "compliant"
+    assert answer.tool_trace[-1].sources
     assert [(source.document_id, source.citation) for source in answer.sources] == [
         ("SYN", citation)
     ]
@@ -884,6 +942,7 @@ def test_conversation_replays_evidence_and_keeps_sources_without_repeating_tools
     original_citation = first.sources[0].citation
     # Returned outcomes must not allow a caller to modify retained evidence.
     first.sources[0].citation = "Changed outside the conversation"
+    first.tool_trace[0].outcome[0].text = "Changed outside the conversation"
     first.tool_trace[0].outcome.clear()
     follow_up = conversation.ask("Which filing supports that?")
     assert follow_up.complete and follow_up.tool_trace == []
@@ -894,7 +953,7 @@ def test_conversation_replays_evidence_and_keeps_sources_without_repeating_tools
     assert any(isinstance(p, ToolCallPart) for p in parts(history))
     assert "private-content" not in follow_up.model_dump_json()
     evidence = tool_results(history)[0]
-    assert "Maximum leverage ratio" in evidence.content
+    assert "Maximum leverage ratio" in tool_outcome(evidence.content)[0].text
     assert "The threshold is 4.00" in repr(history)
 
 
@@ -916,7 +975,7 @@ def test_conversation_date_clarification_reaches_real_assessment_tools(
     assert "What reporting period and information cutoff" in repr(request["messages"])
     assert "2025-09-30" in user_prompts(request["messages"])[-1]
     assert answer.tool_trace[0].arguments == ASSESSMENT_DATES
-    assert answer.tool_trace[0].outcome["data"]["borrower_id"] == "SYN002"
+    assert answer.tool_trace[0].outcome.borrower_id == "SYN002"
 
 
 def test_conversation_resets_round_budget_trace_and_callback_override(document_service_factory):
@@ -1122,7 +1181,7 @@ def test_conversation_follow_up_cannot_switch_issuer_scope(document_service_fact
     conversation = monitor.start_conversation(ticker="OTHER")
     conversation.ask("What scope is configured?")
     answer = conversation.ask("Switch to SYN and process its filing.")
-    assert answer.tool_trace[0].outcome["error"] == "service_error"
+    assert answer.tool_trace[0].outcome.code == "service_error"
     assert answer.sources == []
     monitor.service.model.respond.assert_not_called()
     history = model.respond.call_args.kwargs["messages"]
@@ -1161,7 +1220,7 @@ def test_concurrent_conversations_keep_borrower_scope_and_follow_ups_separate(
         return first, second
 
     first, second = asyncio.run(run())
-    assert [answer.tool_trace[0].outcome["data"]["borrower_id"] for answer in first] == [
+    assert [answer.tool_trace[0].outcome.borrower_id for answer in first] == [
         "SYN002",
         "SYN004",
     ]

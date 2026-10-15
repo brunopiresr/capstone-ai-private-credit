@@ -1,6 +1,7 @@
 """Schema/default checks using controlled synthetic facts."""
 
 from datetime import date
+from typing import TypeAliasType
 
 import pytest
 from pydantic import ValidationError
@@ -24,6 +25,8 @@ from credit_monitoring.domain import (
 def test_every_exported_model_field_has_a_description():
     for name in domain.__all__:
         model = getattr(domain, name)
+        if isinstance(model, TypeAliasType):
+            continue  # Public result unions have no fields of their own.
         for field in model.model_fields.values():
             assert field.description and field.description.strip(), (name, field)
 

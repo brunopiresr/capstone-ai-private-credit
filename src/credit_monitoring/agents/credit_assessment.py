@@ -169,5 +169,5 @@ class CreditAssessmentAgent:
         ) as stream:
             async for event in stream:
                 if handler is not None:
-                    await handler(event)
+                    await handler(event.model_copy(deep=True))
                 yield event

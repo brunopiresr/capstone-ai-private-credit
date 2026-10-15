@@ -8,7 +8,9 @@ from .base import ExtractionModel
 from .validation import ExtractionResult
 
 
-class DocumentExtraction(ExtractionModel):
+class DocumentSummary(ExtractionModel):
+    """Discovery metadata without the potentially large extraction payload."""
+
     document_id: str = Field(description="Catalog source document ID.")
     citation: str = Field(description="Supplied catalog citation.")
     ticker: str | None = Field(default=None, description="Catalog ticker, when supplied.")
@@ -23,9 +25,16 @@ class DocumentExtraction(ExtractionModel):
     total_sections: int = Field(
         default=0, description="Planned section count, zero before processing."
     )
-    result: ExtractionResult | None = Field(
-        default=None, description="Complete extraction only; null for missing/stale/failed sources."
-    )
     error: str | None = Field(
         default=None, description="Processing error or source availability gap."
+    )
+
+    @classmethod
+    def from_extraction(cls, document: DocumentExtraction) -> DocumentSummary:
+        return cls(**{name: getattr(document, name) for name in cls.model_fields})
+
+
+class DocumentExtraction(DocumentSummary):
+    result: ExtractionResult | None = Field(
+        default=None, description="Complete extraction only; null for missing/stale/failed sources."
     )

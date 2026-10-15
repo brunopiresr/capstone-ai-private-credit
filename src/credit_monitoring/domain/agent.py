@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import Field
 
 from .base import ExtractionModel
+from .tool_results import ToolOutcome
 
 
 class SourceReference(ExtractionModel):
@@ -18,7 +19,10 @@ class ToolExecution(ExtractionModel):
     arguments: dict[str, Any] | None = Field(
         description="Decoded arguments, or null for malformed JSON/non-object arguments."
     )
-    outcome: dict[str, Any] = Field(description="Executed tool result or explicit dispatch error.")
+    outcome: ToolOutcome = Field(description="Executed domain result or explicit tool failure.")
+    sources: list[SourceReference] = Field(
+        default_factory=list, description="Source references derived from this executed result."
+    )
 
 
 class AnswerContent(ExtractionModel):

@@ -3,6 +3,7 @@
 import ast
 import asyncio
 import json
+from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
@@ -10,7 +11,7 @@ import nbformat
 import pytest
 
 from credit_monitoring.agents.events import AgentEventCallback
-from credit_monitoring.domain import CovenantExtraction
+from credit_monitoring.domain import CovenantExtraction, RiskAssessment, ToolExecution, ToolFailure
 from credit_monitoring.domain.agent import AgentAnswer
 
 NOTEBOOK = Path(__file__).resolve().parents[3] / "notebooks/03-agents.ipynb"
@@ -101,6 +102,42 @@ def test_streaming_demo_is_opt_in(notebook_cells):
     asyncio.run(eval(code, namespace))
     assert namespace["RUN_STREAMING_DEMO"] is False
     assert callable(namespace["show_stream"])
+
+
+@pytest.mark.parametrize("failed", [False, True])
+def test_notebook_trace_and_assessment_display_native_results(notebook_cells, capsys, failed):
+    outcome = (
+        ToolFailure(code="service_error", message="Source unavailable")
+        if failed
+        else RiskAssessment(
+            assessment_run_id="run_synthetic",
+            borrower_id="SYN",
+            period_end=date(2025, 9, 30),
+            information_cutoff=date(2025, 9, 30),
+            results=[],
+        )
+    )
+    answer = AgentAnswer(
+        answer="Synthetic answer",
+        tool_trace=[
+            ToolExecution(call_id="call", name="predict_risk", arguments={}, outcome=outcome)
+        ],
+    )
+    pandas = Mock()
+    namespace = {
+        "pd": pandas,
+        "display": Mock(),
+        "Markdown": Mock(),
+        "document_answer": answer,
+        "assessment_answer": answer,
+    }
+    exec(notebook_cells["6b5ed3e0"], namespace)
+    row = pandas.DataFrame.call_args.args[0][0]
+    assert row["ok"] is not failed
+    assert row["error"] == ("service_error" if failed else None)
+    exec(notebook_cells["7d484565"], namespace)
+    output = capsys.readouterr().out
+    assert ("Source unavailable" if failed else "Assessment run: run_synthetic") in output
 
 
 @pytest.mark.parametrize(

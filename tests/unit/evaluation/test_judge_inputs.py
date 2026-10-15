@@ -7,6 +7,8 @@ from credit_monitoring.domain import (
     AllCompanyExtractionResult,
     CovenantExtraction,
     ExtractionResult,
+    RetrievedRecord,
+    SourceReference,
 )
 from credit_monitoring.domain.agent import AgentAnswer, ToolExecution
 from credit_monitoring.evaluation.judge_inputs import (
@@ -51,7 +53,7 @@ def test_batch_extraction_preserves_company_grouping():
     assert json.loads(captured["output"])["companies"][0]["ticker"] == "SYN"
 
 
-def test_answer_preserves_actual_trace_and_marks_incomplete_outputs(synthetic_records):
+def test_answer_preserves_actual_trace_and_marks_incomplete_outputs(synthetic_records, tmp_path):
     answer = AgentAnswer(
         answer="Supported answer",
         confidence="medium",
@@ -61,15 +63,29 @@ def test_answer_preserves_actual_trace_and_marks_incomplete_outputs(synthetic_re
                 call_id="call",
                 name="search_evidence",
                 arguments={"query": "threshold"},
-                outcome={"ok": True, "data": [synthetic_records["base"]]},
+                outcome=[RetrievedRecord.from_record(synthetic_records["base"])],
+                sources=[
+                    SourceReference(
+                        document_id=synthetic_records["base"]["document_id"],
+                        citation=synthetic_records["base"]["citation"],
+                    )
+                ],
             )
         ],
     )
     captured = capture_answer("case", "What threshold?", answer, [synthetic_records["base"]])
-    assert captured["tool_trace"][0]["outcome"] == answer.tool_trace[0].outcome
+    assert captured["tool_trace"][0] == answer.tool_trace[0].model_dump(mode="json")
+    assert captured["tool_trace"][0]["outcome"][0]["text"] == synthetic_records["base"]["content"]
+    assert (
+        captured["tool_trace"][0]["sources"][0]["document_id"]
+        == synthetic_records["base"]["document_id"]
+    )
     assert captured["metadata"]["complete"] is True
     assert captured["metadata"]["confidence"] == "medium"
     assert captured["metadata"]["confidence_explanation"] == "Limited supporting evidence."
+    path = tmp_path / "domain-answer.jsonl"
+    write_judge_inputs(path, [captured])
+    assert json.loads(path.read_text()) == captured
     incomplete = answer.model_copy(update={"complete": False, "error": "tool_round_limit"})
     assert capture_answer("case", "Question", incomplete, [])["output"] is None
 

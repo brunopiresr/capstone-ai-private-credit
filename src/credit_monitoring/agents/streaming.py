@@ -26,7 +26,9 @@ from pydantic_ai.usage import UsageLimits
 from credit_monitoring.agents.events import AgentEvent
 from credit_monitoring.agents.models import ModelFailure, check_response
 from credit_monitoring.agents.run_state import AgentRunState
+from credit_monitoring.agents.tools.common import tool_outcome
 from credit_monitoring.domain.agent import AnswerContent
+from credit_monitoring.domain.tool_results import ToolFailure
 
 
 async def run_stream(
@@ -100,20 +102,15 @@ async def run_stream(
                                     part = event.part
                                     call = calls[part.tool_call_id]
                                     if isinstance(part, RetryPromptPart):
-                                        outcome = {
-                                            "ok": False,
-                                            "error": "invalid_arguments"
+                                        outcome = ToolFailure(
+                                            code="invalid_arguments"
                                             if call.tool_name in tool_names
                                             else "unknown_tool",
-                                            "message": part.model_response(),
-                                        }
-                                    else:
-                                        outcome = (
-                                            json.loads(part.content)
-                                            if isinstance(part.content, str)
-                                            else part.content
+                                            message=part.model_response(),
                                         )
-                                    state.record(
+                                    else:
+                                        outcome = tool_outcome(part.content)
+                                    execution = state.record(
                                         call.tool_name,
                                         call.tool_call_id,
                                         call.args_as_json_str(),
@@ -124,8 +121,9 @@ async def run_stream(
                                         agent_name=name,
                                         tool_name=call.tool_name,
                                         call_id=call.tool_call_id,
-                                        outcome=outcome,
-                                    )
+                                        outcome=execution.outcome,
+                                        sources=execution.sources,
+                                    ).model_copy(deep=True)
             except GeneratorExit:
                 # Close the graph normally when a UI stops consuming the generator.
                 # No further nodes execute and no provisional history is committed.

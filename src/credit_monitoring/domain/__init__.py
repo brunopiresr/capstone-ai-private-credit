@@ -22,9 +22,10 @@ from .covenant import (
 from .documents import RetrievedRecord
 from .evidence import SourceEvidence
 from .financials import FinancialMetricDefinition, ReportedFinancialValue
-from .processing import DocumentExtraction
+from .processing import DocumentExtraction, DocumentSummary
 from .risk_features import BorrowerFeatureSnapshot, BorrowerRiskFeatures, CovenantRiskFeatures
 from .risk_prediction import RiskPrediction
+from .tool_results import FinancialReview, ToolFailure, ToolOutcome
 from .validation import (
     AllCompanyExtractionResult,
     ExtractionResult,
@@ -50,9 +51,11 @@ __all__ = [
     "CovenantTestingEvent",
     "CreditFacilityTerm",
     "DocumentExtraction",
+    "DocumentSummary",
     "ExtractionResult",
     "FinancialMetricDefinition",
     "FinancialPeriod",
+    "FinancialReview",
     "ReportedFinancialValue",
     "ResolvedCovenant",
     "RetrievedRecord",
@@ -62,6 +65,8 @@ __all__ = [
     "SourceReference",
     "ThresholdScheduleEntry",
     "ToolExecution",
+    "ToolFailure",
+    "ToolOutcome",
     "ValidationIssue",
     "ValidationReport",
 ]

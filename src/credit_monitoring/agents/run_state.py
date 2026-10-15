@@ -5,12 +5,14 @@ from dataclasses import dataclass, field
 
 from pydantic_ai.messages import ModelMessage
 
+from credit_monitoring.agents.tools.sources import result_sources
 from credit_monitoring.domain.agent import (
     AgentAnswer,
     AnswerContent,
     SourceReference,
     ToolExecution,
 )
+from credit_monitoring.domain.tool_results import ToolOutcome
 
 
 def decode_arguments(raw: str) -> dict | None:
@@ -29,30 +31,32 @@ class AgentRunState:
     sources: dict[tuple[str, str], SourceReference] = field(default_factory=dict)
     history: list[ModelMessage] = field(default_factory=list)
 
-    def record(self, name: str, call_id: str, raw_arguments: str, outcome: dict) -> None:
-        self.trace.append(
-            ToolExecution(
-                call_id=call_id,
-                name=name,
-                arguments=decode_arguments(raw_arguments),
-                outcome=outcome,
+    def record(
+        self, name: str, call_id: str, raw_arguments: str, outcome: ToolOutcome
+    ) -> ToolExecution:
+        execution = ToolExecution(
+            call_id=call_id,
+            name=name,
+            arguments=decode_arguments(raw_arguments),
+            outcome=outcome,
+        ).model_copy(deep=True)
+        execution.sources = result_sources(execution.outcome)
+        self.trace.append(execution)
+        for reference in execution.sources:
+            self.sources[(reference.document_id, reference.citation)] = reference.model_copy(
+                deep=True
             )
-        )
-        if outcome.get("ok"):
-            for source in outcome.get("sources", []):
-                reference = SourceReference(**source)
-                self.sources[(reference.document_id, reference.citation)] = reference
+        return execution
 
     def answer(self, content: AnswerContent | str, error: str | None = None) -> AgentAnswer:
         if isinstance(content, str):
             content = AnswerContent(answer=content)
-        values = content.model_dump()
-        if error:
-            values.update(
-                confidence=None, confidence_explanation="Confidence unavailable: " + content.answer
-            )
         return AgentAnswer(
-            **values,
+            answer=content.answer,
+            confidence=None if error else content.confidence,
+            confidence_explanation="Confidence unavailable: " + content.answer
+            if error
+            else content.confidence_explanation,
             complete=error is None,
             error=error,
             sources=[s.model_copy(deep=True) for s in self.sources.values()],

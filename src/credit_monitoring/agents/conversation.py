@@ -114,7 +114,7 @@ class AgentConversation:
             ) as stream:
                 async for event in stream:
                     if event.kind == "run_end" and not self.closed:
-                        self._history = state.history
+                        self._history = deepcopy(state.history)
                         if event.answer.complete:
                             self._sources = [s.model_copy(deep=True) for s in event.answer.sources]
                     yield event
