@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import (
     CalculationRules,
@@ -300,7 +300,7 @@ def test_runtime_prediction_is_persisted_and_failures_preserve_compliance(
 ):
     financial_database = tmp_path / "financials.sqlite3"
     load_financials(generated_dataset / "quarterly_financials.csv", financial_database)
-    service = AssessmentService(
+    service = create_assessment_service(
         financial_repository=FinancialRepository(financial_database),
         covenant_reader=SyntheticCovenantReader(generated_dataset / "covenant_terms.csv"),
         settings=AssessmentSettings(
@@ -403,7 +403,7 @@ def test_extracted_leverage_prediction_requires_explicit_formula(
     )
     financial_database = tmp_path / "financials.sqlite3"
     load_financials(financial_csv, financial_database)
-    service = AssessmentService(
+    service = create_assessment_service(
         financial_repository=FinancialRepository(financial_database),
         covenant_reader=reader,
         settings=AssessmentSettings(

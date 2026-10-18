@@ -16,6 +16,9 @@ class AssessmentNarrator(Protocol):
 
 def assessment_context(assessment: RiskAssessment) -> dict:
     """Include current metrics, bounded history, features, model metadata, and evidence."""
+    features = assessment.trends
+    if features is None and assessment.feature_snapshot is not None:
+        features = assessment.feature_snapshot.features
     return deepcopy(
         {
             "borrower_id": assessment.borrower_id,
@@ -24,11 +27,7 @@ def assessment_context(assessment: RiskAssessment) -> dict:
             "current_financials": [result.financial_inputs for result in assessment.results],
             "covenant_results": [result.model_dump(mode="json") for result in assessment.results],
             "historical_results": [result.model_dump(mode="json") for result in assessment.history],
-            "risk_features": (
-                assessment.feature_snapshot.features.model_dump(mode="json")
-                if assessment.feature_snapshot
-                else None
-            ),
+            "risk_features": (features.model_dump(mode="json") if features is not None else None),
             "ml_prediction": assessment.prediction.model_dump(mode="json")
             if assessment.prediction
             else None,

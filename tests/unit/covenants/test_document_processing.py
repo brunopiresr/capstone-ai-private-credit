@@ -12,7 +12,7 @@ from unittest.mock import Mock
 import pytest
 from model_helpers import ScriptedModel
 
-from credit_monitoring.application.document_processing_service import DocumentProcessingService
+from credit_monitoring.application.bootstrap import create_document_service
 from credit_monitoring.covenants.assembly import combine_extractions
 from credit_monitoring.covenants.extraction import ExtractionIncompleteError
 from credit_monitoring.domain import (
@@ -269,7 +269,7 @@ def test_cache_survives_new_service_and_force_reprocesses(
     service.model.respond.return_value = generation_response(CovenantExtraction())
     first = service.process_document("SYN")
     assert not first.cache_hit and first.status == "complete"
-    restored = DocumentProcessingService(
+    restored = create_document_service(
         model=ScriptedModel(),
         source_file=service.source_file,
         html_dir=service.html_dir,
@@ -431,3 +431,21 @@ def test_exact_duplicates_removed_but_distinct_versions_preserved(synthetic_reco
     )
     assert combined.covenants == [term, different]
     assert combined.issuer is None and combined.conflicts
+
+
+def test_search_retains_late_passages_offsets_and_reflects_source_edits(document_service_factory):
+    text = "Ordinary operational discussion. " * 200
+    text += "\nMinimum interest coverage ratio is 3.00 to 1.00.\n"
+    service = document_service_factory(text)
+    results = service.search_evidence("minimum interest coverage ratio", "SYN")
+    selected = next(item for item in results if "3.00 to 1.00" in item["content"])
+    assert selected["source_start"] > 0
+    assert selected["content"] == text[selected["source_start"] : selected["source_end"]]
+    assert selected["offset_coordinate_system"] == "markdown"
+    assert selected["citation"] == service.get_document_extraction("SYN").citation
+    updated = text.replace("3.00 to 1.00", "4.00 to 1.00")
+    (service.markdown_dir / "SYN.md").write_text(updated)
+    results = service.search_evidence("minimum interest coverage ratio", "SYN")
+    assert any("4.00 to 1.00" in item["content"] for item in results)
+    assert not any("3.00 to 1.00" in item["content"] for item in results)
+    service.model.respond.assert_not_called()

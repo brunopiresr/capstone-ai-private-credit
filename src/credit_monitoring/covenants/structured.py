@@ -9,13 +9,24 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol
 
-from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.domain.analytics_base import AssessmentModel, CalculationFormula
+from credit_monitoring.domain import (
+    CovenantExtraction,
+    CovenantTerm,
+    CovenantTestingEvent,
+    SourceEvidence,
+    ThresholdScheduleEntry,
+)
+from credit_monitoring.domain.analytics_base import (
+    AssessmentModel,
+    CalculationFormula,
+    TestingStatus,
+)
 from credit_monitoring.domain.assessment import (
     CovenantResolution,
     FinancialPeriod,
     ResolvedCovenant,
 )
+from credit_monitoring.domain.processing import DocumentExtraction
 from credit_monitoring.observability.assessment import (
     covenant_terms,
     resolution_context,
@@ -265,15 +276,23 @@ class ExtractionBinding:
     calculation_rules: CalculationRules | None = None
 
 
+class StoredExtractionSource(Protocol):
+    """Only the stored facts and exact source text needed by covenant resolution."""
+
+    def get_document_extraction(self, document_id: str) -> DocumentExtraction: ...
+
+    def read_source_text(self, document_id: str) -> str: ...
+
+
 class ExtractionCovenantReader:
     """Resolve existing V2 facts through explicit bindings without processing documents."""
 
     def __init__(
         self,
-        service: DocumentProcessingService,
+        source: StoredExtractionSource,
         bindings: list[ExtractionBinding],
     ) -> None:
-        self.service = service
+        self.source = source
         self.bindings = bindings
 
     @logged_operation(
@@ -302,101 +321,11 @@ class ExtractionCovenantReader:
                     with logging_context(
                         document_id=binding.document_id, agreement_id=binding.agreement_id
                     ):
-                        if (
-                            binding.available_at is not None
-                            and binding.available_at > information_cutoff
-                        ):
-                            log_event(
-                                logger,
-                                "extraction_candidate",
-                                status="rejected",
-                                inputs={"available_at": binding.available_at},
-                                outputs={"reason": "Source unavailable at information cutoff."},
+                        candidates.extend(
+                            self._binding_candidates(
+                                binding, period_end, information_cutoff, resolution
                             )
-                            continue
-                        document = self.service.get_document_extraction(binding.document_id)
-                        if document.status != "complete" or document.result is None:
-                            resolution.issues.append(
-                                f"Extraction unavailable: {binding.document_id}."
-                            )
-                            log_event(
-                                logger,
-                                "extraction_candidate",
-                                status="rejected",
-                                inputs={"extraction_status": document.status},
-                                outputs={"reason": resolution.issues[-1]},
-                            )
-                            continue
-                        if (
-                            document.result.validation is not None
-                            and not document.result.validation.is_valid
-                        ):
-                            resolution.issues.append(
-                                f"Extraction has validation errors: {binding.document_id}."
-                            )
-                            log_event(
-                                logger,
-                                "extraction_candidate",
-                                status="rejected",
-                                outputs={"reason": resolution.issues[-1]},
-                            )
-                            continue
-                        extraction = document.result.extraction
-                        if extraction.conflicts:
-                            resolution.issues.append(
-                                f"Conflicting extracted facts: {binding.document_id}."
-                            )
-                            log_event(
-                                logger,
-                                "extraction_candidate",
-                                status="rejected",
-                                outputs={"reason": resolution.issues[-1]},
-                            )
-                            continue
-                        for term in extraction.covenants:
-                            if term.covenant_name != binding.covenant_name:
-                                log_event(
-                                    logger,
-                                    "extraction_candidate",
-                                    status="rejected",
-                                    inputs={
-                                        "covenant_name": term.covenant_name,
-                                        "bound_covenant_name": binding.covenant_name,
-                                    },
-                                    outputs={"reason": "Covenant name does not match the binding."},
-                                )
-                                continue
-                            resolution.covenant_type = term.covenant_type
-                            for schedule in term.threshold_schedule:
-                                if applies_to_period(schedule, period_end):
-                                    try:
-                                        candidate = self._candidate(
-                                            binding,
-                                            term,
-                                            schedule,
-                                            extraction,
-                                            period_end,
-                                            document,
-                                        )
-                                        candidates.append(candidate)
-                                    except (ValueError, OSError) as error:
-                                        resolution.issues.append(str(error))
-                                        log_event(
-                                            logger,
-                                            "extraction_candidate",
-                                            status="rejected",
-                                            outputs={"reason": resolution.issues[-1]},
-                                        )
-                                else:
-                                    log_event(
-                                        logger,
-                                        "extraction_candidate",
-                                        status="rejected",
-                                        inputs={"threshold": schedule.threshold},
-                                        outputs={
-                                            "reason": "Threshold schedule does not apply to period."
-                                        },
-                                    )
+                        )
                 if not resolution.issues and len(candidates) == 1:
                     resolution.covenant = candidates[0]
                     resolution.evidence = candidates[0].evidence
@@ -413,6 +342,110 @@ class ExtractionCovenantReader:
                 resolutions.append(resolution)
         return resolutions
 
+    def _available_document(
+        self,
+        binding: ExtractionBinding,
+        information_cutoff: date,
+        resolution: CovenantResolution,
+    ) -> DocumentExtraction | None:
+        """Select a completed, non-conflicting stored extraction within the cutoff."""
+        if binding.available_at is not None and binding.available_at > information_cutoff:
+            log_event(
+                logger,
+                "extraction_candidate",
+                status="rejected",
+                inputs={"available_at": binding.available_at},
+                outputs={"reason": "Source unavailable at information cutoff."},
+            )
+            return None
+        document = self.source.get_document_extraction(binding.document_id)
+        if document.status != "complete" or document.result is None:
+            resolution.issues.append(f"Extraction unavailable: {binding.document_id}.")
+            log_event(
+                logger,
+                "extraction_candidate",
+                status="rejected",
+                inputs={"extraction_status": document.status},
+                outputs={"reason": resolution.issues[-1]},
+            )
+            return None
+        if document.result.validation is not None and not document.result.validation.is_valid:
+            resolution.issues.append(f"Extraction has validation errors: {binding.document_id}.")
+            log_event(
+                logger,
+                "extraction_candidate",
+                status="rejected",
+                outputs={"reason": resolution.issues[-1]},
+            )
+            return None
+        extraction = document.result.extraction
+        if extraction.conflicts:
+            resolution.issues.append(f"Conflicting extracted facts: {binding.document_id}.")
+            log_event(
+                logger,
+                "extraction_candidate",
+                status="rejected",
+                outputs={"reason": resolution.issues[-1]},
+            )
+            return None
+        return document
+
+    def _binding_candidates(
+        self,
+        binding: ExtractionBinding,
+        period_end: date,
+        information_cutoff: date,
+        resolution: CovenantResolution,
+    ) -> list[ResolvedCovenant]:
+        document = self._available_document(binding, information_cutoff, resolution)
+        if document is None:
+            return []
+        extraction = document.result.extraction
+        candidates: list[ResolvedCovenant] = []
+        for term in extraction.covenants:
+            if term.covenant_name != binding.covenant_name:
+                log_event(
+                    logger,
+                    "extraction_candidate",
+                    status="rejected",
+                    inputs={
+                        "covenant_name": term.covenant_name,
+                        "bound_covenant_name": binding.covenant_name,
+                    },
+                    outputs={"reason": "Covenant name does not match the binding."},
+                )
+                continue
+            resolution.covenant_type = term.covenant_type
+            for schedule in term.threshold_schedule:
+                if applies_to_period(schedule, period_end):
+                    try:
+                        candidate = self._candidate(
+                            binding,
+                            term,
+                            schedule,
+                            extraction,
+                            period_end,
+                            document,
+                        )
+                        candidates.append(candidate)
+                    except (ValueError, OSError) as error:
+                        resolution.issues.append(str(error))
+                        log_event(
+                            logger,
+                            "extraction_candidate",
+                            status="rejected",
+                            outputs={"reason": resolution.issues[-1]},
+                        )
+                else:
+                    log_event(
+                        logger,
+                        "extraction_candidate",
+                        status="rejected",
+                        inputs={"threshold": schedule.threshold},
+                        outputs={"reason": "Threshold schedule does not apply to period."},
+                    )
+        return candidates
+
     @logged_operation(
         inputs=lambda args: {
             "threshold": args["schedule"].threshold,
@@ -424,8 +457,50 @@ class ExtractionCovenantReader:
         },
         outputs=lambda covenant: {"terms": covenant_terms(covenant)},
     )
-    def _candidate(self, binding, term, schedule, extraction, period_end, document):
+    def _candidate(
+        self,
+        binding: ExtractionBinding,
+        term: CovenantTerm,
+        schedule: ThresholdScheduleEntry,
+        extraction: CovenantExtraction,
+        period_end: date,
+        document: DocumentExtraction,
+    ) -> ResolvedCovenant:
         """Check selected source quotes and project only explicit period-specific facts."""
+        self._validate_applicability(term, extraction, period_end)
+        testing_status, applicable_events = self._testing_state(binding, extraction, period_end)
+        reported_actual, reported_evidence = self._reported_actual(
+            binding, term, extraction, period_end
+        )
+        source_evidence = [term.evidence, schedule.evidence]
+        source_evidence.extend(event.evidence for event in applicable_events)
+        self._validate_evidence(binding, document, source_evidence + reported_evidence)
+        rules = binding.calculation_rules
+        values = {} if rules is None else rules.model_dump()
+        return ResolvedCovenant(
+            borrower_id=binding.borrower_id,
+            agreement_id=binding.agreement_id,
+            covenant_id=binding.covenant_id,
+            covenant_name=term.covenant_name,
+            covenant_type=term.covenant_type,
+            covenant_version=f"{document.cache_key}:{term.amendment_reference or 'source'}",
+            period_end=period_end,
+            threshold=parse_ratio(schedule.threshold),
+            operator=term.operator,
+            testing_status=testing_status,
+            available_at=binding.available_at,
+            reported_actual=reported_actual,
+            reported_evidence=[evidence.model_dump(mode="json") for evidence in reported_evidence],
+            evidence=[evidence.model_dump(mode="json") for evidence in source_evidence],
+            **values,
+        )
+
+    @staticmethod
+    def _validate_applicability(
+        term: CovenantTerm,
+        extraction: CovenantExtraction,
+        period_end: date,
+    ) -> None:
         if term.operator is None:
             raise ValueError("Extracted covenant has no supported comparison operator.")
         if term.conditions_or_scope:
@@ -447,6 +522,13 @@ class ExtractionCovenantReader:
             if term.amendment_reference and term.amendment_reference in identifiers:
                 if agreement.stated_effective_date and agreement.stated_effective_date > period_end:
                     raise ValueError("Amendment is not effective for this reporting period.")
+
+    @staticmethod
+    def _testing_state(
+        binding: ExtractionBinding,
+        extraction: CovenantExtraction,
+        period_end: date,
+    ) -> tuple[TestingStatus, list[CovenantTestingEvent]]:
         applicable_events = [
             event
             for event in extraction.testing_events
@@ -482,6 +564,15 @@ class ExtractionCovenantReader:
             inputs={"applicable_event_types": [event.event_type for event in applicable_events]},
             outputs={"testing_status": testing_status},
         )
+        return testing_status, applicable_events
+
+    @staticmethod
+    def _reported_actual(
+        binding: ExtractionBinding,
+        term: CovenantTerm,
+        extraction: CovenantExtraction,
+        period_end: date,
+    ) -> tuple[float | None, list[SourceEvidence]]:
         actuals = [
             value
             for value in extraction.reported_financial_values
@@ -506,14 +597,18 @@ class ExtractionCovenantReader:
         )
         if len(reported_values) > 1:
             raise ValueError("Conflicting source-reported covenant actuals.")
-        source_evidence = [term.evidence, schedule.evidence]
-        source_evidence.extend(event.evidence for event in applicable_events)
-        reported_evidence = [value.evidence for value in actuals]
-        reported_evidence.extend(disclosure.evidence for disclosure in disclosures)
-        markdown = (self.service.markdown_dir / f"{binding.document_id}.md").read_text(
-            encoding="utf-8",
-        )
-        for evidence in source_evidence + reported_evidence:
+        evidence = [value.evidence for value in actuals]
+        evidence.extend(disclosure.evidence for disclosure in disclosures)
+        return next(iter(reported_values)) if reported_values else None, evidence
+
+    def _validate_evidence(
+        self,
+        binding: ExtractionBinding,
+        document: DocumentExtraction,
+        evidence_records: list[SourceEvidence],
+    ) -> None:
+        markdown = self.source.read_source_text(binding.document_id)
+        for evidence in evidence_records:
             if (
                 evidence.document_id != binding.document_id
                 or evidence.citation != document.citation
@@ -521,22 +616,3 @@ class ExtractionCovenantReader:
                 or evidence.evidence_quote not in markdown
             ):
                 raise ValueError("Selected covenant evidence does not match its stored document.")
-        rules = binding.calculation_rules
-        values = {} if rules is None else rules.model_dump()
-        return ResolvedCovenant(
-            borrower_id=binding.borrower_id,
-            agreement_id=binding.agreement_id,
-            covenant_id=binding.covenant_id,
-            covenant_name=term.covenant_name,
-            covenant_type=term.covenant_type,
-            covenant_version=f"{document.cache_key}:{term.amendment_reference or 'source'}",
-            period_end=period_end,
-            threshold=parse_ratio(schedule.threshold),
-            operator=term.operator,
-            testing_status=testing_status,
-            available_at=binding.available_at,
-            reported_actual=next(iter(reported_values)) if reported_values else None,
-            reported_evidence=[evidence.model_dump(mode="json") for evidence in reported_evidence],
-            evidence=[evidence.model_dump(mode="json") for evidence in source_evidence],
-            **values,
-        )

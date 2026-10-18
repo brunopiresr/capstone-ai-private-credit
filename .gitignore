@@ -16,3 +16,4 @@ dist/
 #/data/models/
 /data/processed/judges*/
 /data/processed/streamlit/
+/data/processed/sec-evaluations/

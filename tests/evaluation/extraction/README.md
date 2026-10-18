@@ -1,34 +1,50 @@
 # Public SEC gold-case comparison
 
-Run the offline evaluation against the existing document extraction cache:
+Portable tests use controlled observations plus a small captured FMC regression,
+without a local public cache or model calls:
 
 ```bash
-uv run pytest tests/evaluation/extraction/test_public_sec_gold_cases.py -v
+uv run pytest tests/evaluation/extraction tests/unit/evaluation/test_sec_snapshot.py -q
 ```
 
-Use `SEC_GOLD_DATABASE=/path/to/covenants.sqlite3` to select another cache. The
-test opens SQLite in read-only mode and never processes documents or calls a model.
-Each CSV case is a separate test. Cases with no completed source extraction skip.
-Available cases fail on differing observed facts or missing core covenant facts.
-When all listed sources are present, missing supported facts also fail. Partial
-source coverage checks the available facts and records the missing fields; a
-passing partial comparison does **not** establish full gold-case accuracy.
-
-`validate_gold_case(gold_row, extractions_by_document_id)` accepts existing
-`CovenantExtraction` objects. For an `ExtractionResult`, pass its `.extraction`;
-for a processed document, pass `.result.extraction`. It returns a
-`GoldCaseComparison` with per-field expected values, observed values, and `match`,
-`mismatch`, or `missing` status, plus `missing_source_documents` and `unsupported`.
-The test records this report as the `gold_comparison` JUnit property:
+Run the separate quality measurement with an explicit existing database:
 
 ```bash
-uv run pytest tests/evaluation/extraction/test_public_sec_gold_cases.py \
-  --junitxml=/tmp/public-sec-gold.xml -o junit_family=legacy
+uv run python scripts/compare_public_sec_gold.py \
+  --database /absolute/path/to/covenants.sqlite3 \
+  --output /tmp/public-sec-comparison --require-complete-sources
 ```
 
-All mappings live in the test file; extraction objects and application code are
-unchanged. Controlled comparator tests use independent fixture observations and
-deliberately incorrect facts; they do not measure live extraction accuracy.
+The runner opens SQLite read-only, selects each document's newest state by
+`updated_at DESC, cache_key DESC` (including failures), and never creates a missing
+database. `observations.json` freezes payloads and hashes, statuses, cache keys,
+configuration versions and source hashes/URLs. `manifest.json` records revision,
+gold/catalog/snapshot hashes. `report.json` contains per-field values and coverage;
+`report.md` is the short case summary. `--catalog`, `--gold`, and `--sources`
+select other inputs. No extraction or model request is made.
+
+Replay without SQLite or the original source files:
+
+```bash
+uv run python scripts/compare_public_sec_gold.py \
+  --snapshot /tmp/public-sec-comparison/observations.json \
+  --output /tmp/public-sec-replay --require-complete-sources
+```
+
+Identical snapshots and gold inputs produce identical reports. A supported
+mismatch, missing core fact, or wholly unevaluable comparison exits nonzero.
+Without the strict flag, missing sources yield a partial comparison if available
+core facts match; strict mode also fails incomplete source coverage. Unsupported
+assessment targets are always reported separately, and never count as extracted
+facts or make `is_complete` true. The historical 37 failures remain visible in the
+[failure register](../../../docs/public_sec_benchmark_triage.md); green portable
+tests do not mean public extraction quality passed.
+
+`validate_gold_case(gold_row, extractions_by_document_id)` lives in
+`credit_monitoring.evaluation.sec_gold` and returns per-field expected/observed
+values, match/mismatch/missing status, missing sources, and unsupported targets.
+It accepts existing `CovenantExtraction` objects. Controlled tests deliberately
+supply incorrect observations; the captured fixture retains actual cached errors.
 
 | CSV field | Test-side projection |
 | --- | --- |

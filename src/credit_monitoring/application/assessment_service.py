@@ -4,7 +4,6 @@ import logging
 from datetime import date
 
 from credit_monitoring.application.risk_analysis_service import (
-    AssessmentNarrator,
     RiskAnalysisService,
 )
 from credit_monitoring.calculations.covenants import calculate_covenant
@@ -36,24 +35,23 @@ class AssessmentService:
         *,
         financial_repository: FinancialRepository,
         covenant_reader: CovenantReader,
-        settings: AssessmentSettings | None = None,
-        model_factory: RiskModelFactory | None = None,
-        narrator: AssessmentNarrator | None = None,
+        settings: AssessmentSettings,
+        result_repository: CovenantResultRepository,
+        snapshot_repository: RiskFeatureSnapshotRepository,
+        prediction_repository: RiskPredictionRepository,
+        feature_builder: RiskFeatureBuilder,
+        model_factory: RiskModelFactory,
+        risk_analysis_service: RiskAnalysisService,
     ) -> None:
         self.financial_repository = financial_repository
         self.covenant_reader = covenant_reader
-        self.settings = settings or AssessmentSettings()
-        analytics_path = self.settings.analytics_database.expanduser().resolve()
-        if analytics_path == financial_repository.database_path.expanduser().resolve():
-            raise ValueError(
-                "Analytics storage must be separate from the source financial database."
-            )
-        self.result_repository = CovenantResultRepository(analytics_path)
-        self.snapshot_repository = RiskFeatureSnapshotRepository(analytics_path)
-        self.prediction_repository = RiskPredictionRepository(analytics_path)
-        self.feature_builder = RiskFeatureBuilder(self.result_repository)
-        self.model_factory = model_factory or RiskModelFactory()
-        self.risk_analysis_service = RiskAnalysisService(narrator)
+        self.settings = settings
+        self.result_repository = result_repository
+        self.snapshot_repository = snapshot_repository
+        self.prediction_repository = prediction_repository
+        self.feature_builder = feature_builder
+        self.model_factory = model_factory
+        self.risk_analysis_service = risk_analysis_service
 
     def assess(
         self,
@@ -81,10 +79,11 @@ class AssessmentService:
         ):
             use_ml = self.settings.ml_enabled if ml_enabled is None else ml_enabled
             log_event(logger, "assessment", inputs={"ml_enabled": use_ml}, status="started")
-            rows = self.financial_repository.get_history(borrower_id, as_of=period_end.isoformat())
             periods = {
-                date.fromisoformat(row["period_end"]): FinancialPeriod.from_repository_row(row)
-                for row in rows
+                period.period_end: period
+                for period in self.financial_repository.get_period_history(
+                    borrower_id, as_of=period_end
+                )
             }
             periods.setdefault(
                 period_end, FinancialPeriod(borrower_id=borrower_id, period_end=period_end)
@@ -143,11 +142,24 @@ class AssessmentService:
                 assessment.ml_status = "unavailable" if use_ml else "disabled"
             else:
                 self.result_repository.save_all(results)
-                if use_ml:
-                    if assessment.results:
-                        self._run_ml(assessment)
+                if assessment.results:
+                    try:
+                        assessment.trends = self.feature_builder.build(
+                            borrower_id,
+                            period_end,
+                            information_cutoff,
+                            assessment_run_id=run_id,
+                        )
+                    except Exception as error:
+                        assessment.issues.append(
+                            f"Deterministic trends unavailable: {type(error).__name__}: {error}"
+                        )
+                        assessment.ml_status = "failed" if use_ml else "disabled"
                     else:
-                        assessment.ml_status = "unavailable"
+                        if use_ml:
+                            self._run_ml(assessment)
+                elif use_ml:
+                    assessment.ml_status = "unavailable"
             try:
                 assessment.narrative = self.risk_analysis_service.analyze(assessment)
             except Exception as error:
@@ -169,12 +181,9 @@ class AssessmentService:
     def _run_ml(self, assessment: RiskAssessment) -> None:
         snapshot_saved = False
         try:
-            features = self.feature_builder.build(
-                assessment.borrower_id,
-                assessment.period_end,
-                assessment.information_cutoff,
-                assessment_run_id=assessment.assessment_run_id,
-            )
+            features = assessment.trends
+            if features is None:
+                raise ValueError("Deterministic features are unavailable.")
             stored_history = self.result_repository.get_history(
                 assessment.borrower_id,
                 period_end=assessment.period_end,

@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.calculations.leverage import divide
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
@@ -31,7 +31,7 @@ def assessment_service(tmp_path):
     """Use isolated databases without changing the repository's processed data."""
     financial_database = tmp_path / "financials.sqlite3"
     load_financials(DATA / "synthetic_quarterly_financials.csv", financial_database)
-    return AssessmentService(
+    return create_assessment_service(
         financial_repository=FinancialRepository(financial_database),
         covenant_reader=SyntheticCovenantReader(DATA / "synthetic_covenant_terms.csv"),
         settings=AssessmentSettings(analytics_database=tmp_path / "analytics.sqlite3"),
@@ -305,3 +305,75 @@ def test_cli_logging_keeps_stdout_json_and_is_opt_in(assessment_service, tmp_pat
         assert "calculate_covenant complete" in outcome.stderr
     else:
         assert outcome.stderr == ""
+
+
+def test_trends_are_identical_without_prediction_and_model_is_not_created(assessment_service):
+    from unittest.mock import Mock
+
+    from credit_monitoring.application.risk_analysis_service import assessment_context
+
+    factory = assessment_service.model_factory
+    forbidden_factory = Mock()
+    forbidden_factory.create.side_effect = AssertionError("ML is off")
+    assessment_service.model_factory = forbidden_factory
+    period = date(2025, 9, 30)
+    offline = assessment_service.assess("SYN002", period, period, ml_enabled=False)
+    assert offline.trends.covenants[0].metric_change_qoq == pytest.approx(135 / 26 - 130 / 28)
+    assert offline.trends.reported_ebitda_growth_qoq == pytest.approx(-2 / 28)
+    assert offline.trends.reported_ebitda_growth_yoy is None
+    assert offline.prediction is None and offline.feature_snapshot is None
+    forbidden_factory.create.assert_not_called()
+    with sqlite3.connect(assessment_service.result_repository.database_path) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM risk_feature_snapshots").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM risk_predictions").fetchone()[0] == 0
+    assert assessment_context(offline)["risk_features"] == offline.trends.model_dump(mode="json")
+    assessment_service.model_factory = factory
+    predicted = assessment_service.assess("SYN002", period, period, ml_enabled=True)
+    assert predicted.trends == offline.trends == predicted.feature_snapshot.features
+
+
+@pytest.mark.parametrize("use_ml", [False, True])
+def test_trend_failure_preserves_deterministic_results(assessment_service, monkeypatch, use_ml):
+    def fail(*args, **kwargs):
+        raise ValueError("Broken history")
+
+    monkeypatch.setattr(assessment_service.feature_builder, "build", fail)
+    period = date(2025, 9, 30)
+    assessment = assessment_service.assess("SYN002", period, period, ml_enabled=use_ml)
+    assert assessment.results[0].compliance_status == "compliant"
+    assert assessment.trends is None and assessment.prediction is None
+    assert assessment.ml_status == ("failed" if use_ml else "disabled")
+    assert any("Deterministic trends unavailable" in issue for issue in assessment.issues)
+
+
+@pytest.mark.parametrize("use_ml", [False, True])
+def test_invalid_calculations_are_not_saved_or_used_for_trends(
+    assessment_service, monkeypatch, use_ml
+):
+    from unittest.mock import Mock
+
+    from credit_monitoring.application import assessment_service as module
+
+    calculate = module.calculate_covenant
+
+    def corrupted(*args, **kwargs):
+        result = calculate(*args, **kwargs)
+        result.actual_value += 1
+        return result
+
+    monkeypatch.setattr(module, "calculate_covenant", corrupted)
+    save = Mock()
+    build = Mock()
+    create = Mock()
+    monkeypatch.setattr(assessment_service.result_repository, "save_all", save)
+    monkeypatch.setattr(assessment_service.feature_builder, "build", build)
+    monkeypatch.setattr(assessment_service.model_factory, "create", create)
+    period = date(2025, 9, 30)
+    assessment = assessment_service.assess("SYN002", period, period, ml_enabled=use_ml)
+    assert not assessment.verification.is_valid
+    assert any(issue.code == "calculation_mismatch" for issue in assessment.verification.issues)
+    assert assessment.trends is None and assessment.feature_snapshot is None
+    assert assessment.prediction is None
+    save.assert_not_called()
+    build.assert_not_called()
+    create.assert_not_called()

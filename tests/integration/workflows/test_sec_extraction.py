@@ -82,6 +82,12 @@ def test_retrieval_to_pydantic_model_to_unverified_json(synthetic_records, evide
     request = model.respond.call_args.kwargs
     assert request["info"].instructions == EXTRACTION_INSTRUCTIONS.strip()
     assert request["info"].output_tools[0].parameters_json_schema["title"] == "CovenantExtraction"
+    payload = json.loads(request["messages"][0].parts[0].content)
+    envelope = payload["retrieved_records"][0]
+    assert "notes" not in envelope["catalog_context"]
+    assert envelope["text"] == record["content"]
+    assert envelope["citation"] == record["citation"]
+    assert record["notes"] == "Synthetic catalog context only"
     output = json.loads(result.model_dump_json())
     assert output["extraction"]["covenants"][0]["threshold_schedule"][0]["period_end_dates"] == [
         "2025-03-31",
@@ -112,15 +118,21 @@ def test_one_batch_request_and_nested_v2_results(
     )
     model = ScriptedModel()
     model.respond.return_value = generation_response(expected)
+    record = {**synthetic_records["base"], "notes": "Catalog-only claimed threshold 99x"}
     result = extract_all_companies(
         "Extract all",
-        [synthetic_records["base"]],
+        [record],
         model=model,
         company_by_ticker={"SYN": "Synthetic Issuer Inc.", "SPARSE": "Sparse Synthetic Issuer"},
     )
     model.respond.assert_called_once()
     assert result.validation is None and len(result.extraction.companies) == 2
     assert model.respond.call_args.kwargs["info"].instructions == ALL_COMPANY_INSTRUCTIONS.strip()
+    payload = json.loads(model.respond.call_args.kwargs["messages"][0].parts[0].content)
+    envelope = payload["retrieved_records"][0]
+    assert "notes" not in envelope["catalog_context"]
+    assert envelope["text"] == record["content"]
+    assert record["notes"] == "Catalog-only claimed threshold 99x"
     assert (
         model.respond.call_args.kwargs["info"].output_tools[0].parameters_json_schema["title"]
         == "AllCompanyCovenantExtraction"

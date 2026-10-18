@@ -59,6 +59,19 @@ def test_initialization_is_once_and_assessment_requires_explicit_execution(worki
     assert not (directory / "analytics.sqlite3").exists()
     assessment = run_assessment(app)
     assert assessment.ml_status == "disabled"
+    assert assessment.trends is not None
+    covenant_trends = next(
+        frame.value for frame in app.dataframe if "Actual change QoQ" in frame.value.columns
+    )
+    assert covenant_trends.iloc[0]["Actual change QoQ"] == pytest.approx(
+        assessment.trends.covenants[0].metric_change_qoq
+    )
+    financial_trends = next(
+        frame.value for frame in app.dataframe if "Growth QoQ" in frame.value.columns
+    )
+    assert financial_trends.iloc[0]["Growth QoQ"] == pytest.approx(
+        assessment.trends.reported_ebitda_growth_qoq
+    )
     assert app.chat_input[0].disabled
     assert any("OPENAI_API_KEY" in item.value for item in app.info)
     with sqlite3.connect(directory / "analytics.sqlite3") as connection:

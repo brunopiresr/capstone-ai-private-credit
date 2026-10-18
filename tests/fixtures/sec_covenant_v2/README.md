@@ -23,4 +23,10 @@ The source catalog links that amendment to the SEC filing. These are pipeline te
 with mocked model outputs, not live LLM accuracy evaluations.
 
 `extraction_prompt_v2.txt` preserves the historical v2.0 prompt;
-`extraction_prompt_v2_1.txt` is the active v2.1 snapshot.
+`extraction_prompt_v2_1.txt` preserves v2.1; `extraction_prompt_v2_2.txt` preserves v2.2; `extraction_prompt_v2_3.txt` is active.
+Version 2.2 addresses source-confirmed actual/threshold confusion, adjacent-covenant
+operator contamination, covenant-family classification, and invented evidence quotations.
+Version 2.3 preserves source covenant names and records contradictory table headers
+without combining separate clauses. Its extraction input assembly also excludes
+descriptive catalog notes while preserving source text and provenance.
+See [public benchmark triage](../../../docs/public_sec_benchmark_triage.md).

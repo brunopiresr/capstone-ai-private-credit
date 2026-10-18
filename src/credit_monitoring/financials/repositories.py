@@ -1,9 +1,26 @@
 """Parameterized queries for the SQLite financial repository."""
 
+from datetime import date
 from pathlib import Path
 
+from credit_monitoring.domain.assessment import FinancialPeriod
 from credit_monitoring.financials.mappings import FINANCIAL_METRICS
 from credit_monitoring.persistence.database import open_database
+
+
+def financial_period_from_row(row: dict) -> FinancialPeriod:
+    """Copy source metadata; loaded_at is not publication availability."""
+    return FinancialPeriod(
+        borrower_id=row["borrower_id"],
+        period_end=row["period_end"],
+        metrics={metric: row.get(metric) for metric in FINANCIAL_METRICS},
+        source_file=row.get("source_file"),
+        source_row=row.get("source_row"),
+        loaded_at=row.get("loaded_at"),
+        available_at=row.get("available_at"),
+        currency=row.get("currency"),
+        scale=row.get("scale"),
+    )
 
 
 class FinancialRepository:
@@ -39,6 +56,20 @@ class FinancialRepository:
         query += " ORDER BY period_end"
         with open_database(self.database_path) as connection:
             return [dict(row) for row in connection.execute(query, parameters)]
+
+    def get_period(self, borrower_id: str, period_end: date) -> FinancialPeriod | None:
+        """Return sanitized typed inputs, retaining unknown availability as unknown."""
+        row = self.get_quarter(borrower_id, period_end.isoformat())
+        return financial_period_from_row(row) if row is not None else None
+
+    def get_period_history(
+        self, borrower_id: str, *, as_of: date | None = None
+    ) -> list[FinancialPeriod]:
+        """Read typed history bounded by reporting date, without benchmark notes."""
+        return [
+            financial_period_from_row(row)
+            for row in self.get_history(borrower_id, as_of=as_of.isoformat() if as_of else None)
+        ]
 
     def get_facts(
         self, borrower_id: str, period_end: str, *, metric_name: str | None = None

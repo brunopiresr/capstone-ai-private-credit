@@ -12,7 +12,7 @@ from credit_monitoring.domain import CovenantExtraction
 
 
 def test_authoritative_prompt_matches_agreed_version_snapshot():
-    snapshot = Path(__file__).parents[2] / "fixtures/sec_covenant_v2/extraction_prompt_v2_1.txt"
+    snapshot = Path(__file__).parents[2] / "fixtures/sec_covenant_v2/extraction_prompt_v2_3.txt"
     assert EXTRACTION_INSTRUCTIONS == snapshot.read_text()
 
 

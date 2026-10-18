@@ -4,7 +4,7 @@ import argparse
 from datetime import date
 from pathlib import Path
 
-from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
@@ -37,7 +37,7 @@ def main() -> None:
     arguments = parser.parse_args()
     if arguments.log_level is not None:
         configure_logging(arguments.log_level)
-    service = AssessmentService(
+    service = create_assessment_service(
         financial_repository=FinancialRepository(arguments.financial_db),
         covenant_reader=SyntheticCovenantReader(arguments.terms),
         settings=AssessmentSettings(

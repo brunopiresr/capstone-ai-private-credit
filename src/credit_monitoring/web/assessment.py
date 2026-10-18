@@ -70,6 +70,39 @@ def render_results(assessment: RiskAssessment) -> None:
             hide_index=True,
             width="stretch",
         )
+    if assessment.trends is not None:
+        st.markdown("**Deterministic trends**")
+        st.caption("Changes use the exact comparable prior period. Unavailable changes stay blank.")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Covenant": item.covenant_id,
+                        "Actual change QoQ": item.metric_change_qoq,
+                        "Headroom change QoQ": item.headroom_change_qoq,
+                        "Threshold change QoQ": item.threshold_change_qoq,
+                        "Basis changed": item.basis_changed,
+                    }
+                    for item in assessment.trends.covenants
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Metric": metric.replace("_", " "),
+                        "Growth QoQ": getattr(assessment.trends, f"{metric}_growth_qoq"),
+                        "Growth YoY": getattr(assessment.trends, f"{metric}_growth_yoy"),
+                    }
+                    for metric in ("reported_ebitda", "total_debt")
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
     if assessment.narrative:
         st.markdown("**Service summary**")
         st.write(assessment.narrative)

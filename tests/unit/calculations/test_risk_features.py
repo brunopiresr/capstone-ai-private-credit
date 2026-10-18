@@ -25,8 +25,7 @@ def result_history(tmp_path):
     reader = SyntheticCovenantReader(DATA / "synthetic_covenant_terms.csv")
     cutoff = date(2025, 9, 30)
     results = []
-    for row in financial_repository.get_history("SYN002", as_of=cutoff.isoformat()):
-        financials = FinancialPeriod.from_repository_row(row)
+    for financials in financial_repository.get_period_history("SYN002", as_of=cutoff):
         resolution = reader.resolve("SYN002", financials.period_end, cutoff, financials)[0]
         results.append(
             calculate_covenant(
@@ -128,9 +127,7 @@ def test_features_use_configured_formula_family(tmp_path, borrower_id, source_ty
     database = tmp_path / "financials.sqlite3"
     load_financials(DATA / "synthetic_quarterly_financials.csv", database)
     period = date(2025, 9, 30)
-    financials = FinancialPeriod.from_repository_row(
-        FinancialRepository(database).get_quarter(borrower_id, period.isoformat())
-    )
+    financials = FinancialRepository(database).get_period(borrower_id, period)
     reader = SyntheticCovenantReader(DATA / "synthetic_covenant_terms.csv")
     resolution = reader.resolve(borrower_id, period, period, financials)[0]
     assert resolution.covenant.formula == formula

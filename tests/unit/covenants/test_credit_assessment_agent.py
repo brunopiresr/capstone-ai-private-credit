@@ -26,7 +26,7 @@ from credit_monitoring.agents.tools.assessment import AssessmentTools
 from credit_monitoring.agents.tools.common import tool_outcome
 from credit_monitoring.agents.tools.documents import DocumentTools
 from credit_monitoring.agents.tools.sources import result_sources
-from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import (
     CalculationRules,
@@ -582,7 +582,7 @@ def test_sync_entry_point_in_running_loop_explains_async_usage(document_service_
 def agent_assessment_service(tmp_path):
     financial_db = tmp_path / "financials.sqlite3"
     load_financials(DATA / "synthetic_quarterly_financials.csv", financial_db)
-    return AssessmentService(
+    return create_assessment_service(
         financial_repository=FinancialRepository(financial_db),
         covenant_reader=SyntheticCovenantReader(DATA / "synthetic_covenant_terms.csv"),
         settings=AssessmentSettings(analytics_database=tmp_path / "analytics.sqlite3"),

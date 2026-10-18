@@ -6,7 +6,7 @@ from datetime import date
 
 import pytest
 
-from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.config.settings import AssessmentSettings
 from credit_monitoring.covenants.structured import ExtractionBinding, ExtractionCovenantReader
 from credit_monitoring.domain import (
@@ -80,7 +80,7 @@ def test_existing_extraction_is_consumed_without_reprocessing(stored_terms, tmp_
     financial_csv.write_text("borrower_id,period_end,total_debt\nBORROWER,2025-09-30,\n")
     database = tmp_path / "financials.sqlite3"
     load_financials(financial_csv, database)
-    assessment_service = AssessmentService(
+    assessment_service = create_assessment_service(
         financial_repository=FinancialRepository(database),
         covenant_reader=reader,
         settings=AssessmentSettings(analytics_database=tmp_path / "analytics.sqlite3"),
@@ -193,3 +193,22 @@ def test_group_waiver_does_not_imply_active_compliance(stored_terms, generation_
     resolution = reader.resolve("BORROWER", period, period, financials)[0]
     assert resolution.covenant is None
     assert any("scope" in issue for issue in resolution.issues)
+
+
+def test_resolver_accepts_stored_facts_and_text_without_service_or_paths(stored_terms):
+    from types import SimpleNamespace
+
+    service, original, _ = stored_terms
+    document = service.get_document_extraction("SYN")
+    markdown = service.read_source_text("SYN")
+    source = SimpleNamespace(
+        get_document_extraction=lambda document_id: document,
+        read_source_text=lambda document_id: markdown,
+    )
+    reader = ExtractionCovenantReader(source, original.bindings)
+    period = date(2025, 9, 30)
+    resolved = reader.resolve(
+        "BORROWER", period, period, FinancialPeriod(borrower_id="BORROWER", period_end=period)
+    )
+    assert resolved[0].covenant.reported_actual == 4.5
+    assert resolved[0].covenant.threshold == 5

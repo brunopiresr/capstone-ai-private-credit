@@ -18,19 +18,24 @@ flowchart LR
     A --> R[Cited answer and tool trace]
 ```
 
+`create_document_service()` composes the repository and `LocalEvidenceSearch`. The
+service selects eligible catalog documents; retrieval owns complete-Markdown chunking,
+index reuse and invalidation. `read_source_text()` validates catalog identity before
+reading source text, allowing covenant resolution to depend on a narrow source interface.
+
 ## Invoke from application code
 
 ```python
 from pathlib import Path
 from credit_monitoring.agents.models import DEFAULT_MODEL
-from credit_monitoring.application.document_processing_service import DocumentProcessingService
+from credit_monitoring.application.bootstrap import create_document_service
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.observability.logging import configure_logging
 
 # Show timestamped progress in the console or notebook cell output.
 configure_logging()
 
-service = DocumentProcessingService(
+service = create_document_service(
     model=DEFAULT_MODEL,
     source_file=Path("data/public_sec_documents.csv"),
     html_dir=Path("data/sec_documents/html"),
@@ -307,8 +312,12 @@ unverified results.
 Result wrappers use schema version `2.1`; `validation: null` means verification did
 not run. Callers must handle null rather than dereferencing `validation.is_valid`.
 The LLM's V2 fact schema and required evidence are unchanged. Pydantic parsing and
-model error handling remain active. Prompt versions are now extraction/batch `v2.1`;
-the old `v2.0` prompt snapshot is retained alongside the new snapshot.
+model error handling remain active. The extraction prompt is now `v2.3` (batch instructions remain `v2.1`);
+historical prompt snapshots are retained. Version 2.2 separates reported actuals from
+contractual limits and requires operators and quotations from the same covenant.
+Version 2.3 additionally distinguishes source names from schema categories and
+records contradictory table headers. Structured extraction excludes descriptive
+catalog notes from the model input; source text, identity and offsets are preserved.
 
 The agent reports source-supported facts and gaps. Calculations and configured-term
 applicability are delegated to the assessment service; the agent never infers them
@@ -330,12 +339,12 @@ existing service; its repositories, covenant reader, calculation rules and model
 configuration stay application-owned:
 
 ```python
-from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
 
-assessment_service = AssessmentService(
+assessment_service = create_assessment_service(
     financial_repository=FinancialRepository(Path("data/processed/financials.sqlite3")),
     covenant_reader=SyntheticCovenantReader(Path("data/synthetic_covenant_terms.csv")),
     settings=AssessmentSettings(

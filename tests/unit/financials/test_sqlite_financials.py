@@ -156,3 +156,30 @@ def test_database_write_failure_rolls_back_entire_import(tmp_path: Path) -> None
     repository = FinancialRepository(database)
     assert repository.get_quarter("SYN001", "2025-03-31")["total_debt"] == 120
     assert repository.get_quarter("SYN002", "2025-03-31")["total_debt"] == 135
+
+
+def test_typed_reads_preserve_metadata_and_exclude_notes(tmp_path):
+    from datetime import date
+
+    from credit_monitoring.financials.repositories import financial_period_from_row
+
+    database = tmp_path / "financials.sqlite3"
+    load_financials(SOURCE, database)
+    repository = FinancialRepository(database)
+    period = repository.get_period("SYN007", date(2025, 9, 30))
+    assert period.metrics["total_debt"] is None
+    assert period.metrics["financials_debt"] == 100
+    assert period.source_file == str(SOURCE)
+    assert period.source_row == 14
+    assert period.loaded_at and period.available_at is None
+    assert "notes" not in period.model_dump_json()
+    assert [
+        item.period_end for item in repository.get_period_history("SYN002", as_of=date(2025, 6, 30))
+    ] == [date(2025, 3, 31), date(2025, 6, 30)]
+    assert repository.get_period("SYN002", date(2024, 12, 31)) is None
+    row = repository.get_quarter("SYN007", "2025-09-30")
+    row.update(available_at="2025-10-15", currency="USD", scale="millions", expected_metric=99)
+    explicit = financial_period_from_row(row)
+    assert explicit.available_at == date(2025, 10, 15)
+    assert (explicit.currency, explicit.scale) == ("USD", "millions")
+    assert "expected_metric" not in explicit.model_dump_json()

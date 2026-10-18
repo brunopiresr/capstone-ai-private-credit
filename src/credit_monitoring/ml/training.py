@@ -3,13 +3,22 @@
 import json
 import platform
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
+    from numpy.typing import NDArray
+    from sklearn.pipeline import Pipeline
+
 
 from credit_monitoring.features.model_features import FEATURE_COLUMNS, MODEL_FEATURE_SCHEMA_VERSION
 
 from .artifacts import dependency_versions, file_hash, write_json
 
+type TrainingPartitions = dict[str, tuple[pd.DataFrame, pd.Series]]
 
-def _evaluate(labels, probabilities, prevalence: float) -> dict:
+
+def _evaluate(labels: pd.Series, probabilities: NDArray, prevalence: float) -> dict:
     """Report held-out performance and undefined metrics without inventing scores."""
     import numpy as np
     from sklearn.metrics import (
@@ -44,32 +53,9 @@ def _evaluate(labels, probabilities, prevalence: float) -> dict:
     }
 
 
-def train_model(
-    dataset_directory: Path,
-    artifact_directory: Path,
-    *,
-    version: str = "v1",
-    seed: int = 42,
-) -> dict:
-    """Fit a baseline using only the training partition and save a local pipeline.
-
-    Validation and test observations are evaluated after fitting. They never update
-    preprocessing, model coefficients, or classification thresholds.
-    """
-    import joblib
-    import numpy as np
+def _load_training_data(dataset_directory: Path) -> tuple[dict, TrainingPartitions]:
     import pandas as pd
-    from sklearn.impute import SimpleImputer
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.pipeline import Pipeline
-    from sklearn.preprocessing import StandardScaler
 
-    if not version.strip():
-        raise ValueError("A nonempty model version is required.")
-    dataset_directory = dataset_directory.resolve()
-    artifact_directory = artifact_directory.resolve()
-    if artifact_directory == dataset_directory:
-        raise ValueError("Save model artifacts separately from training inputs.")
     dataset_manifest = json.loads((dataset_directory / "manifest.json").read_text())
     expected = {
         "feature_schema_version": "v1",
@@ -86,6 +72,13 @@ def train_model(
     if file_hash(dataset_path) != dataset_manifest.get("output_hashes", {}).get("training.csv"):
         raise ValueError("Training dataset checksum does not match its manifest.")
     frame = pd.read_csv(dataset_path)
+    return expected, _validate_partitions(frame)
+
+
+def _validate_partitions(frame: pd.DataFrame) -> TrainingPartitions:
+    """Reject schema, label, borrower-overlap, and temporal leakage before fitting."""
+    import numpy as np
+
     if list(frame.columns) != [
         "sample_id",
         "borrower_id",
@@ -126,6 +119,15 @@ def train_model(
             raise ValueError("Borrowers cannot appear in multiple evaluation partitions.")
         borrowers_seen.update(borrower_ids)
         partitions[partition] = (features[selected], rows["target"].astype(int))
+    return partitions
+
+
+def _fit_pipeline(partitions: TrainingPartitions, seed: int) -> Pipeline:
+    from sklearn.impute import SimpleImputer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+
     training_features, training_labels = partitions["train"]
     if set(training_labels) != {0, 1}:
         raise ValueError("Training requires observed breaches and non-breaches.")
@@ -140,6 +142,13 @@ def train_model(
         ]
     )
     pipeline.fit(training_features, training_labels)
+    return pipeline
+
+
+def _evaluate_partitions(pipeline: Pipeline, partitions: TrainingPartitions) -> dict:
+    import numpy as np
+
+    training_labels = partitions["train"][1]
     prevalence = float(training_labels.mean())
     evaluation = {}
     for partition, (partition_features, labels) in partitions.items():
@@ -147,6 +156,21 @@ def train_model(
             pipeline.predict_proba(partition_features)[:, 1] if len(labels) else np.array([])
         )
         evaluation[partition] = _evaluate(labels, probabilities, prevalence)
+    return evaluation
+
+
+def _save_artifact(
+    pipeline: Pipeline,
+    artifact_directory: Path,
+    dataset_directory: Path,
+    expected: dict,
+    evaluation: dict,
+    version: str,
+    seed: int,
+) -> dict:
+    import joblib
+
+    dataset_path = dataset_directory / "training.csv"
     artifact_directory.mkdir(parents=True, exist_ok=True)
     pipeline_path = artifact_directory / "pipeline.joblib"
     joblib.dump(pipeline, pipeline_path, compress=3)
@@ -166,3 +190,25 @@ def train_model(
     }
     write_json(artifact_directory / "manifest.json", manifest)
     return manifest
+
+
+def train_model(
+    dataset_directory: Path,
+    artifact_directory: Path,
+    *,
+    version: str = "v1",
+    seed: int = 42,
+) -> dict:
+    """Validate inputs, fit training data only, evaluate, and save the complete pipeline."""
+    if not version.strip():
+        raise ValueError("A nonempty model version is required.")
+    dataset_directory = dataset_directory.resolve()
+    artifact_directory = artifact_directory.resolve()
+    if artifact_directory == dataset_directory:
+        raise ValueError("Save model artifacts separately from training inputs.")
+    expected, partitions = _load_training_data(dataset_directory)
+    pipeline = _fit_pipeline(partitions, seed)
+    evaluation = _evaluate_partitions(pipeline, partitions)
+    return _save_artifact(
+        pipeline, artifact_directory, dataset_directory, expected, evaluation, version, seed
+    )

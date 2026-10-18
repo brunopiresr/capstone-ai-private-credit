@@ -61,8 +61,9 @@ A standalone `Borrower` model remains outside this implementation.
 
 ### 1. Typed inputs and storage
 
-Reuse existing financial dictionaries through `FinancialPeriod.from_repository_row()`, which
-allowlists metric names and excludes notes. `SyntheticCovenantReader` reads the existing covenant CSV
+Read typed financial inputs through `FinancialRepository.get_period()` and
+`get_period_history()`; repository-owned mapping allowlists metrics and excludes notes
+(moved out of `FinancialPeriod` by cleanup F10). `SyntheticCovenantReader` reads the existing covenant CSV
 and uses explicit formula mappings. `ExtractionCovenantReader` consumes existing extraction models
 through `ExtractionBinding` records identifying borrower, agreement, covenant, document, and exact
 covenant name. Optional `CalculationRules` declare an approved formula and measurement basis.

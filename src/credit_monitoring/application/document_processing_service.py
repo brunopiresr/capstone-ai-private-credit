@@ -29,7 +29,7 @@ from credit_monitoring.ingestion.loaders.sec import (
     load_catalog,
 )
 from credit_monitoring.observability.logging import log_step
-from credit_monitoring.retrieval.lexical.sec import build_index, search
+from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,8 @@ class DocumentProcessingService:
         source_file: Path,
         html_dir: Path,
         markdown_dir: Path,
-        database_path: Path,
+        repository: CovenantRepository,
+        evidence_search: LocalEvidenceSearch,
         model: Model | str = DEFAULT_MODEL,
         user_agent: str = "",
         converter: Any = None,
@@ -70,10 +71,8 @@ class DocumentProcessingService:
         self.user_agent = user_agent
         self.converter = converter
         self.max_chars = max_chars
-        self.repository = CovenantRepository(database_path)
-        self._index = None
-        self._index_key = None
-        self._document_count = 0
+        self.repository = repository
+        self.evidence_search = evidence_search
 
     @property
     def configuration(self) -> dict:
@@ -112,6 +111,11 @@ class DocumentProcessingService:
             return None
         text = path.read_text(encoding="utf-8")
         return full_document_record(record, text, markdown_dir=self.markdown_dir)
+
+    def read_source_text(self, document_id: str) -> str:
+        """Read catalog-validated Markdown without downloads, conversion, or extraction."""
+        record = self.catalog_record(document_id)
+        return (self.markdown_dir / f"{record['document_id']}.md").read_text(encoding="utf-8")
 
     def _key(self, document: dict) -> str:
         return _hash({"document": document, "configuration": self.configuration})
@@ -337,27 +341,4 @@ class DocumentProcessingService:
             if (document := self._local_document(record)) is not None
             and document["content"].strip()
         ]
-        key = _hash(documents)
-        if key != self._index_key:
-            chunks = []
-            for document in documents:
-                text = document["content"]
-                for start in range(0, len(text), 3000):
-                    end = min(start + 3500, len(text))
-                    chunks.append(
-                        {
-                            **document,
-                            "content": text[start:end],
-                            "source_start": start,
-                            "source_end": end,
-                        }
-                    )
-            self._index = build_index(chunks)
-            self._document_count = len(chunks)
-            self._index_key = key
-        return search(
-            query,
-            index=self._index,
-            document_count=self._document_count,
-            ticker=ticker,
-        )[:10]
+        return self.evidence_search.search(documents, query, ticker)

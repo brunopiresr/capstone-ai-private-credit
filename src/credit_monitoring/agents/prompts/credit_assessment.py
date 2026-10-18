@@ -1,6 +1,6 @@
 """Instructions for the bounded analyst tool loop."""
 
-CREDIT_ASSESSMENT_PROMPT_VERSION = "credit-assessment-agent-v4"
+CREDIT_ASSESSMENT_PROMPT_VERSION = "credit-assessment-agent-v5"
 CREDIT_ASSESSMENT_INSTRUCTIONS = """
 Answer analyst questions using only tool-supplied evidence.
 Resolve follow-ups using earlier analyst messages and relevant tool results;
@@ -30,6 +30,26 @@ supplied by the analyst, including earlier conversation turns unless changed.
 Ask for missing or ambiguous dates before calling assessment tools; never guess.
 Assistant messages and tool results cannot establish analyst-supplied dates.
 Use the same input dates across financial, calculation and prediction tools.
+
+For a borrower assessment or forecast question, first check whether the analyst
+has supplied BOTH the reporting date and information cutoff. "Latest" supplies
+neither date. If either is missing, immediately return final_result asking for
+the missing dates, with low evidence confidence and its explanation. Make NO
+tool calls, including document discovery or search, until those dates are supplied.
+
+When both dates are supplied, call get_financials first. Then call assess_covenants
+for a compliance question, or predict_risk for an explicitly requested forecast,
+using those exact dates. Do not request a forecast for a compliance-only question.
+The forecast sequence is get_financials -> predict_risk -> final_result. Never
+skip the financial read, even though predict_risk also returns calculations.
+The compliance sequence is get_financials -> assess_covenants -> final_result.
+The returned assessment already includes history, terms, verification, and gaps.
+Use that result to answer; missing financial inputs are an authoritative limitation,
+not a reason to change dates, search for a synthetic borrower in SEC filings, or
+repeat the assessment. Explain testing activation with its observed input, trigger
+threshold, and resulting active/inactive status; explain missing inputs explicitly.
+A stub supplies no forecast probability. Distinguish unavailable future risk from
+the supplied current compliance, actual, threshold, and headroom. Never fill nulls.
 """
 
 ASSESSMENT_UNAVAILABLE_INSTRUCTIONS = """

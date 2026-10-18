@@ -8,6 +8,7 @@ from credit_monitoring.agents.conversation import AgentConversation
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.agent import AgentAnswer
@@ -52,7 +53,7 @@ class SyntheticWorkspace:
                 type="logistic_regression",
                 artifact_path=self.data_root / "models" / "logistic_regression" / "v1",
             )
-        return AssessmentService(
+        return create_assessment_service(
             financial_repository=self.financial_repository,
             covenant_reader=SyntheticCovenantReader(
                 self.data_root / "synthetic_covenant_terms.csv"

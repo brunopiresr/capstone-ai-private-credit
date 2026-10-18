@@ -1,0 +1,20 @@
+[
+  {
+    "document_id": "DOC_FMC_AMD3_2025",
+    "end_line": 54,
+    "source_sha256": "8b1da31fede7e16d9f33ff4ab35cfd914ea87216dd0a6c28d8ba7584f7f8e69f",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+    "start_char": 2723,
+    "start_line": 37,
+    "text": "Maximum Leverage Ratio. The U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 3.75:1.00; provided, however, that notwithstanding the foregoing, during the Covenant Relief Period, the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than the applicable level set forth below adjacent to such Fiscal Quarter:\n\n|  |  |  |  |  |  |\n| --- | --- | --- | --- | --- | --- |\n|  |  |  |  |  |  |\n| Fiscal Quarter | | | Maximum Leverage Ratio | | |\n| June 30, 2023 | | | 4.00 to 1.00 | | |\n| September 30, 2023 | | | 4.00 to 1.00 | | |\n| December 31, 2023 | | | 6.50 to 1.00 | | |\n| March 31, 2024 | | | 6.50 to 1.00 | | |\n| June 30, 2024 | | | 6.50 to 1.00 | | |\n| September 30, 2024 | | | 6.00 to 1.00 | | |\n| December 31, 2024 | | | 5.00 to 1.00 | | |\n| March 31, 2025 | | | 5.25 to 1.00 | | |\n| June 30, 2025 | | | 5.25 to 1.00 | | |\n| September 30, 2025 | | | 5.25 to 1.00 | | |\n| December 31, 2025 | | | 5.00 to 1.00 | | |\n| March 31, 2026 | | | 5.00 to 1.00 | | |\n"
+  },
+  {
+    "document_id": "DOC_FMC_Q1_2025",
+    "end_line": 999,
+    "source_sha256": "368978b2f2d113d2bab6ff6ac170daed2216929ec29389f36576451e93254e0d",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+    "start_char": 92090,
+    "start_line": 994,
+    "text": "Covenants\n\nAmong other restrictions, the Fifth Amended and Restated Credit Agreement, dated as of June 17, 2022 (the \"Revolving Credit Facility\") contains financial covenants applicable to FMC and its consolidated subsidiaries related to leverage (measured as the ratio of debt to adjusted earnings) and interest coverage (measured as the ratio of adjusted earnings to interest expense). In February 2025, the Company amended its credit agreement to provide additional financial flexibility given current market challenges. As defined in the amendment, the maximum leverage ratio is increased to 5.25 through the period ending September 30, 2025 and will incrementally step down during the covenant relief period ending at 3.75 for the quarter ended December 31, 2027. The amendment also maintains the minimum interest coverage ratio at 3.00 through the quarter ended December 31, 2025. The minimum interest coverage ratio will return to 3.50 beginning with the quarter ended March 31, 2026.\n\nOur actual leverage for the four consecutive quarters ended March 31, 2025 was 4.77, which is below the maximum leverage of 5.25. Our actual interest coverage for the four consecutive quarters ended March 31, 2025 was 3.84, which is above the minimum interest coverage of 3.00. We were in compliance with all covenants at March 31, 2025.\n\n"
+  }
+]

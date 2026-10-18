@@ -6,8 +6,6 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
-from credit_monitoring.financials.mappings import FINANCIAL_METRICS
-
 from .analytics_base import (
     AssessmentModel,
     CalculationFormula,
@@ -17,7 +15,8 @@ from .analytics_base import (
     new_identifier,
     utc_now,
 )
-from .risk_features import BorrowerFeatureSnapshot
+from .financials import FINANCIAL_METRICS
+from .risk_features import BorrowerFeatureSnapshot, BorrowerRiskFeatures
 from .risk_prediction import RiskPrediction
 from .validation import ValidationReport
 
@@ -52,21 +51,6 @@ class FinancialPeriod(AssessmentModel):
         if unknown := set(metrics) - set(FINANCIAL_METRICS):
             raise ValueError(f"Unknown financial metrics: {sorted(unknown)}")
         return metrics
-
-    @classmethod
-    def from_repository_row(cls, row: dict) -> FinancialPeriod:
-        """Copy source metadata; loaded_at is not publication availability."""
-        return cls(
-            borrower_id=row["borrower_id"],
-            period_end=row["period_end"],
-            metrics={metric: row.get(metric) for metric in FINANCIAL_METRICS},
-            source_file=row.get("source_file"),
-            source_row=row.get("source_row"),
-            loaded_at=row.get("loaded_at"),
-            available_at=row.get("available_at"),
-            currency=row.get("currency"),
-            scale=row.get("scale"),
-        )
 
 
 class ResolvedCovenant(AssessmentModel):
@@ -216,6 +200,10 @@ class RiskAssessment(AssessmentModel):
     results: list[CovenantResult] = Field(description="Current deterministic covenant results.")
     history: list[CovenantResult] = Field(
         default_factory=list, description="Earlier results from the same bounded assessment run."
+    )
+    trends: BorrowerRiskFeatures | None = Field(
+        default=None,
+        description="Current values and comparable trends, independent of prediction.",
     )
     feature_snapshot: BorrowerFeatureSnapshot | None = Field(
         default=None, description="Exact persisted model input, when feature construction succeeds."

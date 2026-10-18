@@ -10,8 +10,10 @@ from pydantic_ai import models
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.models import DEFAULT_MODEL
-from credit_monitoring.application.assessment_service import AssessmentService
-from credit_monitoring.application.document_processing_service import DocumentProcessingService
+from credit_monitoring.application.bootstrap import (
+    create_assessment_service,
+    create_document_service,
+)
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
@@ -49,7 +51,7 @@ def credit_agent(pytestconfig, tmp_path, monkeypatch):
 
     financial_database = tmp_path / "financials.sqlite3"
     load_financials(ROOT / "data/synthetic_quarterly_financials.csv", financial_database)
-    assessments = AssessmentService(
+    assessments = create_assessment_service(
         financial_repository=FinancialRepository(financial_database),
         covenant_reader=SyntheticCovenantReader(ROOT / "data/synthetic_covenant_terms.csv"),
         settings=AssessmentSettings(
@@ -61,7 +63,7 @@ def credit_agent(pytestconfig, tmp_path, monkeypatch):
     # These financial scenarios need no SEC documents or downloads.
     catalog = tmp_path / "catalog.csv"
     catalog.write_text("document_id,company,ticker,document_type,source_url\n", encoding="utf-8")
-    documents = DocumentProcessingService(
+    documents = create_document_service(
         source_file=catalog,
         html_dir=tmp_path / "html",
         markdown_dir=tmp_path / "markdown",

@@ -2,11 +2,14 @@
 
 import json
 from collections.abc import Sequence
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 from credit_monitoring.domain.agent import AgentAnswer
+
+JUDGE_MODEL = "openai:gpt-4o-mini"
 
 JUDGE_INSTRUCTIONS = """
 You are an expert judge evaluating a credit-monitoring agent's performance.
@@ -56,13 +59,15 @@ class JudgeFeedback(BaseModel):
 def create_judge_agent() -> Agent:
     return Agent(
         name="judge",
-        model="openai:gpt-4o-mini",
+        model=JUDGE_MODEL,
         instructions=JUDGE_INSTRUCTIONS,
         output_type=JudgeFeedback,
     )
 
 
-async def evaluate_agent_performance(result: AgentAnswer, criteria: Sequence[str]) -> JudgeFeedback:
+async def evaluate_agent_performance(
+    result: AgentAnswer, criteria: Sequence[str], *, artifact_path: Path | None = None
+) -> JudgeFeedback:
     """Evaluate all criteria in one model call using the actual answer and trace."""
     if isinstance(criteria, str) or not criteria or any(not item.strip() for item in criteria):
         raise ValueError("Supply a nonempty sequence of nonblank criteria.")
@@ -75,15 +80,23 @@ async def evaluate_agent_performance(result: AgentAnswer, criteria: Sequence[str
     )
     judge_result = await create_judge_agent().run(prompt)
     feedback = judge_result.output
+    if artifact_path is not None:
+        artifact_path.write_text(
+            json.dumps(
+                {"judge_model": JUDGE_MODEL, "feedback": feedback.model_dump(mode="json")}, indent=2
+            )
+        )
     assert [item.criterion_description for item in feedback.criteria] == list(criteria), (
         "Judge feedback must contain every supplied criterion exactly once, in the same order."
     )
     return feedback
 
 
-async def assert_criteria(result: AgentAnswer, criteria: Sequence[str]) -> JudgeFeedback:
+async def assert_criteria(
+    result: AgentAnswer, criteria: Sequence[str], *, artifact_path: Path | None = None
+) -> JudgeFeedback:
     """Assert that an agent run passes every natural-language criterion."""
-    feedback = await evaluate_agent_performance(result, criteria)
+    feedback = await evaluate_agent_performance(result, criteria, artifact_path=artifact_path)
     print("Judge feedback:")
     print(feedback.feedback)
     for criterion in feedback.criteria:

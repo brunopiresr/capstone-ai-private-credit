@@ -68,7 +68,8 @@ def test_agent_sends_only_context_for_registered_tools(assessment_enabled):
     assert instructions == build_credit_assessment_instructions(
         assessment_enabled=assessment_enabled
     )
-    assert len(instructions.split()) <= 300
+    # Includes the explicit date gate and financial-read sequences validated live.
+    assert len(instructions.split()) <= 450
     assert CREDIT_ASSESSMENT_INSTRUCTIONS.strip() in instructions
     assert CONFIDENCE_INSTRUCTIONS.strip() in instructions
     assert (ASSESSMENT_INSTRUCTIONS.strip() in instructions) is assessment_enabled

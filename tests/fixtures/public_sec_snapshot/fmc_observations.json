@@ -1,0 +1,1151 @@
+{
+  "capture_note": "Unmodified complete cached result payloads for two FMC documents selected from the 2026-10-18 pre-change snapshot. Other documents omitted. Not hand-authored observations.",
+  "database_sha256": "b57edda859792e01c448c7bc93c3f9dc019c02852723719a574eacc8d2ca5ab5",
+  "documents": {
+    "DOC_FMC_AMD3_2025": {
+      "cache_key": "48a4339f50a9e7ec2bc49e5f1c00ba9166db05f2f91cee977e91ace2ff3bc778",
+      "configuration": {
+        "conversion_version": "beautifulsoup-clean-v1",
+        "max_chars": 60000,
+        "model": "openai-responses:gpt-4o-mini",
+        "prompt_version": "sec-covenant-extraction-v2.1",
+        "schema_version": "2.1",
+        "segmentation_version": "markdown-sections-v1"
+      },
+      "error": null,
+      "metadata": {
+        "cik": "37785",
+        "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+        "company": "FMC Corporation",
+        "document_date": "2025-02-03",
+        "document_id": "DOC_FMC_AMD3_2025",
+        "document_type": "Amendment No. 3",
+        "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+        "notes": "Covenant relief schedule; leverage and interest coverage thresholds.",
+        "offset_coordinate_system": "markdown",
+        "period_end": "",
+        "role": "amendment",
+        "source_end": 19742,
+        "source_length": 19742,
+        "source_start": 0,
+        "source_url": "https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+        "ticker": "FMC",
+        "truncated": false
+      },
+      "payload_sha256": "2a971df83275c4d7946b0e4ae2b6eaec0b99b47a665dfa190d7dd3657d2f2603",
+      "result": {
+        "extraction": {
+          "agreements": [
+            {
+              "agreement_name": "Fifth Amended and Restated Credit Agreement",
+              "amendment_name": "Amendment No. 3",
+              "amendment_number": "3",
+              "evidence": {
+                "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                "document_id": "DOC_FMC_AMD3_2025",
+                "evidence_quote": "AMENDMENT NO. 3, dated as of February 3, 2025 (this \u201cAmendment\u201d), to the Fifth Amended and Restated Credit Agreement, dated as of June 17, 2022.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                "source_end": 19742,
+                "source_start": 0
+              },
+              "execution_date": "2025-02-03",
+              "parties": [
+                "FMC CORPORATION",
+                "CITIBANK, N.A."
+              ],
+              "referenced_documents": [],
+              "stated_effective_date": "2025-02-03"
+            }
+          ],
+          "borrower": "FMC Corporation",
+          "compliance_disclosures": [],
+          "conflicts": [],
+          "covenants": [
+            {
+              "agreement_name": "Fifth Amended and Restated Credit Agreement",
+              "amendment_reference": "3",
+              "conditions_or_scope": null,
+              "covenant_name": "Maximum Leverage Ratio",
+              "covenant_type": "leverage",
+              "effective_date_or_period": "Commencing with the last day of each Fiscal Quarter",
+              "evidence": {
+                "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                "document_id": "DOC_FMC_AMD3_2025",
+                "evidence_quote": "the U.S. Borrower shall maintain an Interest Coverage Ratio, as determined as of the last day of each Fiscal Quarter, for the four consecutive Fiscal Quarters ending on such day, of not less than 3.50 to 1.00;",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                "source_end": 19742,
+                "source_start": 0
+              },
+              "metric": "Leverage Ratio",
+              "metric_definition_name": null,
+              "operator": ">=",
+              "operator_quote": "not less than",
+              "testing_period_or_frequency": "Fiscal Quarter",
+              "threshold_direction": "minimum",
+              "threshold_schedule": [
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 4.00 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2023-06-30"
+                  ],
+                  "threshold": "4.00 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 4.00 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2023-09-30"
+                  ],
+                  "threshold": "4.00 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 6.50 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2023-12-31",
+                    "2024-03-31",
+                    "2024-06-30"
+                  ],
+                  "threshold": "6.50 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 6.00 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2024-09-30"
+                  ],
+                  "threshold": "6.00 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 5.00 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2024-12-31",
+                    "2025-12-31"
+                  ],
+                  "threshold": "5.00 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 5.25 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2025-03-31",
+                    "2025-06-30",
+                    "2025-09-30"
+                  ],
+                  "threshold": "5.25 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 4.75 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2026-06-30",
+                    "2026-09-30"
+                  ],
+                  "threshold": "4.75 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 4.50 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2026-12-31",
+                    "2027-03-31",
+                    "2027-06-30"
+                  ],
+                  "threshold": "4.50 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 4.25 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2027-09-30"
+                  ],
+                  "threshold": "4.25 to 1.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, Amendment No. 3 (2025-02-03), DOC_FMC_AMD3_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+                    "document_id": "DOC_FMC_AMD3_2025",
+                    "evidence_quote": "the U.S. Borrower shall maintain as of the last day of each Fiscal Quarter a Leverage Ratio of not more than 3.75 to 1.00;",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_AMD3_2025.md",
+                    "source_end": 19742,
+                    "source_start": 0
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2027-12-31"
+                  ],
+                  "threshold": "3.75 to 1.00",
+                  "through_period_end": null
+                }
+              ]
+            }
+          ],
+          "credit_facility_terms": [],
+          "extraction_warnings": [],
+          "financial_metric_definitions": [],
+          "gaps": [],
+          "guarantors": [],
+          "issuer": "FMC Corporation",
+          "reported_financial_values": [],
+          "testing_events": [],
+          "ticker": "FMC"
+        },
+        "prompt_version": "sec-covenant-extraction-v2.1",
+        "schema_version": "2.1",
+        "validation": null
+      },
+      "source_available": true,
+      "source_sha256": "8b1da31fede7e16d9f33ff4ab35cfd914ea87216dd0a6c28d8ba7584f7f8e69f",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/37785/000003778525000013/amendmentno3tofifthamended.htm",
+      "status": "complete",
+      "total_sections": 1,
+      "updated_at": "2026-10-13 19:35:59"
+    },
+    "DOC_FMC_Q1_2025": {
+      "cache_key": "2a3314851ede8d55dab73eae624014ca960602025ff7c2664ed0ddad46df0507",
+      "configuration": {
+        "conversion_version": "beautifulsoup-clean-v1",
+        "max_chars": 60000,
+        "model": "openai-responses:gpt-4o-mini",
+        "prompt_version": "sec-covenant-extraction-v2.1",
+        "schema_version": "2.1",
+        "segmentation_version": "markdown-sections-v1"
+      },
+      "error": null,
+      "metadata": {
+        "cik": "37785",
+        "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+        "company": "FMC Corporation",
+        "document_date": "",
+        "document_id": "DOC_FMC_Q1_2025",
+        "document_type": "10-Q",
+        "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+        "notes": "Reports actual leverage 4.77x, interest coverage 3.84x and compliance.",
+        "offset_coordinate_system": "markdown",
+        "period_end": "2025-03-31",
+        "role": "periodic_filing",
+        "source_end": 233719,
+        "source_length": 233719,
+        "source_start": 0,
+        "source_url": "https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+        "ticker": "FMC",
+        "truncated": false
+      },
+      "payload_sha256": "f6d7dee4239d42f627aa110d59e06883cdda58ba8f7c9cc968adb1fe5697531b",
+      "result": {
+        "extraction": {
+          "agreements": [
+            {
+              "agreement_name": "10-Q",
+              "amendment_name": null,
+              "amendment_number": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Quarterly Report Pursuant to Section 13 or 15(d) of the Securities Exchange Act of 1934 for the quarterly period ended March 31, 2025",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 59692,
+                "source_start": 0
+              },
+              "execution_date": "2025-03-31",
+              "parties": [
+                "FMC Corporation"
+              ],
+              "referenced_documents": [],
+              "stated_effective_date": "2025-03-31"
+            },
+            {
+              "agreement_name": "Fifth Amended and Restated Credit Agreement",
+              "amendment_name": null,
+              "amendment_number": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Among other restrictions, the Fifth Amended and Restated Credit Agreement, dated as of June 17, 2022 (the \"Revolving Credit Facility\") contains financial covenants applicable to FMC and its consolidated subsidiaries related to leverage (measured as the ratio of debt to adjusted earnings) and interest coverage (measured as the ratio of adjusted earnings to interest expense).",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "execution_date": "2022-06-17",
+              "parties": [
+                "FMC Corporation"
+              ],
+              "referenced_documents": [],
+              "stated_effective_date": "2022-06-17"
+            },
+            {
+              "agreement_name": "Credit Agreement Amendment",
+              "amendment_name": null,
+              "amendment_number": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "In February 2025, the Company amended its credit agreement to provide additional financial flexibility given current market challenges. As defined in the amendment, the maximum leverage ratio is increased to 5.25 through the period ending September 30, 2025 and will incrementally step down during the covenant relief period ending at 3.75 for the quarter ended December 31, 2027. The amendment also maintains the minimum interest coverage ratio at 3.00 through the quarter ended December 31, 2025.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "execution_date": "2025-02-01",
+              "parties": [
+                "FMC Corporation"
+              ],
+              "referenced_documents": [],
+              "stated_effective_date": "2025-02-01"
+            },
+            {
+              "agreement_name": "Consolidated Financial Statements",
+              "amendment_name": null,
+              "amendment_number": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Notes to Consolidated Financial Statements (unaudited) \u2014 (Continued)",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 177603,
+                "source_start": 119117
+              },
+              "execution_date": null,
+              "parties": [],
+              "referenced_documents": [],
+              "stated_effective_date": "2025-03-31"
+            },
+            {
+              "agreement_name": "10-Q",
+              "amendment_name": null,
+              "amendment_number": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "execution_date": "2025-05-01",
+              "parties": [
+                "FMC Corporation"
+              ],
+              "referenced_documents": [],
+              "stated_effective_date": "2025-03-31"
+            }
+          ],
+          "borrower": "FMC Corporation",
+          "compliance_disclosures": [
+            {
+              "amendment_reference": null,
+              "assessment_date": "2025-03-31",
+              "covenant_name": null,
+              "description": "Compliant with leverage covenant",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Compliant with leverage covenant",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 59692,
+                "source_start": 0
+              },
+              "reported_result": "4.77x leverage",
+              "status": "non_compliant"
+            },
+            {
+              "amendment_reference": "Amendment February 2025",
+              "assessment_date": "2025-03-31",
+              "covenant_name": "Leverage Ratio",
+              "description": "Our actual leverage for the four consecutive quarters ended March 31, 2025 was 4.77, which is below the maximum leverage of 5.25.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Our actual leverage for the four consecutive quarters ended March 31, 2025 was 4.77, which is below the maximum leverage of 5.25.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "reported_result": "4.77",
+              "status": "compliant"
+            },
+            {
+              "amendment_reference": "Amendment February 2025",
+              "assessment_date": "2025-03-31",
+              "covenant_name": "Interest Coverage Ratio",
+              "description": "Our actual interest coverage for the four consecutive quarters ended March 31, 2025 was 3.84, which is above the minimum interest coverage of 3.00.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Our actual interest coverage for the four consecutive quarters ended March 31, 2025 was 3.84, which is above the minimum interest coverage of 3.00.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "reported_result": "3.84",
+              "status": "compliant"
+            },
+            {
+              "amendment_reference": null,
+              "assessment_date": "2025-03-31",
+              "covenant_name": "Leverage Ratio",
+              "description": "Actual leverage ratio exceeded the threshold of 4.00x.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Actual leverage 4.77x, interest coverage 3.84x and compliance.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 177603,
+                "source_start": 119117
+              },
+              "reported_result": "4.77x",
+              "status": "non_compliant"
+            },
+            {
+              "amendment_reference": null,
+              "assessment_date": "2025-03-31",
+              "covenant_name": "Leverage Ratio",
+              "description": "FMC Corporation is in compliance with all of its debt covenants.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Reports actual leverage 4.77x, interest coverage 3.84x and compliance.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "reported_result": "4.77x",
+              "status": "compliant"
+            },
+            {
+              "amendment_reference": null,
+              "assessment_date": "2025-03-31",
+              "covenant_name": "Interest Coverage Ratio",
+              "description": "FMC Corporation is in compliance with all of its debt covenants.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Reports actual leverage 4.77x, interest coverage 3.84x and compliance.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "reported_result": "3.84x",
+              "status": "compliant"
+            }
+          ],
+          "conflicts": [],
+          "covenants": [
+            {
+              "agreement_name": "Fifth Amended and Restated Credit Agreement",
+              "amendment_reference": "Amendment February 2025",
+              "conditions_or_scope": null,
+              "covenant_name": "Leverage Ratio",
+              "covenant_type": "leverage",
+              "effective_date_or_period": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Our actual leverage for the four consecutive quarters ended March 31, 2025 was 4.77, which is below the maximum leverage of 5.25.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "metric": "leverage ratio",
+              "metric_definition_name": null,
+              "operator": ">=",
+              "operator_quote": "is below the maximum leverage of 5.25",
+              "testing_period_or_frequency": null,
+              "threshold_direction": "maximum",
+              "threshold_schedule": [
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                    "document_id": "DOC_FMC_Q1_2025",
+                    "evidence_quote": "the maximum leverage ratio is increased to 5.25 through the period ending September 30, 2025",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                    "source_end": 119117,
+                    "source_start": 59692
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2025-09-30"
+                  ],
+                  "threshold": "5.25",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                    "document_id": "DOC_FMC_Q1_2025",
+                    "evidence_quote": ".incrementally step down during the covenant relief period ending at 3.75 for the quarter ended December 31, 2027",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                    "source_end": 119117,
+                    "source_start": 59692
+                  },
+                  "from_period_end": "2025-09-30",
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2027-12-31"
+                  ],
+                  "threshold": "3.75",
+                  "through_period_end": null
+                }
+              ]
+            },
+            {
+              "agreement_name": "Fifth Amended and Restated Credit Agreement",
+              "amendment_reference": "Amendment February 2025",
+              "conditions_or_scope": null,
+              "covenant_name": "Interest Coverage Ratio",
+              "covenant_type": "interest_coverage",
+              "effective_date_or_period": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Our actual interest coverage for the four consecutive quarters ended March 31, 2025 was 3.84, which is above the minimum interest coverage of 3.00.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "metric": "interest coverage ratio",
+              "metric_definition_name": null,
+              "operator": ">=",
+              "operator_quote": "is above the minimum interest coverage of 3.00",
+              "testing_period_or_frequency": null,
+              "threshold_direction": "minimum",
+              "threshold_schedule": [
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                    "document_id": "DOC_FMC_Q1_2025",
+                    "evidence_quote": "The amendment also maintains the minimum interest coverage ratio at 3.00 through the quarter ended December 31, 2025.",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                    "source_end": 119117,
+                    "source_start": 59692
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2025-12-31"
+                  ],
+                  "threshold": "3.00",
+                  "through_period_end": null
+                },
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                    "document_id": "DOC_FMC_Q1_2025",
+                    "evidence_quote": "The minimum interest coverage ratio will return to 3.50 beginning with the quarter ended March 31, 2026.",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                    "source_end": 119117,
+                    "source_start": 59692
+                  },
+                  "from_period_end": "2025-12-31",
+                  "measurement_basis": null,
+                  "period_end_dates": [
+                    "2026-03-31"
+                  ],
+                  "threshold": "3.50",
+                  "through_period_end": null
+                }
+              ]
+            },
+            {
+              "agreement_name": "Consolidated Financial Statements",
+              "amendment_reference": null,
+              "conditions_or_scope": "none",
+              "covenant_name": "Leverage Ratio",
+              "covenant_type": "leverage",
+              "effective_date_or_period": "Testing period ends in Q1 2025",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "explicitly supported fact about the leverage ratio",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 177603,
+                "source_start": 119117
+              },
+              "metric": "Leverage Ratio",
+              "metric_definition_name": null,
+              "operator": "<",
+              "operator_quote": "Reports actual leverage 4.77x",
+              "testing_period_or_frequency": null,
+              "threshold_direction": "maximum",
+              "threshold_schedule": [
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                    "document_id": "DOC_FMC_Q1_2025",
+                    "evidence_quote": "Reports actual leverage 4.77x",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                    "source_end": 177603,
+                    "source_start": 119117
+                  },
+                  "from_period_end": "2025-03-31",
+                  "measurement_basis": "Contractual",
+                  "period_end_dates": [
+                    "2025-03-31"
+                  ],
+                  "threshold": "4.77x",
+                  "through_period_end": null
+                }
+              ]
+            },
+            {
+              "agreement_name": "10-Q",
+              "amendment_reference": null,
+              "conditions_or_scope": "Applicable to FMC Corporation's debt instruments.",
+              "covenant_name": "Leverage Ratio",
+              "covenant_type": "leverage",
+              "effective_date_or_period": "Effective as of period ended 2025-03-31",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "FMC Corporation, 10-Q (2025-03-31)",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "metric": "Total Debt / EBITDA",
+              "metric_definition_name": null,
+              "operator": ">=",
+              "operator_quote": "Reports actual leverage 4.77x",
+              "testing_period_or_frequency": "Quarterly",
+              "threshold_direction": "maximum",
+              "threshold_schedule": [
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                    "document_id": "DOC_FMC_Q1_2025",
+                    "evidence_quote": "Reports actual leverage 4.77x, interest coverage 3.84x and compliance.",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                    "source_end": 233719,
+                    "source_start": 177603
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": "Not specified",
+                  "period_end_dates": [
+                    "2025-03-31"
+                  ],
+                  "threshold": "4.77x",
+                  "through_period_end": null
+                }
+              ]
+            },
+            {
+              "agreement_name": "10-Q",
+              "amendment_reference": null,
+              "conditions_or_scope": "Applicable to FMC Corporation's debt instruments.",
+              "covenant_name": "Interest Coverage Ratio",
+              "covenant_type": "interest_coverage",
+              "effective_date_or_period": "Effective as of period ended 2025-03-31",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "FMC Corporation, 10-Q (2025-03-31)",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "metric": "EBIT / Interest Expense",
+              "metric_definition_name": null,
+              "operator": ">=",
+              "operator_quote": "Reports actual interest coverage 3.84x",
+              "testing_period_or_frequency": "Quarterly",
+              "threshold_direction": "minimum",
+              "threshold_schedule": [
+                {
+                  "evidence": {
+                    "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                    "document_id": "DOC_FMC_Q1_2025",
+                    "evidence_quote": "Reports actual leverage 4.77x, interest coverage 3.84x and compliance.",
+                    "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                    "source_end": 233719,
+                    "source_start": 177603
+                  },
+                  "from_period_end": null,
+                  "measurement_basis": "Not specified",
+                  "period_end_dates": [
+                    "2025-03-31"
+                  ],
+                  "threshold": "3.84x",
+                  "through_period_end": null
+                }
+              ]
+            }
+          ],
+          "credit_facility_terms": [],
+          "extraction_warnings": [],
+          "financial_metric_definitions": [
+            {
+              "adjustments": [],
+              "amendment_reference": "Amendment February 2025",
+              "definition": "Measured as the ratio of debt to adjusted earnings",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "the maximum leverage ratio is increased to 5.25 through the period ending September 30, 2025",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "exclusions": [],
+              "measurement_basis": null,
+              "name": "Leverage Ratio"
+            },
+            {
+              "adjustments": [],
+              "amendment_reference": "Amendment February 2025",
+              "definition": "Measured as the ratio of adjusted earnings to interest expense",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "maintains the minimum interest coverage ratio at 3.00 through the quarter ended December 31, 2025.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "exclusions": [],
+              "measurement_basis": null,
+              "name": "Interest Coverage Ratio"
+            },
+            {
+              "adjustments": [],
+              "amendment_reference": null,
+              "definition": "Actual leverage ratio of 4.77x as of March 31, 2025.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Reports actual leverage 4.77x",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 177603,
+                "source_start": 119117
+              },
+              "exclusions": [],
+              "measurement_basis": "Contractual",
+              "name": "Leverage Ratio"
+            },
+            {
+              "adjustments": [],
+              "amendment_reference": null,
+              "definition": "Adjusted ROIC calculation involving net income attributable to FMC stockholders and total debt and equity over the last two years average.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "We believe Adjusted ROIC provides management and investors with useful supplemental information regarding our utilization of capital provided by both equity and debt as well as our working capital and free cash flow management.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "exclusions": [],
+              "measurement_basis": "Non-GAAP",
+              "name": "Adjusted ROIC"
+            },
+            {
+              "adjustments": [],
+              "amendment_reference": null,
+              "definition": "Total Debt + Total FMC stockholders\u2019 equity being applied to ROIC.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "ROIC numerator (Non-GAAP) | | | $ | 609.7 |  |  |",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "exclusions": [],
+              "measurement_basis": "Non-GAAP",
+              "name": "ROIC Numerator (Non-GAAP)"
+            },
+            {
+              "adjustments": [],
+              "amendment_reference": null,
+              "definition": "Average total debt and total FMC stockholders' equity over the last two years applied to ROIC.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "ROIC denominator (2 yr average total debt and FMC stockholders' equity) | | | $ | 8,516.4 |  |  |",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "exclusions": [],
+              "measurement_basis": "Non-GAAP",
+              "name": "ROIC Denominator (2 yr average total debt and FMC stockholders' equity)"
+            },
+            {
+              "adjustments": [],
+              "amendment_reference": null,
+              "definition": "Cash inflows and outflows excluding those related to financing activities and acquisition related investing activities.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Free cash flow (Non-GAAP) | | | $ | (595.7) |  |  |",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "exclusions": [],
+              "measurement_basis": "Non-GAAP",
+              "name": "Free Cash Flow"
+            },
+            {
+              "adjustments": [],
+              "amendment_reference": null,
+              "definition": "Earnings before interest, taxes, depreciation, and amortization adjusted for specific items excluding financing activities.",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Adjusted EBITDA of $119.7 million decreased $40.9 million, or approximately 25 percent versus the prior year period.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "exclusions": [],
+              "measurement_basis": "Non-GAAP",
+              "name": "Adjusted EBITDA"
+            }
+          ],
+          "gaps": [],
+          "guarantors": [],
+          "issuer": "FMC Corporation",
+          "reported_financial_values": [
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Revenue $ 791.4",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 59692,
+                "source_start": 0
+              },
+              "measurement_period": "Three Months Ended March 31, 2025",
+              "metric_name": "Revenue",
+              "period_end": "2025-03-31",
+              "reported_value": "$791.4 million"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Costs of sales and services $ 474.7",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 59692,
+                "source_start": 0
+              },
+              "measurement_period": "Three Months Ended March 31, 2025",
+              "metric_name": "Cost of Sales and Services",
+              "period_end": "2025-03-31",
+              "reported_value": "$474.7 million"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Gross margin $ 316.7",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 59692,
+                "source_start": 0
+              },
+              "measurement_period": "Three Months Ended March 31, 2025",
+              "metric_name": "Gross Margin",
+              "period_end": "2025-03-31",
+              "reported_value": "$316.7 million"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Net income (loss) $ (15.6)",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 59692,
+                "source_start": 0
+              },
+              "measurement_period": "Three Months Ended March 31, 2025",
+              "metric_name": "Net Income (Loss)",
+              "period_end": "2025-03-31",
+              "reported_value": "$(15.6) million"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Income (loss) from continuing operations $ (8.6)",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 59692,
+                "source_start": 0
+              },
+              "measurement_period": "Three Months Ended March 31, 2025",
+              "metric_name": "Income (Loss) from Continuing Operations",
+              "period_end": "2025-03-31",
+              "reported_value": "$(8.6) million"
+            },
+            {
+              "accounting_basis": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Our actual leverage for the four consecutive quarters ended March 31, 2025 was 4.77, which is below the maximum leverage of 5.25.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "measurement_period": null,
+              "metric_name": "Leverage",
+              "period_end": "2025-03-31",
+              "reported_value": "4.77"
+            },
+            {
+              "accounting_basis": null,
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Our actual interest coverage for the four consecutive quarters ended March 31, 2025 was 3.84, which is above the minimum interest coverage of 3.00.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 119117,
+                "source_start": 59692
+              },
+              "measurement_period": null,
+              "metric_name": "Interest Coverage",
+              "period_end": "2025-03-31",
+              "reported_value": "3.84"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Revenue of $791.4 million for the three months ended March 31, 2025",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 177603,
+                "source_start": 119117
+              },
+              "measurement_period": "Three Months Ended March 31, 2025",
+              "metric_name": "Revenue",
+              "period_end": "2025-03-31",
+              "reported_value": "$791.4 million"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Costs of sales and services $474.7 million",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 177603,
+                "source_start": 119117
+              },
+              "measurement_period": "Three Months Ended March 31, 2025",
+              "metric_name": "Cost of sales and services",
+              "period_end": "2025-03-31",
+              "reported_value": "$474.7 million"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31), DOC_FMC_Q1_2025 \u2014 https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Net loss attributable to FMC stockholders of $15.5 million",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 177603,
+                "source_start": 119117
+              },
+              "measurement_period": "Three Months Ended March 31, 2025",
+              "metric_name": "Net loss",
+              "period_end": "2025-03-31",
+              "reported_value": "$15.5 million"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Net income (loss) attributable to FMC stockholders (GAAP) | | | $ | 328.3",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "measurement_period": "Twelve Months Ended",
+              "metric_name": "Net income attributable to FMC stockholders (GAAP)",
+              "period_end": "2025-03-31",
+              "reported_value": "328.3"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Total debt | | | $ | 4,003.5 |  |  | | | $ | 4,335.7 |",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "measurement_period": "March 31, 2025",
+              "metric_name": "Total debt",
+              "period_end": "2025-03-31",
+              "reported_value": "4,003.5"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Total FMC stockholders\u2019 equity | | | 4,382.0 | |  | | | 4,311.5 |",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "measurement_period": "March 31, 2025",
+              "metric_name": "Total FMC stockholders\u2019 equity",
+              "period_end": "2025-03-31",
+              "reported_value": "4,382.0"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Cash and cash equivalents at March 31, 2025 and December 31, 2024, were $315.3 million and $357.3 million, respectively.",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "measurement_period": "March 31, 2025",
+              "metric_name": "Cash and cash equivalents",
+              "period_end": "2025-03-31",
+              "reported_value": "315.3"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Total debt | | | $ | 4,003.5 |  |  | | | $ | 4,335.7 |",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "measurement_period": "March 31, 2024",
+              "metric_name": "Total debt (previous period)",
+              "period_end": "2024-03-31",
+              "reported_value": "4,335.7"
+            },
+            {
+              "accounting_basis": "GAAP",
+              "evidence": {
+                "citation": "FMC Corporation, 10-Q (2025-03-31)",
+                "document_id": "DOC_FMC_Q1_2025",
+                "evidence_quote": "Total FMC stockholders\u2019 equity | | | 4,382.0 | |  | | | 4,311.5 |",
+                "markdown_path": "/workspaces/capstone-ai-private-credit/data/sec_documents/markdown/DOC_FMC_Q1_2025.md",
+                "source_end": 233719,
+                "source_start": 177603
+              },
+              "measurement_period": "March 31, 2024",
+              "metric_name": "Total FMC stockholders\u2019 equity (previous period)",
+              "period_end": "2024-03-31",
+              "reported_value": "4,311.5"
+            }
+          ],
+          "testing_events": [],
+          "ticker": "FMC"
+        },
+        "prompt_version": "sec-covenant-extraction-v2.1",
+        "schema_version": "2.1",
+        "validation": null
+      },
+      "source_available": true,
+      "source_sha256": "368978b2f2d113d2bab6ff6ac170daed2216929ec29389f36576451e93254e0d",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/37785/000003778525000065/fmc-20250331.htm",
+      "status": "complete",
+      "total_sections": 4,
+      "updated_at": "2026-10-13 19:37:35"
+    }
+  },
+  "selection": "Newest updated_at, then cache_key descending; latest failed state retained.",
+  "snapshot_version": 1
+}

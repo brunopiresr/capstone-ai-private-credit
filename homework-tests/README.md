@@ -1,9 +1,9 @@
 # Homework agent tests
 
-The three [main scenarios](../homework-test/three-main-cases.md) have two separate test files:
+The three [main scenarios](../homework-test/three-main-cases.md) share prompts, exact tool contracts and answer criteria in `scenarios.py`:
 
 - `test_main_scenarios.py` uses ordinary assertions for tool calls, dates, and structured results.
-- `test_llm_scenarios.py` runs the same scenarios asynchronously and calls `await assert_criteria(response, [...])` to check the response and tool behavior.
+- `test_llm_scenarios.py` runs the same scenarios asynchronously, checks the same tool contracts first, and calls `await assert_criteria(response, [...])` to check the response and tool behavior.
 
 `criteria_helpers.py` uses a PydanticAI judge (`openai:gpt-4o-mini`) with structured `JudgeFeedback`. One judge call evaluates all criteria for a completed scenario. The helper prints the feedback and asserts that every criterion passed. Incomplete agent runs and missing, reordered, or mismatched feedback fail explicitly. Evidence comes from the actual answer and ordered `AgentAnswer.tool_trace`, including tool arguments and returned results.
 
@@ -27,15 +27,20 @@ Both flags enable live requests and are aliases. Credentials are loaded from `OP
 uv run pytest homework-tests -q
 ```
 
-The judge tests run directly in the project's Python environment. They use no evaluation script, Evidently integration, separate environment, report generation, or artifact directories. The ordinary tests retain their existing answer captures. Judge explanations and live failures should be reviewed; production agent behavior is unchanged.
+The judge tests run directly in the project environment. `test_criteria_helpers.py`
+provides eight offline checks of feedback validation and prompt/trace preservation.
+Both live suites retain answer, generating-model identity, ordered tool arguments and
+results in ignored `data/processed/judges-homework-*` directories. The judged suite
+also saves judge identity, criteria and feedback before asserting acceptance.
 
-Validation on October 15, 2026: **110 existing offline tests passed**, all six homework scenarios skipped without a live flag, and **seven mocked helper checks passed** (including failed criteria, missing/reordered/mismatched feedback, trace preservation, and incomplete runs). Ruff checks passed.
-
-The two live suites ran separately with the default generating model:
-
-| Suite | Result | Observed failures |
-| --- | --- | --- |
-| Ordinary assertions | 0 passed, 3 failed | Assessment and forecast calls omitted the initial financial read; the missing-dates case guessed dates and reached the tool-round limit. |
-| Async LLM judge | 0 passed, 3 failed | The judge rejected missing/incorrect prerequisite tool order in the assessment and forecast cases; the missing-dates run reached the tool-round limit and failed before judging. |
-
-The failing expectations remain active. These are observations of the current agent, not expected-failure markers or fixes to its behavior.
+Validation on October 18, 2026 initially reproduced all six live failures. The
+assessment prompt now requires both analyst-supplied dates before any tool call,
+an initial financial read, and the exact assessment or forecast sequence. Tool
+instructions reinforce the forecast prerequisite. The same six scenarios then
+passed, including all three final-answer judge checks. A later run exposed an
+omitted activation comparison; the prompt now asks for the observed input and
+trigger threshold. Final validation after the streaming refactor: **14 passed**
+(eight offline helper checks plus all six live scenarios), using `openai-responses:gpt-4o-mini`
+for generation and `openai:gpt-4o-mini` for judging. These are observed live results, not expected-failure
+markers or proof of general model reliability. Subsequent runs may still fail and
+retain their captures for diagnosis.

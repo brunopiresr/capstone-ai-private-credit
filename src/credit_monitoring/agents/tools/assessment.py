@@ -10,7 +10,7 @@ from credit_monitoring.agents.tools.common import (
     domain_tool,
 )
 from credit_monitoring.application.assessment_service import AssessmentService
-from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
+from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.domain.tool_results import FinancialReview
 
 
@@ -59,6 +59,8 @@ class AssessmentTools:
         """Calculate and verify current covenant compliance and headroom.
 
         Resolve configured terms with established formulas; ML is disabled.
+        First call get_financials with the same dates. One assess_covenants call
+        supplies current and historical results; do not use it after predict_risk.
         Distinguish source-disclosed actuals from calculated values.
 
         Args:
@@ -83,6 +85,9 @@ class AssessmentTools:
         """Calculate current covenants and run the configured next-quarter model.
 
         Use for forecast requests. Keep the analyst's input dates unchanged;
+        REQUIRED: call get_financials with those dates before calling this tool.
+        This tool also supplies current compliance and history: answer from its
+        result without another assess_covenants or predict_risk call.
         the service determines the forecast horizon. Distinguish predicted risk
         from current observed compliance and disclosed actuals from calculations.
         Report supplied model name/version, horizon, probability and snapshot_id.
@@ -150,12 +155,11 @@ class AssessmentTools:
         return period, cutoff
 
     def _financials(self, period_end: date, cutoff: date) -> FinancialReview:
-        rows = self.service.financial_repository.get_history(
-            self.borrower_id, as_of=period_end.isoformat()
+        history = self.service.financial_repository.get_period_history(
+            self.borrower_id, as_of=period_end
         )
         periods, issues = [], []
-        for row in rows:
-            financials = FinancialPeriod.from_repository_row(row)
+        for financials in history:
             if financials.available_at is not None and financials.available_at > cutoff:
                 issues.append(f"Financial inputs for {financials.period_end} exceed the cutoff.")
                 continue

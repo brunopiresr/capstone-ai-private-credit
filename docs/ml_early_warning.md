@@ -1,7 +1,7 @@
 # Quarterly assessment and ML service
 
 The assessment service resolves existing terms for each reporting period, calculates covenant
-metrics, and stores the results before building optional risk features. The
+metrics, and stores verified results before building deterministic trends, with optional prediction. The
 `CreditAssessmentAgent` can invoke it through calculation and prediction tools;
 the Streamlit borrower page invokes the same workflow directly and uses the agent for follow-ups.
 See [agent configuration](document_processing.md#calculation-and-prediction-tools).
@@ -54,12 +54,12 @@ explicit input/storage locations. Analytics storage must be separate from the fi
 from datetime import date
 from pathlib import Path
 
-from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.config.settings import AssessmentSettings
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
 
-service = AssessmentService(
+service = create_assessment_service(
     financial_repository=FinancialRepository(Path("data/processed/financials.sqlite3")),
     covenant_reader=SyntheticCovenantReader(Path("data/synthetic_covenant_terms.csv")),
     settings=AssessmentSettings(analytics_database=Path("data/processed/analytics.sqlite3")),
@@ -71,7 +71,17 @@ assessment = service.assess(
 
 Every invocation gets a new run ID and snapshots the available historical calculation inputs.
 `assessment.results` contains current results; `history` contains earlier results from that run.
+`trends` contains deterministic covenant changes and financial QoQ/YoY growth, including
+when ML is off. It includes current feature values for context; missing or incompatible
+comparison periods remain null. Streamlit displays these changes separately from forecasts.
 `feature_snapshot`, `prediction`, and `ml_status` describe optional model execution.
+With ML off, no model, feature snapshot, or prediction record is created. A trend-building
+failure preserves verified compliance results and records the limitation.
+
+The factory composes repositories and collaborators explicitly. Direct `AssessmentService`
+construction accepts all collaborators and performs no storage initialization. Typed
+`FinancialRepository.get_period()` and `get_period_history()` reads own database-row mapping;
+the raw quarter/history APIs remain available for loading and inspection.
 `verification` identifies structured errors and unknown source availability.
 
 ## Inspect calculation inputs and results

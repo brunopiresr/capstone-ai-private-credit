@@ -4,6 +4,7 @@ import csv
 import json
 import random
 from collections import Counter
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -157,26 +158,26 @@ def _simulate_history(
     return rows
 
 
-def generate_dataset(
-    source_directory: Path,
-    output_directory: Path,
-    *,
-    seed: int = 42,
-    borrowers_per_scenario: int = 50,
-) -> dict:
-    """Write reproducible training files using existing calculation and feature services.
+@dataclass
+class SimulationRows:
+    borrowers: list[dict]
+    financials: list[dict]
+    terms: list[dict]
 
-    Monetary defaults and completed inputs are simulation assumptions, not reconstructed
-    benchmark facts. Gold labels and financial notes are never used to generate features.
-    """
-    if borrowers_per_scenario < 5:
-        raise ValueError("At least five borrowers per scenario are required for three partitions.")
-    source_directory = source_directory.resolve()
-    output_directory = output_directory.resolve()
-    if output_directory == source_directory or source_directory.is_relative_to(output_directory):
-        raise ValueError("Generated outputs must be separate from the source fixtures.")
-    output_directory.mkdir(parents=True, exist_ok=True)
-    sources = {name: _read_csv(source_directory / name) for name in INPUT_FILES}
+
+@dataclass
+class TrainingRecords:
+    features: list[dict]
+    training: list[dict]
+    outcomes: list[dict]
+    calculations: list[dict]
+
+
+def _simulate_population(
+    sources: dict[str, list[dict]],
+    seed: int,
+    borrowers_per_scenario: int,
+) -> SimulationRows:
     random_source = random.Random(seed)
     borrowers, financials, terms = [], [], []
     for template in sources[INPUT_FILES[0]]:
@@ -205,6 +206,11 @@ def generate_dataset(
                 for row in sources[INPUT_FILES[1]]
                 if row["borrower_id"] == template_id
             )
+    return SimulationRows(borrowers, financials, terms)
+
+
+def _write_population(rows: SimulationRows, output_directory: Path) -> Path:
+    borrowers, financials, terms = rows.borrowers, rows.financials, rows.terms
     _write_csv(output_directory / "borrowers.csv", borrowers, list(borrowers[0]))
     _write_csv(
         output_directory / "quarterly_financials.csv",
@@ -213,6 +219,51 @@ def generate_dataset(
     )
     terms_path = output_directory / "covenant_terms.csv"
     _write_csv(terms_path, terms, list(terms[0]))
+    return terms_path
+
+
+def _calculate_history(
+    borrower_id: str,
+    run_id: str,
+    indexed_financials: dict[tuple[str, str], dict],
+    covenant_reader: SyntheticCovenantReader,
+    repository: CovenantResultRepository,
+) -> dict[date, list[CovenantResult]]:
+    results_by_period = {}
+    for period in QUARTERS:
+        raw = indexed_financials[(borrower_id, period.isoformat())]
+        financial_period = FinancialPeriod(
+            borrower_id=borrower_id,
+            period_end=period,
+            metrics={name: raw.get(name) for name in FINANCIAL_METRICS},
+            source_file="quarterly_financials.csv",
+        )
+        resolutions = covenant_reader.resolve(borrower_id, period, period, financial_period)
+        for resolution in resolutions:
+            evidence_records = list(resolution.evidence)
+            if resolution.covenant is not None:
+                evidence_records.extend(resolution.covenant.evidence)
+            for evidence in evidence_records:
+                evidence["source_file"] = "covenant_terms.csv"
+        results = [
+            calculate_covenant(
+                resolution,
+                financial_period,
+                assessment_run_id=run_id,
+                information_cutoff=period,
+            )
+            for resolution in resolutions
+        ]
+        for result in results:
+            result.result_id = f"{run_id}:{period}:{result.covenant_id}"
+            result.created_at = datetime.combine(period, datetime.min.time(), tzinfo=UTC)
+        results_by_period[period] = results
+        repository.save_all(results)
+    return results_by_period
+
+
+def _build_training_records(rows: SimulationRows, terms_path: Path, seed: int) -> TrainingRecords:
+    borrowers, financials = rows.borrowers, rows.financials
     covenant_reader = SyntheticCovenantReader(terms_path)
     indexed_financials = {(row["borrower_id"], row["period_end"]): row for row in financials}
     feature_records, training_rows, outcome_records, calculation_records = [], [], [], []
@@ -222,37 +273,14 @@ def generate_dataset(
         for borrower in borrowers:
             borrower_id = borrower["borrower_id"]
             run_id = f"simulation:{GENERATOR_VERSION}:{seed}:{borrower_id}"
-            results_by_period = {}
-            for period in QUARTERS:
-                raw = indexed_financials[(borrower_id, period.isoformat())]
-                financial_period = FinancialPeriod(
-                    borrower_id=borrower_id,
-                    period_end=period,
-                    metrics={name: raw.get(name) for name in FINANCIAL_METRICS},
-                    source_file="quarterly_financials.csv",
-                )
-                resolutions = covenant_reader.resolve(borrower_id, period, period, financial_period)
-                for resolution in resolutions:
-                    evidence_records = list(resolution.evidence)
-                    if resolution.covenant is not None:
-                        evidence_records.extend(resolution.covenant.evidence)
-                    for evidence in evidence_records:
-                        evidence["source_file"] = "covenant_terms.csv"
-                results = [
-                    calculate_covenant(
-                        resolution,
-                        financial_period,
-                        assessment_run_id=run_id,
-                        information_cutoff=period,
-                    )
-                    for resolution in resolutions
-                ]
-                for result in results:
-                    result.result_id = f"{run_id}:{period}:{result.covenant_id}"
-                    result.created_at = datetime.combine(period, datetime.min.time(), tzinfo=UTC)
-                    calculation_records.append(result.model_dump(mode="json"))
-                results_by_period[period] = results
-                repository.save_all(results)
+            results_by_period = _calculate_history(
+                borrower_id, run_id, indexed_financials, covenant_reader, repository
+            )
+            calculation_records.extend(
+                result.model_dump(mode="json")
+                for results in results_by_period.values()
+                for result in results
+            )
             for quarter_index, period in enumerate(QUARTERS):
                 features = feature_builder.build(
                     borrower_id, period, period, assessment_run_id=run_id
@@ -288,6 +316,12 @@ def generate_dataset(
                         ],
                     }
                 )
+    return TrainingRecords(feature_records, training_rows, outcome_records, calculation_records)
+
+
+def _write_training_outputs(records: TrainingRecords, output_directory: Path) -> None:
+    feature_records, training_rows = records.features, records.training
+    outcome_records, calculation_records = records.outcomes, records.calculations
     _write_csv(
         output_directory / "training.csv",
         training_rows,
@@ -296,6 +330,18 @@ def generate_dataset(
     _write_jsonl(output_directory / "features.jsonl", feature_records)
     _write_jsonl(output_directory / "outcomes.jsonl", outcome_records)
     _write_jsonl(output_directory / "calculations.jsonl", calculation_records)
+
+
+def _write_manifest(
+    rows: SimulationRows,
+    records: TrainingRecords,
+    source_directory: Path,
+    output_directory: Path,
+    seed: int,
+    borrowers_per_scenario: int,
+) -> dict:
+    borrowers = rows.borrowers
+    training_rows, outcome_records = records.training, records.outcomes
     manifest = {
         "generator_version": GENERATOR_VERSION,
         "seed": seed,
@@ -344,3 +390,32 @@ def generate_dataset(
     }
     write_json(output_directory / "manifest.json", manifest)
     return manifest
+
+
+def generate_dataset(
+    source_directory: Path,
+    output_directory: Path,
+    *,
+    seed: int = 42,
+    borrowers_per_scenario: int = 50,
+) -> dict:
+    """Simulate inputs, calculate histories, label outcomes, and write reproducible files.
+
+    Simulation defaults are assumptions, never reconstructed benchmark facts.
+    Gold labels and source notes do not enter features.
+    """
+    if borrowers_per_scenario < 5:
+        raise ValueError("At least five borrowers per scenario are required for three partitions.")
+    source_directory = source_directory.resolve()
+    output_directory = output_directory.resolve()
+    if output_directory == source_directory or source_directory.is_relative_to(output_directory):
+        raise ValueError("Generated outputs must be separate from the source fixtures.")
+    output_directory.mkdir(parents=True, exist_ok=True)
+    sources = {name: _read_csv(source_directory / name) for name in INPUT_FILES}
+    rows = _simulate_population(sources, seed, borrowers_per_scenario)
+    terms_path = _write_population(rows, output_directory)
+    records = _build_training_records(rows, terms_path, seed)
+    _write_training_outputs(records, output_directory)
+    return _write_manifest(
+        rows, records, source_directory, output_directory, seed, borrowers_per_scenario
+    )

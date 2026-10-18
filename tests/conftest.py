@@ -8,7 +8,7 @@ import pytest
 from model_helpers import ScriptedModel, model_response
 from pydantic_ai import models
 
-from credit_monitoring.application.document_processing_service import DocumentProcessingService
+from credit_monitoring.application.bootstrap import create_document_service
 from credit_monitoring.domain import SourceEvidence
 from credit_monitoring.ingestion.converters.sec_markdown import CONVERSION_VERSION
 
@@ -63,7 +63,7 @@ def document_service_factory(tmp_path):
             writer = csv.DictWriter(file, fieldnames=list(record))
             writer.writeheader()
             writer.writerow(record)
-        return DocumentProcessingService(
+        return create_document_service(
             source_file=catalog,
             html_dir=tmp_path / "html",
             markdown_dir=markdown_dir,

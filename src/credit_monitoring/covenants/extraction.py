@@ -128,7 +128,7 @@ def extract_covenants(
         extraction = _parse(
             model=model,
             instructions=EXTRACTION_INSTRUCTIONS,
-            prompt=build_prompt(query, records),
+            prompt=build_prompt(query, records, include_catalog_notes=False),
             schema=CovenantExtraction,
         )
     return ExtractionResult(
@@ -168,7 +168,7 @@ def extract_all_companies(
             gaps=["No indexed SEC evidence or company catalog is available."],
         )
     else:
-        payload = json.loads(build_prompt(query, records))
+        payload = json.loads(build_prompt(query, records, include_catalog_notes=False))
         payload["company_catalog"] = [
             {"company": company, "ticker": ticker}
             for ticker, company in sorted(company_by_ticker.items())

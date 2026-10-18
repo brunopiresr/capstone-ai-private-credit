@@ -7,6 +7,23 @@ from pydantic import Field
 from .base import ExtractionModel
 from .evidence import SourceEvidence
 
+FINANCIAL_METRICS = (
+    "total_debt",
+    "cash",
+    "reported_ebitda",
+    "eligible_addbacks",
+    "cash_interest",
+    "capex",
+    "cash_taxes",
+    "scheduled_principal",
+    "rent",
+    "revolver_availability_pct",
+    "acquired_ebitda",
+    "synergy_addback",
+    "financials_debt",
+    "compliance_certificate_debt",
+)
+
 
 class FinancialMetricDefinition(ExtractionModel):
     name: str = Field(description="Exact contractual metric name in the supporting excerpt.")
