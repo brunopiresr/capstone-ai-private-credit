@@ -10,7 +10,19 @@ import pytest
 
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
-from credit_monitoring.covenants.structured import SyntheticCovenantReader
+from credit_monitoring.covenants.structured import (
+    CalculationRules,
+    ExtractionBinding,
+    ExtractionCovenantReader,
+    SyntheticCovenantReader,
+)
+from credit_monitoring.domain import (
+    CovenantExtraction,
+    CovenantTerm,
+    ReportedFinancialValue,
+    SourceEvidence,
+    ThresholdScheduleEntry,
+)
 from credit_monitoring.domain.assessment import CovenantResult
 from credit_monitoring.domain.risk_features import BorrowerRiskFeatures, CovenantRiskFeatures
 from credit_monitoring.features.model_features import FEATURE_COLUMNS, model_feature_row
@@ -317,6 +329,130 @@ def test_runtime_prediction_is_persisted_and_failures_preserve_compliance(
     assert failed.results[0].compliance_status == assessment.results[0].compliance_status
     assert failed.prediction.prediction_status == "failed"
     assert service.prediction_repository.get(failed.prediction.prediction_id) == failed.prediction
+
+
+@pytest.mark.parametrize("with_rules", [True, False], ids=["configured-formula", "unmapped"])
+def test_extracted_leverage_prediction_requires_explicit_formula(
+    document_service_factory, generation_response, trained_artifact, tmp_path, with_rules
+):
+    period = date(2025, 9, 30)
+    text = (
+        "# Synthetic agreement\n\nMaximum Net Leverage 5.00x for September 30, 2025. "
+        "Net leverage is (total debt - min(cash, 20)) / adjusted EBITDA. "
+        "The reported actual for September 30, 2025 is 4.00x.\n"
+    )
+    documents = document_service_factory(text)
+    evidence = SourceEvidence(
+        document_id="SYN",
+        citation=documents.get_document_extraction("SYN").citation,
+        evidence_quote=text,
+    )
+    extraction = CovenantExtraction(
+        covenants=[
+            CovenantTerm(
+                covenant_name="Maximum Net Leverage",
+                covenant_type="leverage",
+                metric="Net leverage",
+                operator="<=",
+                operator_quote="Maximum",
+                threshold_direction="maximum",
+                evidence=evidence,
+                threshold_schedule=[
+                    ThresholdScheduleEntry(
+                        threshold="5.00x", period_end_dates=[period], evidence=evidence
+                    )
+                ],
+            )
+        ],
+        reported_financial_values=[
+            ReportedFinancialValue(
+                metric_name="Net leverage",
+                reported_value="4.00x",
+                period_end=period,
+                evidence=evidence,
+            )
+        ],
+    )
+    documents.model.respond.return_value = generation_response(extraction)
+    documents.process_document("SYN")
+    reader = ExtractionCovenantReader(
+        documents,
+        [
+            ExtractionBinding(
+                borrower_id="BORROWER",
+                agreement_id="agreement-1",
+                covenant_id="agreement-1:leverage",
+                covenant_name="Maximum Net Leverage",
+                document_id="SYN",
+                calculation_rules=(
+                    CalculationRules(
+                        formula="net_leverage",
+                        cash_netting_cap=20,
+                        measurement_basis="Explicitly configured contractual basis",
+                    )
+                    if with_rules
+                    else None
+                ),
+            )
+        ],
+    )
+    financial_csv = tmp_path / "financials.csv"
+    financial_csv.write_text(
+        "borrower_id,period_end,total_debt,cash,reported_ebitda,eligible_addbacks\n"
+        "BORROWER,2025-09-30,420,50,100,0\n"
+    )
+    financial_database = tmp_path / "financials.sqlite3"
+    load_financials(financial_csv, financial_database)
+    service = AssessmentService(
+        financial_repository=FinancialRepository(financial_database),
+        covenant_reader=reader,
+        settings=AssessmentSettings(
+            analytics_database=tmp_path / "analytics.sqlite3",
+            risk_model=RiskModelConfig(type="logistic_regression", artifact_path=trained_artifact),
+        ),
+    )
+
+    assessment = service.assess("BORROWER", period, period, ml_enabled=True)
+
+    assert assessment.verification.is_valid
+    result = assessment.results[0]
+    assert result.actual_value == 4.0
+    assert result.threshold == 5.0
+    assert result.headroom == 1.0
+    assert result.compliance_status == "compliant"
+    assert result.covenant_type == result.resolved_covenant.covenant_type == "leverage"
+    assert evidence.model_dump(mode="json") in result.evidence
+    stored_extraction = documents.get_document_extraction("SYN").result.extraction
+    assert stored_extraction.covenants[0].covenant_type == "leverage"
+    documents.model.respond.assert_called_once()
+    assert service.result_repository.get_history(
+        "BORROWER",
+        period_end=period,
+        information_cutoff=period,
+        assessment_run_id=assessment.assessment_run_id,
+    ) == [result]
+    snapshot = assessment.feature_snapshot
+    prediction = assessment.prediction
+    assert service.snapshot_repository.get(snapshot.snapshot_id) == snapshot
+    assert service.prediction_repository.get(prediction.prediction_id) == prediction
+    assert prediction.snapshot_id == snapshot.snapshot_id
+    if with_rules:
+        assert result.financial_inputs["result_basis"] == "calculated"
+        assert snapshot.features.covenants[0].covenant_type == "net_leverage"
+        row = model_feature_row(snapshot.features)
+        assert tuple(row) == FEATURE_COLUMNS
+        assert row["net_leverage__covenant_count"] == 1
+        assert row["total_leverage__covenant_count"] == 0
+        assert assessment.ml_status == prediction.prediction_status == "complete"
+        assert prediction.model_name == "logistic_regression"
+        assert prediction.model_artifact_hash == file_hash(trained_artifact / "pipeline.joblib")
+        assert 0 <= prediction.breach_probability <= 1
+    else:
+        assert result.financial_inputs["result_basis"] == "reported"
+        assert snapshot.features.covenants[0].covenant_type == "leverage"
+        assert assessment.ml_status == prediction.prediction_status == "failed"
+        assert prediction.breach_probability is None
+        assert "Unsupported covenant family" in prediction.error
 
 
 def test_training_rejects_missing_classes(generated_dataset, tmp_path):

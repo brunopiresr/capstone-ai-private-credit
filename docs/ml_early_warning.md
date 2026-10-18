@@ -138,6 +138,15 @@ measurement basis have been explicitly established. Otherwise, a matching source
 can be assessed as `reported`; missing or ambiguous terms produce an abstention. Conditional legal
 clauses and overlapping versions requiring interpretation remain unresolved.
 
+Risk features use the resolved covenant's explicitly configured calculation formula as their
+`covenant_type`, such as `net_leverage` or `total_leverage`. Extracted terms, resolved covenants,
+and calculation records retain the source classification, such as `leverage`. Without a configured
+formula, features retain that classification; the trained-model converter rejects generic
+`leverage` rather than inferring a family from its name. A supported comparison using a
+source-reported actual remains valid when model conversion fails. Model failure metadata is
+persisted without a forecast probability. This mapping preserves the existing feature columns
+and model artifact compatibility; it does not require retraining or a database migration.
+
 ## Storage and model replacement
 
 `covenant_results`, `risk_feature_snapshots`, and `risk_predictions` are appended in the analytics

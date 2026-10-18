@@ -11,7 +11,10 @@ class CovenantRiskFeatures(AssessmentModel):
     """Comparable current and prior values for one agreement-specific covenant."""
 
     covenant_id: str = Field(description="Stable agreement-specific covenant identifier.")
-    covenant_type: str = Field(description="Metric family.")
+    covenant_type: str = Field(
+        description="Configured calculation formula family when available; otherwise the source "
+        "classification, which may be unsupported by the model."
+    )
     actual_value: float | None = Field(
         default=None, description="Current actual from the stored calculation result."
     )

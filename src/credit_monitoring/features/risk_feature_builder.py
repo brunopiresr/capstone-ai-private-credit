@@ -65,9 +65,12 @@ class RiskFeatureBuilder:
                 covenant_id=current.covenant_id, comparison_period_end=quarter_end
             ):
                 prior = indexed.get((current.covenant_id, quarter_end))
+                formula = (
+                    current.resolved_covenant.formula if current.resolved_covenant else None
+                )
                 features = CovenantRiskFeatures(
                     covenant_id=current.covenant_id,
-                    covenant_type=current.covenant_type,
+                    covenant_type=formula or current.covenant_type,
                     actual_value=current.actual_value,
                     threshold=current.threshold,
                     headroom=current.headroom,
