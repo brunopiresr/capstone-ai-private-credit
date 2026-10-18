@@ -41,12 +41,15 @@ build-backend = "hatchling.build"
 packages = ["src/credit_monitoring"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "homework-tests"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py314"
-include = ["src/**/*.py", "tests/**/*.py", "scripts/**/*.py"]
+include = [
+    "src/**/*.py", "tests/**/*.py", "scripts/**/*.py",
+    "homework-tests/**/*.py", "data/download_sec_documents.py",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

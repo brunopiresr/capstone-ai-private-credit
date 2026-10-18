@@ -1,5 +1,10 @@
 # AI Credit Monitoring POC — Code Agent Implementation Spec
 
+> Historical execution plan; status reviewed 18 October 2026. The current implementation
+> reference is [architecture](docs/architecture.md). PydanticAI supersedes the earlier direct-SDK /
+> no-agent-framework direction. Package trees and interfaces below record the original
+> design, including scaffolding since removed; use current usage guides for executable examples.
+
 > **Purpose:** This document is the execution specification for a coding agent.  
 > It translates the POC definition and architecture into an implementation sequence with explicit boundaries, interfaces, repository structure, and acceptance criteria.
 

@@ -1,95 +1,100 @@
 # Architecture
 
-The package separates analyst interaction, orchestration, retrieval, structured financial data, deterministic calculation, assessment synthesis, and verification. Streamlit's default borrower assessment uses working services with synthetic financials and covenant terms. It displays exact covenant statuses, provenance, verification, and optional predictions. The separate **Benchmark portfolio (mock)** page displays fixed expected examples.
+Current implementation reference, updated 18 October 2026. Business scope is in the
+[POC definition](poc_definition.md); older execution plans record historical requirements.
+PydanticAI is the retained agent framework, including its OpenAI provider integration.
 
-The application-service layer now includes complete-document extraction with SQLite
-caching and a `CreditAssessmentAgent` using the PydanticAI with document,
-financial, calculation and prediction tools when the assessment service is configured.
-These are demonstrated in `notebooks/03-agents.ipynb`. Streamlit follow-ups use the same agent
-with borrower-scoped assessment tools; document tools are registered only when a document service
-is supplied. Automatic post-extraction
-verification is temporarily disabled; the verifier code remains available. See
-[document processing and agent usage](document_processing.md).
+## Working flows
 
-```text
-                       ┌─────────────────────────┐
-                       │    Credit Analyst       │
-                       │      Web App            │
-                       └────────────┬────────────┘
-                                    │ Trigger / inspect / ask
-                                    ▼
-                       ┌─────────────────────────┐
-                       │ Monitoring Orchestrator │
-                       │       / Agent           │
-                       └──────────┬───┬──────────┘
-                                  │   │
-                  ┌───────────────┘   └─────────────────┐
-                  ▼                                     ▼
-       ┌─────────────────────┐                ┌─────────────────────┐
-       │ Legal / Public RAG  │                │ Financial Repository │
-       │ text + vector search│                │ quarterly facts      │
-       └──────────┬──────────┘                └──────────┬──────────┘
-                  │                                      ▼
-                  │                           ┌─────────────────────┐
-                  │                           │ Calculation Tools   │
-                  │                           │ ratios / headroom   │
-                  │                           └──────────┬──────────┘
-                  └──────────────────┬───────────────────┘
-                                     ▼
-                          ┌─────────────────────┐
-                          │ Assessment / Trend  │
-                          │ synthesis           │
-                          └──────────┬──────────┘
-                                     ▼
-                          ┌─────────────────────┐
-                          │ Verification        │
-                          │ evidence + math     │
-                          └──────────┬──────────┘
-                                     ▼
-                          ┌─────────────────────┐
-                          │ Analyst Result      │
-                          │ + optional chat     │
-                          └─────────────────────┘
+```mermaid
+flowchart TD
+    UI[Streamlit / notebooks / CLI] -->|Direct calls| S[Application services]
+    Q[Analyst question] --> A[PydanticAI agent]
+    A --> T[Scoped document / assessment tools]
+    T --> S
+    S --> D[SEC HTML and Markdown / stored extractions]
+    S --> L[Lexical evidence retrieval]
+    S --> F[Financial repository / period-specific terms]
+    F --> C[Deterministic calculations and trends]
+    C --> V[Active structured assessment verification]
+    V --> M[Optional stub or trained-model prediction]
+    M --> P[Prediction checks and final verification]
+    P --> R[Typed assessment / evidence and limitations]
+    D --> R
+    L --> R
+    R --> A
+    A --> N[Grounded analyst answer]
+    R --> UI
+    DB[SQLite / filesystem adapters] -.-> S
 ```
 
-## Implemented assessment pipeline
+Entry points compose repositories, lexical search, feature builders, models, and narrative
+collaborators in `application/bootstrap.py`. Services receive their dependencies; tools wrap
+services. Deterministic UI, notebook, and CLI calls do not need an agent. Financial storage
+mapping belongs to its adapter, and covenant resolution reads stored facts through an explicit
+source interface.
 
-The separate `AssessmentService` consumes existing financial rows and structured covenant inputs.
-It resolves terms for each reporting period, runs deterministic calculations, and appends historical
-results before optional feature/model execution. `ExtractionCovenantReader` uses existing stored
-extractions through explicit borrower/agreement/covenant bindings; there is no new SEC ingestion
-pipeline. Streamlit invokes the assessment service directly when the analyst runs a review,
-then retains that result across ordinary reruns. The credit assessment agent can invoke
-this pipeline through borrower-scoped calculation and prediction tools; its LLM does
-not execute formulas or supply model probabilities itself.
+The document workflow downloads into `data/sec_documents/html/<id>.html`, preserves
+substantive HTML content, and converts to versioned Markdown. Extraction processes whole
+filings in complete structural sections and reuses successful section results after failure.
+SQLite identity includes source hashes and conversion, segmentation, prompt, schema, and
+model configuration. A complete document is published only after every section succeeds.
+The [download CLI](../data/README.md#sec-source-download) shares this cache with processing.
 
-```text
-Existing terms → Period-specific resolution ──┐
-                                             ↓
-Financial periods → Calculations → Stored covenant results
-                                             ↓
-                              Feature snapshots → Model service
-                                             ↓
-                              Assessment context → Verification
-```
+Retrieval is lexical. `LocalEvidenceSearch` owns index reuse and source selection;
+vector and hybrid retrieval are deferred. Document tools preserve issuer scope and source
+provenance. [Service usage](document_processing.md) covers processing, evidence retrieval,
+streaming, tool traces, and scoped conversations.
 
-New analytics storage contains calculation results, exact feature snapshots, and linked predictions.
-The stub provides unknown risk and no probabilities. A separate offline generator simulates
-histories from the PoC cases and derives next-quarter labels through the same calculation services.
-A Logistic Regression training pipeline saves its preprocessing, classifier, metadata and
-evaluation. The runtime adapter uses the shared feature converter and loads an explicitly selected
-artifact. Synthetic outcome labels remain offline files; prediction storage uses the existing
-analytics schema. Streamlit initializes its own financial database once per startup and keeps
-analytics under the ignored `data/processed/streamlit/` directory. Conversation memory and active
-assessments belong to individual browser sessions. Prediction is off by default, and missing chat
-credentials do not prevent deterministic assessments. SEC UI bindings and additional models are
-later work. See
-[assessment and training usage](ml_early_warning.md).
+The assessment workflow resolves explicit covenant inputs for each financial period,
+calculates allowlisted formulas, verifies results, and persists them separately from source
+financials. It builds comparable deterministic trends even with prediction disabled.
+Missing quarters remain missing; incompatible bases suppress comparisons. Optional ML reuses
+those features, stores snapshots, and checks prediction identity, probabilities, and provenance.
+Final verification runs after predictions are attached.
 
-## Boundaries
+The stub supplies unknown risk and null probabilities. Retained synthetic generation and
+Logistic Regression training use borrower/time-separated validation and shared inference
+features. The runtime adapter requires compatible local metadata, versions, and checksums.
+See [assessment, training, and data limits](ml_early_warning.md).
 
-- Calculations are deterministic and independent of LLMs.
-- LLM outputs must be grounded in evidence with provenance.
-- Missing information stays explicitly missing.
-- Domain, ingestion, retrieval, calculation, application, persistence, and UI layers remain independently testable.
-- One orchestrator coordinates approved services; the analyst retains responsibility for interpretation and decisions.
+## Analyst UI and verification boundaries
+
+Streamlit's working borrower page calls services with bundled synthetic financials and terms.
+It displays exact covenant statuses, headroom, trends, sources, verification, and optional
+prediction. The separate **Benchmark portfolio (mock)** page displays fixed examples.
+Financial inputs and analytics live under ignored `data/processed/streamlit/`. Assessments
+and conversations belong to individual browser sessions. Prediction is off by default;
+missing chat credentials do not prevent deterministic assessments. SEC borrower/document UI
+bindings remain future work.
+
+Automatic post-extraction verification is disabled (`validation: null`); its implementation
+and standalone tests remain. Explicitly invalid extraction reports are still rejected.
+Structured assessment verification is active and covers calculation replay, identity,
+availability, provenance, prediction linkage, and stub honesty. It does not certify the
+semantic accuracy of generated prose or live extraction quality.
+
+## Checks and diagnostics
+
+The [README](../README.md#checks) lists the complete offline surface. Core and homework
+checks run in Python 3.14; optional Evidently checks run separately in Python 3.13. Live
+homework scenarios require explicit flags. Public-cache comparisons have a dedicated
+read-only snapshot command and [failure register](public_sec_benchmark_triage.md).
+
+Standard logging provides explicit financial adjustments, selected/rejected terms, abstentions,
+and final outcomes. Domain projections run only when INFO is enabled. Scoped identifiers
+are isolated between concurrent runs; a small timing context manager reports slow operations
+and sanitized failure types. No generic signature-binding decorator or telemetry exporter is used.
+
+## Roadmap
+
+- Add explicit SEC borrower/document bindings to the working UI; do not infer entity relationships.
+- Continue Logfire monitoring and fuller live agent/judge evaluation as later learning work.
+- Implement [borrower comparison](borrower_comparison_implementation_plan.md) and
+  [bullish, bearish, and recommendation agents](bullish_bearish_agents_implementation_plan.md)
+  only as their planned requirements are taken up. They are not current capabilities.
+- Create a public-news provider or vector/hybrid retrieval package when a concrete
+  implementation needs it; empty scaffold packages have been removed.
+
+Financial rules remain deterministic, missing inputs remain missing, synthetic results remain
+labeled, and the analyst retains responsibility for interpretation and decisions.

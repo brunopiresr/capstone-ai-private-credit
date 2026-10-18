@@ -8,8 +8,7 @@ including leading/trailing newlines. A reviewed prompt-version update should
 update this snapshot deliberately.
 
 Unit tests construct expected structured facts from these snippets. Workflow
-tests use mocked SDK responses and one mocked HTTP exchange through the installed
-SDK. They verify preservation, input assembly, parsing, provenance, serialization,
+tests use injected PydanticAI models and controlled service/HTTP collaborators. They verify preservation, input assembly, parsing, provenance, serialization,
 and error handling; they do **not** establish live model extraction accuracy or
 resistance to prompt injection. The injection test checks instruction/data isolation.
 

@@ -13,13 +13,13 @@ import pytest
 from pydantic import ValidationError
 
 from credit_monitoring.application.bootstrap import create_assessment_service
-from credit_monitoring.calculations.leverage import divide
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.risk_prediction import RiskPrediction
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
 from credit_monitoring.ml.factory import RiskModelFactory
+from credit_monitoring.observability.logging import log_event
 
 DATA = Path(__file__).resolve().parents[3] / "data"
 with (DATA / "synthetic_gold_labels.csv").open(newline="") as source:
@@ -271,10 +271,11 @@ def test_logs_link_resolution_calculations_and_trends_to_each_run(assessment_ser
             result.period_end.isoformat() for result in assessment.results + assessment.history
         }
         assert {r.period_end for r in records} == expected_periods
-        trends = [r for r in records if r.operation == "difference"]
-        if borrower == "SYN002":
-            assert trends and all(r.covenant_id for r in trends)
-    divide(10, 2)
+        features = next(r for r in records if r.operation == "risk_features")
+        assert features.outputs["covenant_count"] == len(assessment.trends.covenants)
+        calculations = [r for r in records if r.operation == "calculate_covenant"]
+        assert calculations and all(r.covenant_id for r in calculations)
+    log_event(logging.getLogger("credit_monitoring"), "outside_assessment")
     assert not hasattr(caplog.records[-1], "assessment_run_id")
 
 

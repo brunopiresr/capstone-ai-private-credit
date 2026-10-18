@@ -101,11 +101,8 @@ def test_existing_extraction_is_consumed_without_reprocessing(stored_terms, tmp_
     )
     assert selected.outputs["terms"]["threshold"] == 5
     assert selected.outputs["terms"]["reported_actual"] == 4.5
-    candidates = [r for r in caplog.records if getattr(r, "operation", None) == "_candidate"]
-    assert candidates
-    assert all(
-        r.document_id == "SYN" and r.covenant_id == "agreement-1:leverage" for r in candidates
-    )
+    assert selected.covenant_id == "agreement-1:leverage"
+    assert any(evidence["document_id"] == "SYN" for evidence in assessment.results[0].evidence)
     final = next(
         r
         for r in caplog.records

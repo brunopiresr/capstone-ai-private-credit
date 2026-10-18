@@ -11,7 +11,7 @@ Created for the **Private Credit Covenant & Early-Warning Agent** POC.
 - `synthetic_quarterly_financials.csv` — quarterly inputs for deterministic calculation tests.
 - `synthetic_gold_labels.csv` — 18 gold synthetic evaluations.
 - `evaluation_tasks.jsonl` — 60 ready-to-run evaluation tasks covering both public and synthetic cases.
-- `download_sec_documents.py` — optional helper for downloading the SEC source corpus.
+- `download_sec_documents.py` — guarded CLI sharing the service HTML cache.
 - `private_credit_benchmark_v1.xlsx` — human-review workbook containing the same benchmark tables.
 
 ## Public evidence grades
@@ -53,11 +53,26 @@ Public-company filings are a strong benchmark for covenant extraction, amendment
 
 ## SEC source download
 
-Run:
+Run from the repository root after the core environment is installed:
 
 ```bash
 export SEC_USER_AGENT="Your Name your.email@example.com"
-python download_sec_documents.py
+uv run --locked python data/download_sec_documents.py
 ```
 
-This will populate `sec_documents/`. Keep automated request rates modest and follow SEC fair-access guidance.
+The CLI and document processing share `data/sec_documents/html/<document_id>.html`.
+Defaults are resolved from the script location, independent of the working directory.
+Select one or more documents with repeated `--document-id ID`; override the catalog and
+HTML directory with `--source-file PATH` and `--html-dir PATH`. `--help` and importing
+the utility perform no downloads or directory creation.
+
+Existing nonempty HTML is reused without credentials. Cache misses require an identifying
+`SEC_USER_AGENT`; downloads are serial and throttled. Successful files are published
+atomically. A failed or empty download leaves no reusable new file, other documents
+continue, and any failure produces a nonzero exit code. Current catalog sources are
+HTML. PDF URLs/content are unsupported by this HTML pipeline.
+
+Markdown remains in `data/sec_documents/markdown/` with the existing conversion-version
+markers. Old flat `.htm`/`.pdf` files directly under `sec_documents/` are not the active
+cache. Leave them intact and run the command to populate the canonical HTML directory;
+this cleanup performs no automatic renaming or deletion.

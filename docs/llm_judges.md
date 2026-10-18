@@ -141,7 +141,7 @@ from credit_monitoring.evaluation.judge_inputs import (
 # service is your existing configured DocumentProcessingService instance.
 question = "What covenant thresholds are disclosed for this issuer?"
 records = service.search_evidence(question, ticker="FMC")
-answer = llm(build_prompt(question, records), client=service.client, model=service.model)
+answer = llm(build_prompt(question, records), model=service.model)
 document = service.get_document_extraction("DOC_FMC_AMD3_2025")
 
 cases = [capture_retrieval("FMC_SEARCH", question, records)]
@@ -161,6 +161,11 @@ if document.result is not None:
 
 write_judge_inputs(Path("/tmp/credit-judge-inputs.jsonl"), cases)
 ```
+
+In a notebook with an active event loop, import `llm_async` from the same module and use
+`answer = await llm_async(build_prompt(question, records), model=service.model)` instead.
+Both variants use the same retrieved records for generation and capture; neither requires
+a direct SDK client.
 
 For a RAG string answer, pass that string to `capture_answer()` with the exact passages
 used to build its generation prompt. For batch extraction, `capture_extraction()`

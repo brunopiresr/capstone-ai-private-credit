@@ -2,12 +2,10 @@
 
 import json
 import logging
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import date
-from functools import wraps
-from inspect import signature
 from time import perf_counter
 from typing import Any
 
@@ -95,59 +93,6 @@ def log_event(
             }
         ),
     )
-
-
-def logged_operation[**P, R](
-    *,
-    inputs: Callable[[dict[str, Any]], dict] | None = None,
-    outputs: Callable[[R], dict] | None = None,
-    context: Callable[[dict[str, Any]], dict] | None = None,
-) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """Log synchronous calls, preserving signatures and all returns/exceptions.
-
-    Default projections are for scalar calculation functions only. Callers that
-    accept domain objects must supply explicit, evidence-free projections.
-    Failed operations are INFO too: incomplete calculations are normal outcomes,
-    and opt-in console logging must not alter an unconfigured script's output.
-    """
-
-    def decorate(function: Callable[P, R]) -> Callable[P, R]:
-        logger = logging.getLogger(function.__module__)
-        call_signature = signature(function)
-
-        @wraps(function)
-        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            bound = call_signature.bind(*args, **kwargs)
-            bound.apply_defaults()
-            arguments = bound.arguments
-            with logging_context(**(context(arguments) if context else {})):
-                projected = inputs(arguments) if inputs else dict(arguments)
-                log_event(logger, function.__name__, inputs=projected, status="started")
-                started = perf_counter()
-                try:
-                    result = function(*args, **kwargs)
-                except Exception as error:
-                    log_event(
-                        logger,
-                        function.__name__,
-                        inputs=projected,
-                        status="failed",
-                        error_type=type(error).__name__,
-                        elapsed_s=perf_counter() - started,
-                    )
-                    raise
-                log_event(
-                    logger,
-                    function.__name__,
-                    inputs=projected,
-                    outputs=outputs(result) if outputs else {"result": result},
-                    elapsed_s=perf_counter() - started,
-                )
-                return result
-
-        return wrapped
-
-    return decorate
 
 
 def configure_logging(level: int | str = logging.INFO) -> None:

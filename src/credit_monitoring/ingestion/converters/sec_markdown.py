@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from credit_monitoring.ingestion.cleaners.sec_html import clean_html
-from credit_monitoring.ingestion.loaders.sec import download_sec_filing, throttle_download
+from credit_monitoring.ingestion.loaders.sec import load_sec_html, validate_document_id
 from credit_monitoring.observability.logging import log_step
 
 CONVERSION_VERSION = "beautifulsoup-clean-v2"
@@ -23,8 +23,8 @@ def load_markdown(
 ) -> str:
     """Reuse the existing cache and conversion marker; download only when HTML is absent."""
     document_id = record["document_id"]
+    validate_document_id(document_id)
     html_dir, markdown_dir = Path(html_dir), Path(markdown_dir)
-    html_path = html_dir / f"{document_id}.html"
     markdown_path = markdown_dir / f"{document_id}.md"
     marker_path = markdown_dir / f".{document_id}.conversion-version"
     if (
@@ -35,15 +35,8 @@ def load_markdown(
     ):
         logger.info("Markdown cache hit document_id=%s", document_id)
         return markdown_path.read_text(encoding="utf-8")
-    html_dir.mkdir(parents=True, exist_ok=True)
     markdown_dir.mkdir(parents=True, exist_ok=True)
-    if not html_path.exists():
-        with log_step(logger, "Download SEC HTML", document_id=document_id):
-            html_content = download_sec_filing(record["source_url"], user_agent=user_agent)
-            html_path.write_text(html_content, encoding="utf-8")
-            throttle_download()
-    else:
-        logger.info("HTML cache hit document_id=%s", document_id)
+    html_path = load_sec_html(record, html_dir=html_dir, user_agent=user_agent)
     cleaned_html_path = html_dir / f"{document_id}.cleaned.html"
     with log_step(logger, "Clean SEC HTML", document_id=document_id):
         cleaned_html_path.write_text(

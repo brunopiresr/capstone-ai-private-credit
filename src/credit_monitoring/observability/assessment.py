@@ -1,7 +1,5 @@
 """Explicit log projections of assessment data, excluding evidence bodies and notes."""
 
-from typing import Any
-
 from credit_monitoring.domain.assessment import (
     CovenantResolution,
     CovenantResult,
@@ -54,28 +52,12 @@ def covenant_terms(covenant: ResolvedCovenant | None) -> dict | None:
     )
 
 
-def calculation_inputs(arguments: dict[str, Any]) -> dict:
-    resolution = arguments.get("resolution")
-    covenant = resolution.covenant if resolution is not None else arguments.get("covenant")
+def calculation_inputs(resolution: CovenantResolution, financials: FinancialPeriod) -> dict:
     return {
-        "financials": financial_inputs(arguments["financials"]),
-        "terms": covenant_terms(covenant),
-        "issues": list(resolution.issues) if resolution is not None else [],
+        "financials": financial_inputs(financials),
+        "terms": covenant_terms(resolution.covenant),
+        "issues": list(resolution.issues),
     }
-
-
-def calculation_context(arguments: dict[str, Any]) -> dict:
-    financials = arguments["financials"]
-    covenant = arguments.get("resolution") or arguments.get("covenant")
-    fields = {
-        "borrower_id": financials.borrower_id,
-        "period_end": financials.period_end,
-        "covenant_id": covenant.covenant_id,
-    }
-    for name in ("assessment_run_id", "information_cutoff"):
-        if name in arguments:
-            fields[name] = arguments[name]
-    return fields
 
 
 def covenant_output(result: CovenantResult) -> dict:
@@ -101,31 +83,9 @@ def covenant_output(result: CovenantResult) -> dict:
     return fields
 
 
-def resolution_context(arguments: dict[str, Any]) -> dict:
-    return {
-        name: arguments[name]
-        for name in (
-            "borrower_id",
-            "period_end",
-            "information_cutoff",
-        )
-    }
-
-
-def resolution_inputs(arguments: dict[str, Any]) -> dict:
-    return {
-        "reader": type(arguments["self"]).__name__,
-        "financials": financial_inputs(arguments["financials"]),
-    }
-
-
 def resolution_output(resolution: CovenantResolution) -> dict:
     return {
         "covenant_id": resolution.covenant_id,
         "terms": covenant_terms(resolution.covenant),
         "issues": list(resolution.issues),
     }
-
-
-def resolution_outputs(resolutions: list[CovenantResolution]) -> dict:
-    return {"resolutions": [resolution_output(item) for item in resolutions]}

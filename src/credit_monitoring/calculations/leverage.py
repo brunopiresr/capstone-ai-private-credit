@@ -3,7 +3,7 @@
 import logging
 from math import isfinite
 
-from credit_monitoring.observability.logging import log_event, logged_operation
+from credit_monitoring.observability.logging import log_event
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,6 @@ class CalculationInputError(ValueError):
     """Required financial inputs are missing or unsuitable for calculation."""
 
 
-@logged_operation()
 def divide(numerator: float, denominator: float) -> float:
     """Calculate a ratio only when its denominator is positive."""
     if denominator <= 0:
@@ -23,7 +22,6 @@ def divide(numerator: float, denominator: float) -> float:
     return ratio
 
 
-@logged_operation()
 def adjusted_ebitda(
     reported_ebitda: float,
     eligible_addbacks: float,
@@ -50,13 +48,11 @@ def adjusted_ebitda(
     return reported_ebitda + eligible_addbacks
 
 
-@logged_operation()
 def total_leverage(debt: float, ebitda: float) -> float:
     """Divide contractual debt by contractual EBITDA."""
     return divide(debt, ebitda)
 
 
-@logged_operation()
 def net_leverage(debt: float, cash: float, ebitda: float, cash_cap: float | None) -> float:
     """Deduct eligible cash, subject to the explicit cash-netting cap."""
     if cash < 0:
@@ -71,7 +67,6 @@ def net_leverage(debt: float, cash: float, ebitda: float, cash_cap: float | None
     return divide(debt - eligible_cash, ebitda)
 
 
-@logged_operation()
 def pro_forma_leverage(
     debt: float,
     reported_ebitda: float,

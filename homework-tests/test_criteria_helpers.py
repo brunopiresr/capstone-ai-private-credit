@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import criteria_helpers as helpers
 import pytest
+from pydantic_ai import models
 
 from credit_monitoring.domain.agent import AgentAnswer, ToolExecution
 from credit_monitoring.domain.tool_results import ToolFailure
@@ -15,6 +16,7 @@ CRITERIA = ["Ask for both dates.", "Invent no probability."]
 
 @pytest.fixture
 def judge(monkeypatch):
+    monkeypatch.setattr(models, "ALLOW_MODEL_REQUESTS", False)
     agent = SimpleNamespace(run=AsyncMock())
     monkeypatch.setattr(helpers, "create_judge_agent", lambda: agent)
     return agent
@@ -33,7 +35,9 @@ def feedback(criteria=CRITERIA, *, passed=True):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("complete,error", [(False, "model_error"), (True, "model_error")])
+@pytest.mark.parametrize(
+    "complete,error", [(False, None), (False, "model_error"), (True, "model_error")]
+)
 async def test_incomplete_or_error_runs_never_reach_judge(judge, complete, error):
     with pytest.raises(AssertionError, match="Agent run failed"):
         await helpers.assert_criteria(AgentAnswer(complete=complete, error=error), CRITERIA)
@@ -41,7 +45,9 @@ async def test_incomplete_or_error_runs_never_reach_judge(judge, complete, error
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("criteria", [[], CRITERIA[:1], CRITERIA[::-1], ["Wrong", CRITERIA[1]]])
+@pytest.mark.parametrize(
+    "criteria", [[], CRITERIA[:1], CRITERIA[::-1], ["Wrong", CRITERIA[1]], [CRITERIA[0]] * 2]
+)
 async def test_missing_reordered_or_mismatched_feedback_fails(judge, criteria):
     judge.run.return_value = SimpleNamespace(output=feedback(criteria))
     with pytest.raises(AssertionError, match="every supplied criterion"):
@@ -84,3 +90,11 @@ async def test_actual_answer_and_ordered_tool_evidence_reach_judge(judge):
     assert [call["name"] for call in calls] == ["get_financials", "assess_covenants"]
     assert calls[0]["arguments"] == {"period_end": "2025-09-30"}
     assert calls[0]["outcome"]["message"] == "Cutoff required"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("criteria", [[], "one criterion", [""], [" \t "]])
+async def test_invalid_criteria_never_reach_judge(judge, criteria):
+    with pytest.raises(ValueError, match="nonempty sequence"):
+        await helpers.assert_criteria(AgentAnswer(), criteria)
+    judge.run.assert_not_awaited()

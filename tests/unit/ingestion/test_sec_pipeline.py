@@ -50,9 +50,7 @@ def test_v1_markdown_reconverts_cached_html_without_downloading(tmp_path, monkey
     marker = markdown_dir / ".SYN.conversion-version"
     marker.write_text("beautifulsoup-clean-v1")
     download = Mock(side_effect=AssertionError("Cached HTML must not be downloaded"))
-    monkeypatch.setattr(
-        "credit_monitoring.ingestion.converters.sec_markdown.download_sec_filing", download
-    )
+    monkeypatch.setattr("credit_monitoring.ingestion.loaders.sec.download_sec_filing", download)
 
     def convert(path):
         cleaned = Path(path).read_text()
@@ -163,17 +161,13 @@ def test_download_and_conversion_log_before_blocking_work(tmp_path, monkeypatch,
         assert caplog.messages[-1] == "Convert HTML to Markdown started document_id=SYN"
         return SimpleNamespace(markdown="synthetic markdown")
 
-    monkeypatch.setattr(
-        "credit_monitoring.ingestion.converters.sec_markdown.download_sec_filing", download
-    )
-    monkeypatch.setattr(
-        "credit_monitoring.ingestion.converters.sec_markdown.throttle_download", lambda: None
-    )
+    monkeypatch.setattr("credit_monitoring.ingestion.loaders.sec.download_sec_filing", download)
+    monkeypatch.setattr("credit_monitoring.ingestion.loaders.sec.throttle_download", lambda: None)
     markdown = load_markdown(
         {"document_id": "SYN", "source_url": "https://example.invalid/fixture"},
         html_dir=tmp_path / "html",
         markdown_dir=tmp_path / "markdown",
-        user_agent="",
+        user_agent="Fixture fixture@example.invalid",
         converter=SimpleNamespace(convert_local=convert),
     )
     assert markdown == "synthetic markdown"

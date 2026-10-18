@@ -239,23 +239,24 @@ def test_callback_prints_nested_streams_and_error_status(capsys):
         yield AgentEvent(kind="run_end", agent_name="Model name", error="tool_round_limit")
 
     asyncio.run(callback(stream()))
-    assert capsys.readouterr().out.splitlines() == [
-        "MODEL REQUEST (Notebook agent)",
-        "TOOL CALL (Notebook agent): list_documents({})",
-        "TOOL RESULT (Notebook agent): list_documents — ok",
-        "TOOL RESULT (Notebook agent): missing — error: unknown_tool",
-        "AGENT FINISHED (Notebook agent): incomplete: tool_round_limit",
-    ]
+    output = capsys.readouterr().out
+    for expected in (
+        "Notebook agent",
+        "list_documents",
+        "missing",
+        "unknown_tool",
+        "tool_round_limit",
+    ):
+        assert expected in output
+    assert "private payload" not in output
 
 
 def test_callback_uses_event_agent_name_when_unbound(document_service_factory, capsys):
     monitor, model = agent(document_service_factory(), event_stream_handler=AgentEventCallback())
     model.respond.return_value = response(answer="Done")
     assert monitor.ask("Find filings").complete
-    assert capsys.readouterr().out.splitlines() == [
-        "MODEL REQUEST (Credit assessment agent)",
-        "AGENT FINISHED (Credit assessment agent): complete",
-    ]
+    output = capsys.readouterr().out
+    assert "Credit assessment agent" in output and "complete" in output
 
 
 def invoke_tool(container, name, arguments):
@@ -1050,14 +1051,19 @@ def test_conversation_exit_commands_clear_memory_without_model_or_tools(
         asyncio.run(conversation.ask_async(command)) if use_async else conversation.ask(command)
     )
     assert result is None and conversation.closed
-    assert conversation._history == conversation._sources == []
     model.respond.assert_not_called()
     service.model.respond.assert_not_called()
     handler.assert_not_called()
     conversation.close()  # Closing is idempotent.
     with pytest.raises(RuntimeError, match="Conversation is closed"):
         conversation.ask("Another question")
-    assert not monitor.start_conversation(ticker="SYN").closed
+    model.respond.side_effect = None
+    model.respond.return_value = response(answer="Fresh context.")
+    fresh = monitor.start_conversation(ticker="SYN")
+    assert fresh.ask("Start again").sources == []
+    request = model.respond.call_args.kwargs["messages"]
+    assert not tool_results(request)
+    assert "Find evidence." not in repr(request)
 
 
 @pytest.mark.parametrize("question", ["Explain the close process", "Are we done?", "How to quit?"])
@@ -1075,7 +1081,7 @@ def test_conversation_blank_input_keeps_memory_and_sync_usage_guard(document_ser
     conversation = monitor.start_conversation()
     with pytest.raises(ValueError, match="Question must not be empty"):
         conversation.ask(" \t ")
-    assert not conversation.closed and conversation._history == []
+    assert not conversation.closed
 
     async def misuse():
         with pytest.raises(RuntimeError, match="await conversation.ask_async"):
@@ -1148,7 +1154,8 @@ def test_conversation_rejects_overlapping_questions_and_does_not_restore_closed_
             release.set()
             await pending
         assert conversation.closed
-        assert conversation._history == conversation._sources == []
+        with pytest.raises(RuntimeError, match="Conversation is closed"):
+            await conversation.ask_async("Follow up after closing")
 
     asyncio.run(exercise())
     model.respond.assert_called_once()

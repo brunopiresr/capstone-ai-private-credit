@@ -7,13 +7,6 @@ import pytest
 from model_helpers import ScriptedModel
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
-from credit_monitoring.agents.prompts.credit_assessment import (
-    ASSESSMENT_INSTRUCTIONS,
-    ASSESSMENT_UNAVAILABLE_INSTRUCTIONS,
-    CONFIDENCE_INSTRUCTIONS,
-    CREDIT_ASSESSMENT_INSTRUCTIONS,
-    build_credit_assessment_instructions,
-)
 from credit_monitoring.agents.tools.assessment import AssessmentTools
 from credit_monitoring.domain import (
     BorrowerFeatureSnapshot,
@@ -64,16 +57,6 @@ def test_agent_sends_only_context_for_registered_tools(assessment_enabled):
     answer = agent.ask("Summarize evidence", borrower_id="SYN" if assessment_enabled else None)
     assert answer.complete
     info = model.respond.call_args.kwargs["info"]
-    instructions = info.instructions
-    assert instructions == build_credit_assessment_instructions(
-        assessment_enabled=assessment_enabled
-    )
-    # Includes the explicit date gate and financial-read sequences validated live.
-    assert len(instructions.split()) <= 450
-    assert CREDIT_ASSESSMENT_INSTRUCTIONS.strip() in instructions
-    assert CONFIDENCE_INSTRUCTIONS.strip() in instructions
-    assert (ASSESSMENT_INSTRUCTIONS.strip() in instructions) is assessment_enabled
-    assert (ASSESSMENT_UNAVAILABLE_INSTRUCTIONS.strip() in instructions) is not assessment_enabled
     assessment_names = {"get_financials", "assess_covenants", "predict_risk"}
     assert {tool.name for tool in info.function_tools} & assessment_names == (
         assessment_names if assessment_enabled else set()

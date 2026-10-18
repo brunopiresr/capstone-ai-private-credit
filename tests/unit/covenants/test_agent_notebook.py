@@ -23,6 +23,40 @@ def notebook_cells():
     return {cell["id"]: "".join(cell["source"]) for cell in notebook["cells"]}
 
 
+def test_notebook_default_configures_a_working_stub(notebook_cells, tmp_path, monkeypatch):
+    trained = Mock(side_effect=AssertionError("Default must not load numerical artifacts"))
+    monkeypatch.setattr("credit_monitoring.ml.factory.LogisticRegressionRiskModel", trained)
+    namespace = {"processed_dir": tmp_path, "data_dir": NOTEBOOK.parents[1] / "data"}
+    exec(notebook_cells["select-risk-model"], namespace)
+    exec(notebook_cells["9cf32123"], namespace)
+    service = namespace["assessment_service"]
+    assert service.settings.risk_model.type == "stub"
+    result = service.assess("SYN002", date(2025, 9, 30), date(2025, 9, 30), ml_enabled=True)
+    assert result.results and result.prediction.breach_probability is None
+    assert result.prediction.model_name == "stub"
+    trained.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "error", [FileNotFoundError("manifest missing"), ImportError("sklearn"), ValueError("checksum")]
+)
+def test_notebook_trained_model_fails_at_configuration(
+    notebook_cells, tmp_path, monkeypatch, error
+):
+    monkeypatch.setattr(
+        "credit_monitoring.ml.factory.RiskModelFactory.create", Mock(side_effect=error)
+    )
+    namespace = {
+        "processed_dir": tmp_path,
+        "data_dir": NOTEBOOK.parents[1] / "data",
+        "USE_TRAINED_MODEL": True,
+    }
+    with pytest.raises(RuntimeError, match="uv sync --extra ml"):
+        exec(notebook_cells["9cf32123"], namespace)
+    assert "assessment_service" not in namespace
+    assert not (tmp_path / "agent_analytics.sqlite3").exists()
+
+
 @pytest.fixture
 def chat_helper(notebook_cells, monkeypatch):
     def build(inputs):

@@ -28,13 +28,9 @@ from credit_monitoring.domain.assessment import (
 )
 from credit_monitoring.domain.processing import DocumentExtraction
 from credit_monitoring.observability.assessment import (
-    covenant_terms,
-    resolution_context,
-    resolution_inputs,
     resolution_output,
-    resolution_outputs,
 )
-from credit_monitoring.observability.logging import log_event, logged_operation, logging_context
+from credit_monitoring.observability.logging import log_event, log_step, logging_context
 
 from .applicability import applies_to_period, parse_ratio
 
@@ -96,11 +92,6 @@ class SyntheticCovenantReader:
         with self.csv_path.open(newline="", encoding="utf-8-sig") as source:
             self.rows = list(enumerate(csv.DictReader(source), start=2))
 
-    @logged_operation(
-        inputs=resolution_inputs,
-        outputs=resolution_outputs,
-        context=resolution_context,
-    )
     def resolve(
         self,
         borrower_id: str,
@@ -109,82 +100,92 @@ class SyntheticCovenantReader:
         financials: FinancialPeriod,
     ) -> list[CovenantResolution]:
         """Select explicit effective ranges and apply allowlisted synthetic rules."""
-        grouped = {}
-        for source_row, row in self.rows:
-            if row["borrower_id"] == borrower_id:
-                grouped.setdefault(row["covenant_id"], []).append((source_row, row))
-        resolutions = []
-        for source_id, versions in grouped.items():
-            covenant_id = f"synthetic:{borrower_id}:{source_id}"
-            active = []
-            for line, row in versions:
-                applies = date.fromisoformat(row["effective_start"]) <= period_end and (
-                    not row["effective_end"]
-                    or period_end <= date.fromisoformat(row["effective_end"])
-                )
-                log_event(
-                    logger,
-                    "synthetic_version",
-                    covenant_id=covenant_id,
-                    source_file=str(self.csv_path),
-                    source_row=line,
-                    inputs={
-                        "effective_start": row["effective_start"],
-                        "effective_end": row["effective_end"],
-                    },
-                    outputs={
-                        "applicable": applies,
-                        "reason": "Within effective range."
-                        if applies
-                        else "Outside effective range.",
-                    },
-                )
-                if applies:
-                    active.append((line, row))
-            resolution = CovenantResolution(covenant_id=covenant_id, covenant_type=source_id)
-            if len(active) != 1:
-                resolution.issues.append("No unique covenant version applies to this period.")
-                log_event(
-                    logger,
-                    "covenant_resolution",
-                    covenant_id=covenant_id,
-                    inputs={"candidate_count": len(active)},
-                    outputs=resolution_output(resolution),
-                )
+        with (
+            logging_context(
+                borrower_id=borrower_id,
+                period_end=period_end,
+                information_cutoff=information_cutoff,
+            ),
+            log_step(logger, "Resolve covenants"),
+        ):
+            grouped = {}
+            for source_row, row in self.rows:
+                if row["borrower_id"] == borrower_id:
+                    grouped.setdefault(row["covenant_id"], []).append((source_row, row))
+            resolutions = []
+            for source_id, versions in grouped.items():
+                covenant_id = f"synthetic:{borrower_id}:{source_id}"
+                active = []
+                for line, row in versions:
+                    applies = date.fromisoformat(row["effective_start"]) <= period_end and (
+                        not row["effective_end"]
+                        or period_end <= date.fromisoformat(row["effective_end"])
+                    )
+                    log_event(
+                        logger,
+                        "synthetic_version",
+                        covenant_id=covenant_id,
+                        source_file=str(self.csv_path),
+                        source_row=line,
+                        inputs={
+                            "effective_start": row["effective_start"],
+                            "effective_end": row["effective_end"],
+                        },
+                        outputs={
+                            "applicable": applies,
+                            "reason": "Within effective range."
+                            if applies
+                            else "Outside effective range.",
+                        },
+                    )
+                    if applies:
+                        active.append((line, row))
+                resolution = CovenantResolution(covenant_id=covenant_id, covenant_type=source_id)
+                if len(active) != 1:
+                    resolution.issues.append("No unique covenant version applies to this period.")
+                    if logger.isEnabledFor(logging.INFO):
+                        log_event(
+                            logger,
+                            "covenant_resolution",
+                            covenant_id=covenant_id,
+                            inputs={"candidate_count": len(active)},
+                            outputs=resolution_output(resolution),
+                        )
+                    resolutions.append(resolution)
+                    continue
+                line, row = active[0]
+                evidence = [
+                    {
+                        "source_file": str(self.csv_path),
+                        "source_row": line,
+                        "source_values": row,
+                        "source_hash": _fingerprint(row),
+                    }
+                ]
+                resolution.evidence = evidence
+                try:
+                    resolution.covenant = self._resolve_row(
+                        row,
+                        covenant_id,
+                        period_end,
+                        financials,
+                        evidence,
+                    )
+                    resolution.covenant_type = resolution.covenant.covenant_type
+                except ValueError as error:
+                    resolution.issues.append(str(error))
+                if logger.isEnabledFor(logging.INFO):
+                    log_event(
+                        logger,
+                        "covenant_resolution",
+                        covenant_id=covenant_id,
+                        source_file=str(self.csv_path),
+                        source_row=line,
+                        inputs={"candidate_count": len(active)},
+                        outputs=resolution_output(resolution),
+                    )
                 resolutions.append(resolution)
-                continue
-            line, row = active[0]
-            evidence = [
-                {
-                    "source_file": str(self.csv_path),
-                    "source_row": line,
-                    "source_values": row,
-                    "source_hash": _fingerprint(row),
-                }
-            ]
-            resolution.evidence = evidence
-            try:
-                resolution.covenant = self._resolve_row(
-                    row,
-                    covenant_id,
-                    period_end,
-                    financials,
-                    evidence,
-                )
-                resolution.covenant_type = resolution.covenant.covenant_type
-            except ValueError as error:
-                resolution.issues.append(str(error))
-            log_event(
-                logger,
-                "covenant_resolution",
-                covenant_id=covenant_id,
-                source_file=str(self.csv_path),
-                source_row=line,
-                inputs={"candidate_count": len(active)},
-                outputs=resolution_output(resolution),
-            )
-            resolutions.append(resolution)
-        return resolutions
+            return resolutions
 
     def _resolve_row(
         self,
@@ -295,11 +296,6 @@ class ExtractionCovenantReader:
         self.source = source
         self.bindings = bindings
 
-    @logged_operation(
-        inputs=resolution_inputs,
-        outputs=resolution_outputs,
-        context=resolution_context,
-    )
     def resolve(
         self,
         borrower_id: str,
@@ -308,39 +304,50 @@ class ExtractionCovenantReader:
         financials: FinancialPeriod,
     ) -> list[CovenantResolution]:
         """Reject ambiguous terms; unavailable extractions remain unresolved."""
-        grouped = {}
-        for binding in self.bindings:
-            if binding.borrower_id == borrower_id:
-                grouped.setdefault(binding.covenant_id, []).append(binding)
-        resolutions = []
-        for covenant_id, bindings in grouped.items():
-            with logging_context(covenant_id=covenant_id):
-                resolution = CovenantResolution(covenant_id=covenant_id, covenant_type="unknown")
-                candidates = []
-                for binding in bindings:
-                    with logging_context(
-                        document_id=binding.document_id, agreement_id=binding.agreement_id
-                    ):
-                        candidates.extend(
-                            self._binding_candidates(
-                                binding, period_end, information_cutoff, resolution
-                            )
-                        )
-                if not resolution.issues and len(candidates) == 1:
-                    resolution.covenant = candidates[0]
-                    resolution.evidence = candidates[0].evidence
-                else:
-                    resolution.issues.append(
-                        "No unique source-supported covenant applies to this period."
+        with (
+            logging_context(
+                borrower_id=borrower_id,
+                period_end=period_end,
+                information_cutoff=information_cutoff,
+            ),
+            log_step(logger, "Resolve covenants"),
+        ):
+            grouped = {}
+            for binding in self.bindings:
+                if binding.borrower_id == borrower_id:
+                    grouped.setdefault(binding.covenant_id, []).append(binding)
+            resolutions = []
+            for covenant_id, bindings in grouped.items():
+                with logging_context(covenant_id=covenant_id):
+                    resolution = CovenantResolution(
+                        covenant_id=covenant_id, covenant_type="unknown"
                     )
-                log_event(
-                    logger,
-                    "covenant_resolution",
-                    inputs={"candidate_count": len(candidates)},
-                    outputs=resolution_output(resolution),
-                )
-                resolutions.append(resolution)
-        return resolutions
+                    candidates = []
+                    for binding in bindings:
+                        with logging_context(
+                            document_id=binding.document_id, agreement_id=binding.agreement_id
+                        ):
+                            candidates.extend(
+                                self._binding_candidates(
+                                    binding, period_end, information_cutoff, resolution
+                                )
+                            )
+                    if not resolution.issues and len(candidates) == 1:
+                        resolution.covenant = candidates[0]
+                        resolution.evidence = candidates[0].evidence
+                    else:
+                        resolution.issues.append(
+                            "No unique source-supported covenant applies to this period."
+                        )
+                    if logger.isEnabledFor(logging.INFO):
+                        log_event(
+                            logger,
+                            "covenant_resolution",
+                            inputs={"candidate_count": len(candidates)},
+                            outputs=resolution_output(resolution),
+                        )
+                    resolutions.append(resolution)
+            return resolutions
 
     def _available_document(
         self,
@@ -446,17 +453,6 @@ class ExtractionCovenantReader:
                     )
         return candidates
 
-    @logged_operation(
-        inputs=lambda args: {
-            "threshold": args["schedule"].threshold,
-            "operator": args["term"].operator,
-            "effective_date_or_period": args["term"].effective_date_or_period,
-            "calculation_rules": args["binding"].calculation_rules.model_dump(mode="json")
-            if args["binding"].calculation_rules
-            else None,
-        },
-        outputs=lambda covenant: {"terms": covenant_terms(covenant)},
-    )
     def _candidate(
         self,
         binding: ExtractionBinding,

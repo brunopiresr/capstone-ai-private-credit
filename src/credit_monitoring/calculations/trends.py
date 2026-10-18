@@ -4,12 +4,11 @@ import logging
 from calendar import monthrange
 from datetime import date
 
-from credit_monitoring.observability.logging import log_event, logged_operation
+from credit_monitoring.observability.logging import log_event
 
 logger = logging.getLogger(__name__)
 
 
-@logged_operation()
 def previous_period(period_end: date, quarters: int = 1) -> date:
     """Shift a reporting date by quarters, preserving month-end dates."""
     month_index = period_end.year * 12 + period_end.month - 1 - 3 * quarters
@@ -21,7 +20,6 @@ def previous_period(period_end: date, quarters: int = 1) -> date:
     return date(year, month, day)
 
 
-@logged_operation()
 def difference(current: float | None, previous: float | None) -> float | None:
     """Subtract known values; missing values remain missing."""
     if current is None or previous is None:
@@ -32,7 +30,6 @@ def difference(current: float | None, previous: float | None) -> float | None:
     return current - previous
 
 
-@logged_operation()
 def growth(current: float | None, previous: float | None) -> float | None:
     """Return fractional growth against a positive prior value."""
     if current is None or previous is None or previous <= 0:

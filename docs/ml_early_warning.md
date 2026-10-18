@@ -96,58 +96,31 @@ configure_logging()  # INFO: covenant selection, inputs, adjustments, and result
 # configure_logging("WARNING") hides routine calculation details.
 ```
 
-The agent notebook already calls `configure_logging()`. Each calculation logs its method,
-named inputs, and output. Additional steps show addbacks and cash/synergy caps, the division
-numerator and denominator, threshold comparisons, and signed headroom. Covenant resolution
-shows selected versions, applicable dates, testing conditions, and rejected candidates.
-Final covenant records include the calculated or reported basis, compliance status, and issues,
-including missing inputs, conflicting debt sources, unsupported formulas, and unresolved terms.
-Waived and inactive tests explicitly explain why comparison and headroom were skipped.
+The agent notebook already calls `configure_logging()`. Explicit events show addback,
+cash and synergy caps, missing metrics, debt conflicts, selected/rejected covenant terms,
+and final status, basis, headroom and issues. Tiny formula helpers no longer produce
+automatic start/end records. Formulas and threshold comparisons remain deterministic.
 
-For example, a capped EBITDA adjustment produces a line with this message and structured data
-(timestamp and logger prefix omitted):
+For example, a capped EBITDA adjustment includes these diagnostic fields:
 
 ```text
 apply_addback_cap complete {"inputs": {"reported_ebitda": 50, "eligible_addbacks": 20, "cap_fraction": 0.2}, "outputs": {"eligible_addbacks": 10}}
 ```
 
-Run, borrower, reporting period, and covenant identifiers accompany records when available.
-Earlier reporting periods retain their own dates, and trend calculations identify the covenant
-or financial metric being compared. Context is scoped to each invocation and restored even
-after failures; asyncio tasks and worker threads used via `asyncio.to_thread` retain isolation.
-Manually created worker threads require explicit context propagation.
+Structured records carry run, borrower, reporting-period, and covenant identifiers when
+available. Context is restored after failures and isolated across asyncio tasks and
+`asyncio.to_thread` work. Manually created threads need explicit context propagation.
+Domain projections are guarded by the INFO level check; disabled diagnostics do not
+serialize financial or covenant objects. The `log_step()` context manager reports
+progress before blocking work, elapsed time, and sanitized error types.
 
-For the CLI, add `--log-level INFO` to the assessment command. Logs go to stderr; stdout remains
-the assessment JSON. Without that flag the CLI retains its existing output. `--log-level WARNING`
-suppresses routine steps, including expected calculation failures recorded as incomplete results.
-Full evidence bodies, documents, prompts, financial notes, and benchmark labels are excluded.
+The CLI's `--log-level INFO` sends diagnostics to stderr while stdout remains JSON.
+`--log-level WARNING` suppresses routine details. Full documents, prompts, evidence
+bodies, financial notes and benchmark labels are excluded. Console setup is idempotent
+and preserves external logging handlers.
 
-### Reuse the records with Logfire later
-
-The records use standard Python `logging` with `extra` attributes: `operation`, `status`,
-`inputs`, `outputs`, available identifiers, and timing/error type where applicable. Console
-formatting does not flatten or replace these attributes, so other handlers can consume them.
-Repeated `configure_logging()` calls preserve external handlers and do not duplicate the console
-handler. Logfire remains an optional future dependency; no telemetry is exported by this change.
-
-After separately installing and configuring Logfire, attach its handler directly to the package
-logger, which sets `propagate=False` when configured for console output:
-
-```python
-import logging
-import logfire  # Install separately when ready to enable external telemetry.
-
-configure_logging()
-logfire.configure(console=False)  # Keep the existing local console output.
-package_logger = logging.getLogger("credit_monitoring")
-if not any(isinstance(handler, logfire.LogfireLoggingHandler)
-           for handler in package_logger.handlers):
-    package_logger.addHandler(logfire.LogfireLoggingHandler())
-```
-
-Keep the package logger at INFO to export the calculation steps. See the
-[Logfire logging integration](https://pydantic.dev/docs/logfire/integrations/logging/logging/).
-Nested tracing spans can be added separately later; these records already carry run identifiers.
+Logfire integration and richer tracing are deferred to the later monitoring lesson;
+there is no telemetry setup in this workflow. See the [roadmap](architecture.md#roadmap).
 
 ## Consume stored document covenants
 
@@ -214,7 +187,7 @@ contains domain models, the complete DDL, constraints, and acceptance criteria.
 Install the optional, locked ML dependencies:
 
 ```bash
-uv sync --extra ml --locked
+uv sync --extra ml --group dev --locked
 ```
 
 The `ml` extra pins scikit-learn 1.8.0, NumPy 2.4.4, SciPy 1.17.1 and joblib 1.5.3.
@@ -275,6 +248,16 @@ trusted local artifacts produced by this training workflow. Generated datasets a
 ignored by Git. No model is automatically activated after training.
 
 ## Use the trained model in assessments
+
+The agents notebook defaults to `USE_TRAINED_MODEL = False` and a stub. Installing the
+extra does not change that selection. To opt in, install the dependencies below, select
+the project `.venv` kernel, set the switch to `True`, and rerun configuration. It validates
+the local model through `RiskModelFactory` before creating the service and reports
+missing dependencies/files or incompatible versions/checksums immediately. It never
+silently substitutes the stub. A compatible tracked artifact under
+`data/models/logistic_regression/v1/` can be loaded directly; generating a new dataset
+and retraining are optional exercises. Restore the switch for the stub-probability test.
+
 
 The following workflow uses separate demonstration databases:
 

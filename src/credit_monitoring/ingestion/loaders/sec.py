@@ -1,15 +1,61 @@
 """Explicit SEC downloads and catalog loading; no work occurs at import time."""
 
 import csv
+import logging
 import re
 import time
 from collections.abc import Mapping
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 
 from credit_monitoring.ingestion.chunking.evidence import select_relevant_evidence
+from credit_monitoring.observability.logging import log_step
+
+logger = logging.getLogger(__name__)
+
+
+def validate_document_id(document_id: str) -> None:
+    """Reject directory components before any cache path is constructed."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", document_id):
+        raise ValueError("Document IDs must be filenames without directory components.")
+
+
+def load_sec_html(record: Mapping[str, Any], *, html_dir: Path, user_agent: str) -> Path:
+    """Reuse the canonical HTML cache, publishing successful downloads atomically."""
+    document_id = record["document_id"]
+    validate_document_id(document_id)
+    if urlparse(record["source_url"]).path.lower().endswith(".pdf"):
+        raise ValueError("PDF downloads are unsupported by the HTML pipeline.")
+    target = Path(html_dir) / f"{document_id}.html"
+    if target.is_file() and target.read_text(encoding="utf-8").strip():
+        logger.info("HTML cache hit document_id=%s", document_id)
+        return target
+    if not user_agent.strip():
+        raise ValueError("Set SEC_USER_AGENT to your organization/name and contact email.")
+    with log_step(logger, "Download SEC HTML", document_id=document_id):
+        try:
+            content = download_sec_filing(record["source_url"], user_agent=user_agent)
+        finally:
+            throttle_download()
+        if not content.strip() or content.lstrip().startswith("%PDF-"):
+            raise ValueError("SEC download returned empty or unsupported PDF content.")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = None
+        try:
+            with NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=target.parent, suffix=".tmp", delete=False
+            ) as file:
+                temporary = Path(file.name)
+                file.write(content)
+            temporary.replace(target)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+    return target
 
 
 def download_sec_filing(url: str, *, user_agent: str, session: Any = None) -> str:
@@ -45,8 +91,7 @@ def full_document_record(
 ) -> dict[str, Any]:
     """Keep every character and supply measured offsets in the original Markdown."""
     document_id = record["document_id"]
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", document_id):
-        raise ValueError("Document IDs must be filenames without directory components.")
+    validate_document_id(document_id)
     return {
         **record,
         "citation": filing_citation(record),

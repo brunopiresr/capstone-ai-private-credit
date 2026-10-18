@@ -10,11 +10,10 @@ from credit_monitoring.domain.assessment import (
     ResolvedCovenant,
 )
 from credit_monitoring.observability.assessment import (
-    calculation_context,
     calculation_inputs,
     covenant_output,
 )
-from credit_monitoring.observability.logging import log_event, logged_operation
+from credit_monitoring.observability.logging import log_event, log_step, logging_context
 
 from .coverage import fixed_charge_coverage, interest_coverage
 from .headroom import calculate_headroom, compare_threshold
@@ -63,7 +62,6 @@ def _debt(financials: FinancialPeriod) -> float:
     return _metric(financials, "total_debt")
 
 
-@logged_operation(inputs=calculation_inputs, context=calculation_context)
 def calculate_actual(covenant: ResolvedCovenant, financials: FinancialPeriod) -> float:
     """Dispatch only typed, allowlisted formulas; never interpret formula text."""
     reported_ebitda = _metric(financials, "reported_ebitda")
@@ -107,8 +105,41 @@ def calculate_actual(covenant: ResolvedCovenant, financials: FinancialPeriod) ->
             raise CalculationInputError("Unsupported contractual calculation formula.")
 
 
-@logged_operation(inputs=calculation_inputs, outputs=covenant_output, context=calculation_context)
 def calculate_covenant(
+    resolution: CovenantResolution,
+    financials: FinancialPeriod,
+    *,
+    assessment_run_id: str,
+    information_cutoff: date,
+) -> CovenantResult:
+    """Calculate with scoped diagnostics; never project domain data when INFO is disabled."""
+    with (
+        logging_context(
+            borrower_id=financials.borrower_id,
+            period_end=financials.period_end,
+            covenant_id=resolution.covenant_id,
+            assessment_run_id=assessment_run_id,
+            information_cutoff=information_cutoff,
+        ),
+        log_step(logger, "Calculate covenant", covenant_id=resolution.covenant_id),
+    ):
+        result = _calculate_covenant(
+            resolution,
+            financials,
+            assessment_run_id=assessment_run_id,
+            information_cutoff=information_cutoff,
+        )
+        if logger.isEnabledFor(logging.INFO):
+            log_event(
+                logger,
+                "calculate_covenant",
+                inputs=calculation_inputs(resolution, financials),
+                outputs=covenant_output(result),
+            )
+        return result
+
+
+def _calculate_covenant(
     resolution: CovenantResolution,
     financials: FinancialPeriod,
     *,

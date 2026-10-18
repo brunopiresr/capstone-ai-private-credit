@@ -1,220 +1,115 @@
 # AI Credit Monitoring POC
 
-## Objective
+Evidence-backed covenant monitoring for an analyst: SEC document extraction and lexical
+retrieval, deterministic financial calculations and trends, structured verification,
+optional synthetic-trained risk prediction, and PydanticAI follow-ups.
 
-Prove that legal and public evidence retrieval, structured financial data, deterministic calculations, and an agent workflow can support a traceable covenant and early-warning assessment for a credit analyst.
+[Architecture](docs/architecture.md) describes the current implementation;
+[POC definition](docs/poc_definition.md) defines business scope. The analyst retains
+responsibility for decisions. Missing information remains explicitly missing.
 
-## Architecture
+## Run the working analyst UI
 
-```text
-Credit Analyst Web App
-          │ trigger / inspect / ask
-          ▼
-Monitoring Orchestrator
-     ┌────┴────┐
-     ▼         ▼
-Legal and   Financial
-Public RAG  Repository
-     │         │
-     │         ▼
-     │   Deterministic
-     │   Calculations
-     └────┬────┘
-          ▼
-Assessment and Trend Synthesis
-          ▼
-Verification
-          ▼
-Traceable Analyst Result
-```
-
-See [docs/architecture.md](docs/architecture.md) for layer boundaries.
-
-## Scope
-
-The capstone POC focuses on covenant monitoring, deterministic financial calculations, headroom and trend analysis, legal and public evidence, verification, and analyst review. It does not make autonomous lending, investment, or escalation decisions. The longer-term platform may add portfolio prioritization, private-data integrations, specialized agents, and production workflows.
-
-## Development philosophy
-
-- Financial calculations and threshold comparisons stay deterministic.
-- Material claims must be backed by evidence with source provenance.
-- Missing information remains explicitly missing.
-- Layers are independently testable.
-- One orchestrator coordinates services; the analyst remains responsible for interpretation and decisions.
-
-## Current implementation status
-
-Status: Streamlit runs working borrower assessments on synthetic financials and covenant terms, with deterministic calculations, structured verification, optional risk prediction, and grounded PydanticAI follow-ups. A separate **Benchmark portfolio (mock)** page retains fixed expected examples. Complete SEC document extraction and retrieval remain available through services and notebooks. Automatic post-extraction verification is temporarily disabled, with its implementation retained. Structured assessment verification remains active.
-
-See [document processing and agent usage](docs/document_processing.md) for the service
-interfaces, cache behavior, tool loop, and verification migration notes.
-
-The credit assessment agent uses PydanticAI. Supply a provider-qualified `model` name
-or an injected PydanticAI model; the default is `openai-responses:gpt-4o-mini`.
-Use `agent.ask()` synchronously, `await agent.ask_async()` asynchronously, or consume
-`agent.stream_async()` for progress and provisional structured answers. The final
-`AgentAnswer` includes confidence (`low` / `medium` / `high`) and an explanation.
-Sources and traces come from executed tools. See [streaming usage](docs/document_processing.md#view-live-agent-progress-and-structured-answers).
-
-Reusable `DocumentTools` and `AssessmentTools` expose typed, scoped PydanticAI tools.
-Tool registration, execution, conversation history, and display have separate owners.
-See [tool reuse](docs/document_processing.md#reuse-the-tool-classes).
-
-For follow-up questions, use `conversation = agent.start_conversation(ticker="FMC")`
-and `await conversation.ask_async(...)` (or `conversation.ask(...)` synchronously).
-History stays in memory until closed; `close`, `done`, and `quit` end the conversation
-without calling the model. The agents notebook includes optional interactive loops
-for document research and borrower assessment. See [conversation usage](docs/document_processing.md#conversations-and-follow-up-questions).
-
-## Setup
-
-Requires Python 3.14 and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
 
 ```bash
-uv sync --group dev
-uv run pytest
-uv run ruff check .
-uv run streamlit run src/credit_monitoring/web/app.py
+uv sync --group dev --locked
+uv run --locked streamlit run src/credit_monitoring/web/app.py
 ```
 
-The working assessment needs no credentials. On startup, Streamlit imports bundled financials
-into dedicated storage under `data/processed/streamlit/`; restart the app to reload edited CSVs.
-Select a borrower, reporting period, and information cutoff, then click **Run assessment**.
-The working page displays service results and never reads gold labels or financial notes.
+Choose a borrower, reporting period, and information cutoff, then **Run assessment**.
+The working page uses bundled synthetic financials and covenant terms through real
+services. It displays exact statuses, headroom, provenance, deterministic trends, and
+verification. No credentials are needed for deterministic assessments. The separate
+**Benchmark portfolio (mock)** page contains fixed examples.
 
-Prediction defaults to **Off**. **Stub** returns no forecast; **Logistic Regression** requires
-`uv sync --extra ml --group dev --locked` and the saved artifact under
-`data/models/logistic_regression/v1/`. Missing model prerequisites leave deterministic results visible.
+Streamlit initializes storage under ignored `data/processed/streamlit/`; restart the
+app to reload edited CSVs. Conversation memory belongs to each browser session and
+clears on a new assessment or **Clear conversation**. SEC borrower/document bindings
+remain a separate service/notebook workflow.
 
-For analyst follow-ups, set `OPENAI_API_KEY` in the environment or `.env`.
-Optionally set `LLM_MODEL` to a provider-qualified model; the default is
-`openai-responses:gpt-4o-mini`. Chat uses borrower-scoped financial, calculation, and prediction
-tools. Its memory belongs to the browser session and clears on a new assessment or **Clear
-conversation**. SEC borrower/document bindings are configured separately through the services.
+Prediction defaults to **Off**. **Stub** returns no probability. **Logistic Regression**
+requires `uv sync --extra ml --group dev --locked` and a compatible local artifact.
+Its training and evaluation data are synthetic. Model failures preserve deterministic
+results. See [training, loading, and data limits](docs/ml_early_warning.md).
 
-Run the notebooks with the project's `.venv` kernel:
+For analyst follow-ups, set `OPENAI_API_KEY` in the environment or root `.env`.
+The UI accepts `LLM_MODEL`; its default is `openai-responses:gpt-4o-mini`.
+Notebooks select their model explicitly. [.env.example](.env.example) distinguishes
+active entry-point settings from reserved names; configuration is not loaded globally.
 
-- [01-setup.ipynb](notebooks/01-setup.ipynb) checks PydanticAI model setup.
-- [02-rag.ipynb](notebooks/02-rag.ipynb) covers retrieval, narrative RAG, and direct document processing.
-- [03-agents.ipynb](notebooks/03-agents.ipynb) independently configures and runs the document research and borrower assessment agents, with tool lists, citations, and execution traces. Run its cells in order; it does not require running the RAG notebook first.
-
-## Load quarterly financials
-
-The loader runs entirely in `src` and uses Python's built-in SQLite engine:
+## Load inputs and assess from the CLI
 
 ```bash
-uv run python -m credit_monitoring.ingestion.loaders.financials \
-  --csv data/synthetic_quarterly_financials.csv \
-  --db data/processed/financials.sqlite3
+uv run --locked python -m credit_monitoring.ingestion.loaders.financials \
+  --csv data/synthetic_quarterly_financials.csv --db data/processed/financials.sqlite3
+uv run --locked python scripts/run_assessment.py \
+  --borrower-id SYN002 --period-end 2025-09-30 --information-cutoff 2025-09-30
 ```
 
-Use the same entry point from a notebook, with paths relative to the repository root:
+Add `--ml` for the stub or explicitly select a trained model as described in the
+[assessment guide](docs/ml_early_warning.md). `--log-level INFO` shows selected terms,
+financial inputs, contractual adjustments, final results, and operation timings on
+stderr while stdout remains JSON. Financial notes and gold labels stay out of runtime
+agent inputs. Missing data, conflicting sources, and unknown availability dates remain
+visible limitations; reporting dates do not establish source publication times.
 
-```python
-from pathlib import Path
-
-from credit_monitoring.financials.repositories import FinancialRepository
-from credit_monitoring.ingestion.loaders.financials import load_financials
-
-# Works when the notebook kernel starts in the root or in notebooks/.
-root = Path.cwd()
-if root.name == "notebooks":
-    root = root.parent
-database_path = root / "data/processed/financials.sqlite3"
-result = load_financials(root / "data/synthetic_quarterly_financials.csv", database_path)
-repository = FinancialRepository(database_path)
-quarter = repository.get_quarter("SYN001", "2025-09-30")
-history = repository.get_history("SYN002", as_of="2025-09-30")
-facts = repository.get_facts("SYN007", "2025-09-30")
-```
-
-The `quarterly_financials` table stores one current snapshot per borrower and period,
-including source path, CSV line number, notes, and load time. Reloading a matching
-borrower/period replaces that snapshot; it does not retain restatement history.
-All rows are validated before writing and upserted in one transaction. CSVs require
-`borrower_id`, an ISO `period_end`, and at least one recognized metric column;
-omitted metrics and blank values become SQL `NULL`, while zero remains zero.
-
-The `financial_facts` view exposes one row per metric with provenance and
-`provided`/`missing` status, including separate financial-package and certificate
-debt figures. Monetary values use SQLite `REAL` for this POC; currency and scale
-remain unspecified because the source does not declare them. Revolver availability
-uses percentage points. The period cutoff filters reporting dates, not source
-availability dates. Source notes can contain benchmark answers; exclude them from
-agent prompts. Calculated ratios and gold labels are not imported.
-
-For direct SQL or pandas queries:
-
-```python
-import sqlite3
-import pandas as pd
-
-with sqlite3.connect(database_path) as connection:
-    frame = pd.read_sql_query(
-        "SELECT * FROM financial_facts WHERE borrower_id = ? AND period_end <= ?",
-        connection,
-        params=("SYN002", "2025-09-30"),
-    )
-```
-
-## Quarterly assessment and optional ML
-
-The assessment service now resolves existing covenant inputs, calculates leverage and coverage,
-and stores calculation history in a separate analytics database. Optional feature engineering
-and a replaceable model service run after those results are persisted. The built-in stub returns
-unknown risk and null probabilities; it does not forecast events. Streamlit uses this workflow
-for its working borrower assessment page.
-An optional Logistic Regression model can be trained on independently generated synthetic histories
-and loaded through the same model service.
-
-After loading financials, run:
+For SEC documents, set an identifying `SEC_USER_AGENT` and populate the shared cache:
 
 ```bash
-uv run python scripts/run_assessment.py \
-  --borrower-id SYN002 \
-  --period-end 2025-09-30 \
-  --information-cutoff 2025-09-30 \
-  --ml
+uv run --locked python data/download_sec_documents.py --document-id DOC_FMC_AMD3_2025
 ```
 
-Omit `--ml` for deterministic assessments only. See [service usage and storage](docs/ml_early_warning.md)
-for Python interfaces, existing extraction inputs, and data limits. Model-training dependencies are
-available through the optional `ml` extra. Financial loading and document-processing APIs retain
-their existing behavior.
+Omit `--document-id` to download the catalog. See [cache paths and CLI options](data/README.md#sec-source-download)
+and [document services, tool reuse, streaming, and conversations](docs/document_processing.md).
+Automatic post-extraction verification remains disabled with its validators retained;
+structured assessment verification is active. Neither certifies arbitrary generated prose.
 
-Add `--log-level INFO` to inspect covenant selection, method inputs, intermediate adjustments,
-and results on stderr while preserving JSON on stdout. In notebooks, the existing
-`configure_logging()` call enables these steps. See [calculation logging and future Logfire
-integration](docs/ml_early_warning.md#inspect-calculation-inputs-and-results).
+## Notebooks
 
-To generate the dataset and train the baseline:
+Use the project's `.venv` kernel and run cells in order:
+
+- [01-setup](notebooks/01-setup.ipynb): PydanticAI model setup.
+- [02-rag](notebooks/02-rag.ipynb): lexical retrieval, narrative RAG, document processing.
+- [03-agents](notebooks/03-agents.ipynb): independent document/borrower demonstrations,
+  executed-tool provenance, and follow-ups. The risk model defaults to a stub;
+  `USE_TRAINED_MODEL = True` opts into prerequisite-checked Logistic Regression.
+
+Live model cells require `OPENAI_API_KEY`; downloading uncached filings requires
+`SEC_USER_AGENT`. Borrower IDs in synthetic examples have no inferred relationship to
+real SEC issuers.
+
+## Checks
 
 ```bash
-uv sync --extra ml --locked
-uv run --extra ml python scripts/generate_training_dataset.py
-uv run --extra ml python scripts/train_risk_model.py
+make test          # Portable offline tests plus homework helper regressions; live cases skip.
+make lint          # src, tests, scripts, homework-tests, and the SEC download utility.
+make test-homework # Offline helper checks and skipped opt-in live scenarios.
+make test-ml       # Enables the ml extra for actual training/loading integration tests.
 ```
 
-The default dataset contains 600 simulated borrowers and 4,800 quarterly observations. Artifacts
-are saved under `data/models/logistic_regression/v1/`. Select them explicitly with `--ml`,
-`--model-type logistic_regression`, and `--model-artifact` when assessing a borrower. Follow the
-[complete trained-model workflow](docs/ml_early_warning.md#use-the-trained-model-in-assessments)
-for the required input paths. Evaluation measures performance on the simulation.
+The optional Evidently package uses its own Python 3.13 environment:
 
-## Repository map
+```bash
+uv sync --project tools/llm_judges --group dev --locked
+make test-judges
+make lint-judges
+make check         # All checks above, in separate Python environments.
+```
 
-Offline [Evidently LLM judges](docs/llm_judges.md) evaluate captured extraction,
-retrieval and answer outputs. Run `python scripts/run_evaluation.py --help` for the
-snapshot runner. The judges use an isolated Python 3.13 environment and do not
-change the monitoring workflow.
+Public-cache quality measurement is an explicit read-only command, separate from the
+portable suite. Its known extraction mismatches remain documented, without expected-failure
+markers. See [evaluation commands and limitations](docs/evaluation.md),
+[homework live scenarios](homework-tests/README.md), and [optional Evidently judges](docs/llm_judges.md).
+A passing mocked or portable check does not establish live model quality.
 
-- `src/credit_monitoring/` — package boundaries for the planned application layers
-- `tests/` — unit, integration, evaluation, and fixture locations
-- `data/` — existing capstone materials plus raw, processed, and benchmark locations
-- `docs/` — architecture, scope, sources, evaluation, and decision notes
-- `notebooks/` — existing exploratory setup and retrieval notebooks
-- `scripts/` — future command entry points
+## Repository guide
 
-## Next implementation step
+- `src/credit_monitoring/`: implemented domain, adapters, application services, agents, and UI.
+- `tests/` and `homework-tests/`: controlled regressions, fixtures, and opt-in live scenarios.
+- `data/`: source catalog, benchmarks, synthetic inputs/training output, and retained models.
+- `scripts/`: assessment, training, evaluation, and public snapshot comparison commands.
+- `docs/`: usage, current architecture, dated historical plans, and future proposals.
 
-Extend the working analyst UI to explicitly configured SEC borrower/document bindings.
+See the [roadmap](docs/architecture.md#roadmap) for remaining UI bindings, later monitoring,
+and proposed agent work.

@@ -1,7 +1,12 @@
 # Complete document extraction and a RAG agent loop
 
+> Historical execution plan; status reviewed 18 October 2026. The current implementation
+> reference is [architecture](architecture.md). PydanticAI supersedes the earlier direct-SDK /
+> no-agent-framework direction. Package trees and interfaces below record the original
+> design, including scaffolding since removed; use current usage guides for executable examples.
+
 Agreed on October 4, 2026. Saved for implementation on October 5, 2026.
-Status: implemented on October 5, 2026; changes are uncommitted. See
+Status: initial implementation completed on October 5, 2026. See
 [usage and implementation notes](document_processing.md).
 
 ## Summary

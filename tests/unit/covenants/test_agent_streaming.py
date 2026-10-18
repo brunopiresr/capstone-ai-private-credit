@@ -114,7 +114,6 @@ def test_cancelling_stream_keeps_successful_history_and_releases_turn(document_s
         agent = CreditAssessmentAgent(service=document_service_factory(), model=ScriptedModel())
         chat = agent.start_conversation(ticker="SYN")
         first = await chat.ask_async("First successful question")
-        history = list(chat._history)
         agent.model = FunctionModel(stream_function=generate)
 
         async def consume():
@@ -129,11 +128,14 @@ def test_cancelling_stream_keeps_successful_history_and_releases_turn(document_s
         with pytest.raises(asyncio.CancelledError):
             await task
         assert cleaned.is_set()
-        assert chat._history == history
-        assert not chat._in_progress and not chat.closed
-        agent.model = ScriptedModel()
+        assert not chat.closed
+        recovered_model = ScriptedModel()
+        agent.model = recovered_model
         recovered = await chat.ask_async("Follow up")
         assert first.complete and recovered.complete
+        request = repr(recovered_model.respond.call_args.kwargs["messages"])
+        assert "First successful question" in request
+        assert "Cancelled question" not in request and "Provisional" not in request
 
     asyncio.run(exercise())
 
@@ -147,8 +149,10 @@ def test_closing_generator_discards_partial_turn(document_service_factory):
             async for event in stream:
                 if event.kind == "answer_update":
                     break
-        assert chat._history == [] and not chat._in_progress
         assert (await chat.ask_async("Try again")).complete
+        request = repr(model.respond.call_args.kwargs["messages"])
+        assert "synthetic answer" not in request.lower()
+        assert len(model.respond.call_args.kwargs["messages"]) == 1
 
     asyncio.run(exercise())
 
@@ -162,8 +166,8 @@ def test_callback_exception_propagates_without_committing_history(document_servi
     chat = agent.start_conversation()
     with pytest.raises(RuntimeError, match="UI failed"):
         chat.ask("Question", event_stream_handler=handler)
-    assert chat._history == [] and not chat._in_progress
     assert chat.ask("Try again").complete
+    assert len(agent.model.respond.call_args.kwargs["messages"]) == 1
 
 
 def test_unexpected_service_exception_propagates(document_service_factory):
