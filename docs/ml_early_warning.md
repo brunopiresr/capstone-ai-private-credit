@@ -3,10 +3,35 @@
 The assessment service resolves existing terms for each reporting period, calculates covenant
 metrics, and stores the results before building optional risk features. The
 `CreditAssessmentAgent` can invoke it through calculation and prediction tools;
-the mocked Streamlit app remains separate. See [agent configuration](document_processing.md#calculation-and-prediction-tools).
+the Streamlit borrower page invokes the same workflow directly and uses the agent for follow-ups.
+See [agent configuration](document_processing.md#calculation-and-prediction-tools).
 Built-in models include the integration stub and a
 Logistic Regression adapter for locally trained synthetic artifacts. ML remains disabled by default.
 The stub returns unknown risk and null probabilities.
+
+## Working Streamlit review
+
+Run `uv run streamlit run src/credit_monitoring/web/app.py`. The app imports the bundled synthetic
+financial CSV once per startup into `data/processed/streamlit/financials.sqlite3` and stores
+assessment results in that directory's separate analytics database. These app files are ignored
+by Git. Restart the app after editing bundled CSV inputs.
+
+Select a borrower, reporting date, and information cutoff, then **Run assessment**. The selected
+dates and returned run ID remain attached to the visible results; changing controls does not
+recalculate until another run is requested. Covenant statuses are shown individually, with no
+aggregate WATCH rule. Period history comes from stored service results, including missing values
+and calculation bases. Input notes and gold labels are excluded from this page and its assistant.
+
+Prediction modes are **Off** (default), **Stub**, and **Logistic Regression**. The trained option
+uses `data/models/logistic_regression/v1/` and requires the optional `ml` dependencies. Missing
+dependencies or an incompatible artifact produce an explicit forecast failure while preserving
+deterministic results. Forecasts are shown separately from observed compliance, with their model,
+horizon, and synthetic-training limitations.
+
+`OPENAI_API_KEY` enables follow-ups using the existing PydanticAI agent's borrower-scoped tools;
+`LLM_MODEL` optionally selects a provider-qualified model. Both may be supplied through `.env`.
+Without credentials, the financial and covenant workflow remains usable. A separate **Benchmark
+portfolio (mock)** page retains fixed benchmark examples and can prefill a working review.
 
 ## Run with existing synthetic inputs
 
@@ -273,4 +298,5 @@ the persisted exact feature snapshot. The default analytics location remains
 
 XGBoost, LightGBM and Isolation Forest can be registered later using the same model boundary.
 Boosting can reuse the labels and converter; anomaly detection needs a separate target contract.
-There is no ML agent, new SEC ingestion or UI wiring in this delivery.
+The working Streamlit review uses this model boundary. SEC document bindings in the UI and
+additional model families remain separate work.

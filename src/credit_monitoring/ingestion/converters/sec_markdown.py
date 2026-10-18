@@ -9,7 +9,7 @@ from credit_monitoring.ingestion.cleaners.sec_html import clean_html
 from credit_monitoring.ingestion.loaders.sec import download_sec_filing, throttle_download
 from credit_monitoring.observability.logging import log_step
 
-CONVERSION_VERSION = "beautifulsoup-clean-v1"
+CONVERSION_VERSION = "beautifulsoup-clean-v2"
 logger = logging.getLogger(__name__)
 
 

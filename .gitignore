@@ -15,3 +15,4 @@ dist/
 #/data/synthetic_training/
 #/data/models/
 /data/processed/judges*/
+/data/processed/streamlit/

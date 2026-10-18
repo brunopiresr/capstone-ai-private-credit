@@ -1,12 +1,13 @@
 # Architecture
 
-The package separates analyst interaction, orchestration, retrieval, structured financial data, deterministic calculation, assessment synthesis, and verification. The current analyst app is a mock-only demonstration that reads pre-labeled synthetic benchmark cases; it does not connect to a model, live retrieval, calculation workflow, or verifier.
+The package separates analyst interaction, orchestration, retrieval, structured financial data, deterministic calculation, assessment synthesis, and verification. Streamlit's default borrower assessment uses working services with synthetic financials and covenant terms. It displays exact covenant statuses, provenance, verification, and optional predictions. The separate **Benchmark portfolio (mock)** page displays fixed expected examples.
 
 The application-service layer now includes complete-document extraction with SQLite
 caching and a `CreditAssessmentAgent` using the PydanticAI with document,
 financial, calculation and prediction tools when the assessment service is configured.
-These are demonstrated in `notebooks/03-agents.ipynb` and remain independent of the mocked
-web app. Automatic post-extraction
+These are demonstrated in `notebooks/03-agents.ipynb`. Streamlit follow-ups use the same agent
+with borrower-scoped assessment tools; document tools are registered only when a document service
+is supplied. Automatic post-extraction
 verification is temporarily disabled; the verifier code remains available. See
 [document processing and agent usage](document_processing.md).
 
@@ -57,7 +58,8 @@ The separate `AssessmentService` consumes existing financial rows and structured
 It resolves terms for each reporting period, runs deterministic calculations, and appends historical
 results before optional feature/model execution. `ExtractionCovenantReader` uses existing stored
 extractions through explicit borrower/agreement/covenant bindings; there is no new SEC ingestion
-pipeline. The mocked web app remains separate. The credit assessment agent can invoke
+pipeline. Streamlit invokes the assessment service directly when the analyst runs a review,
+then retains that result across ordinary reruns. The credit assessment agent can invoke
 this pipeline through borrower-scoped calculation and prediction tools; its LLM does
 not execute formulas or supply model probabilities itself.
 
@@ -77,7 +79,11 @@ histories from the PoC cases and derives next-quarter labels through the same ca
 A Logistic Regression training pipeline saves its preprocessing, classifier, metadata and
 evaluation. The runtime adapter uses the shared feature converter and loads an explicitly selected
 artifact. Synthetic outcome labels remain offline files; prediction storage uses the existing
-analytics schema. UI wiring and additional models are later work. See
+analytics schema. Streamlit initializes its own financial database once per startup and keeps
+analytics under the ignored `data/processed/streamlit/` directory. Conversation memory and active
+assessments belong to individual browser sessions. Prediction is off by default, and missing chat
+credentials do not prevent deterministic assessments. SEC UI bindings and additional models are
+later work. See
 [assessment and training usage](ml_early_warning.md).
 
 ## Boundaries

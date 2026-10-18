@@ -6,6 +6,8 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 from model_helpers import ScriptedModel
@@ -23,6 +25,37 @@ from credit_monitoring.ingestion.chunking.sections import SectionTooLargeError, 
 from credit_monitoring.ingestion.converters.sec_markdown import CONVERSION_VERSION, load_markdown
 
 FIXTURE = Path(__file__).parents[2] / "fixtures/sec_covenant_v2/fmc_amendment_schedule.md"
+
+
+def test_cleaner_upgrade_invalidates_extraction_without_deleting_old_record(
+    document_service_factory, generation_response, monkeypatch
+):
+    service = document_service_factory()
+    marker = service.markdown_dir / ".SYN.conversion-version"
+    service.model.respond.return_value = generation_response(CovenantExtraction())
+    with monkeypatch.context() as old_version:
+        for module in (
+            "credit_monitoring.application.document_processing_service",
+            "credit_monitoring.ingestion.converters.sec_markdown",
+        ):
+            old_version.setattr(f"{module}.CONVERSION_VERSION", "beautifulsoup-clean-v1")
+        marker.write_text("beautifulsoup-clean-v1")
+        first = service.process_document("SYN")
+    stale = service.get_document_extraction("SYN")
+    assert stale.status == "stale" and stale.result is None
+    assert service.model.respond.call_count == 1
+    service.html_dir.mkdir()
+    (service.html_dir / "SYN.html").write_text("<p>Maximum leverage ratio 4.00x.</p>")
+    service.converter = Mock()
+    service.converter.convert_local.return_value = SimpleNamespace(
+        markdown=(service.markdown_dir / "SYN.md").read_text()
+    )
+    second = service.process_document("SYN")
+    assert second.status == "complete" and not second.cache_hit
+    assert first.cache_key != second.cache_key
+    assert service.repository.get("SYN", first.cache_key) is not None
+    assert marker.read_text() == CONVERSION_VERSION
+    assert service.model.respond.call_count == 2
 
 
 @pytest.fixture

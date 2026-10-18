@@ -37,6 +37,26 @@ AVAILABILITY_CAVEAT = (
 )
 
 
+def test_assessment_only_agent_requires_borrower_scope_and_has_no_document_tools():
+    model = ScriptedModel()
+    agent = CreditAssessmentAgent(assessment_service=Mock(), model=model)
+    with pytest.raises(ValueError, match="borrower ID"):
+        agent.start_conversation()
+    with pytest.raises(ValueError, match="borrower ID"):
+        agent.ask("Summarize the assessment")
+    with pytest.raises(ValueError, match="document service"):
+        agent.start_conversation(borrower_id="SYN", ticker="SYN")
+    conversation = agent.start_conversation(borrower_id="SYN")
+    assert conversation.ask("Summarize the assessment").complete
+    assert {tool.name for tool in model.respond.call_args.kwargs["info"].function_tools} == {
+        "get_financials",
+        "assess_covenants",
+        "predict_risk",
+    }
+    with pytest.raises(ValueError, match="document or assessment service"):
+        CreditAssessmentAgent(model=model)
+
+
 @pytest.mark.parametrize("assessment_enabled", [False, True])
 def test_agent_sends_only_context_for_registered_tools(assessment_enabled):
     model = ScriptedModel()

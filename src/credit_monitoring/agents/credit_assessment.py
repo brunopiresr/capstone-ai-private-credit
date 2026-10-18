@@ -31,7 +31,7 @@ class CreditAssessmentAgent:
     def __init__(
         self,
         *,
-        service: DocumentProcessingService,
+        service: DocumentProcessingService | None = None,
         assessment_service: AssessmentService | None = None,
         model: Model | str = DEFAULT_MODEL,
         max_tool_rounds: int = 6,
@@ -41,6 +41,8 @@ class CreditAssessmentAgent:
     ) -> None:
         if max_tool_rounds <= 0:
             raise ValueError("max_tool_rounds must be positive.")
+        if service is None and assessment_service is None:
+            raise ValueError("Configure a document or assessment service.")
         self.service = service
         self.assessment_service = assessment_service
         self.model = model
@@ -52,7 +54,15 @@ class CreditAssessmentAgent:
     def start_conversation(
         self, *, ticker: str | None = None, borrower_id: str | None = None
     ) -> AgentConversation:
+        self._validate_scope(ticker, borrower_id)
         return AgentConversation(self, ticker=ticker, borrower_id=borrower_id)
+
+    def _validate_scope(self, ticker: str | None, borrower_id: str | None) -> None:
+        if self.service is None:
+            if not borrower_id or not borrower_id.strip():
+                raise ValueError("Assessment-only conversations require an explicit borrower ID.")
+            if ticker is not None:
+                raise ValueError("Ticker scope requires a document service.")
 
     def ask(
         self,
@@ -128,7 +138,8 @@ class CreditAssessmentAgent:
     ) -> AsyncIterator[AgentEvent]:
         if not question.strip():
             raise ValueError("Question must not be empty.")
-        tools = DocumentTools(self.service, ticker=ticker).tools
+        self._validate_scope(ticker, borrower_id)
+        tools = DocumentTools(self.service, ticker=ticker).tools if self.service else []
         if borrower_id is not None:
             if self.assessment_service is None:
                 raise ValueError("Configure an assessment_service before supplying a borrower ID.")

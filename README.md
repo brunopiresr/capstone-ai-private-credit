@@ -44,7 +44,7 @@ The capstone POC focuses on covenant monitoring, deterministic financial calcula
 
 ## Current implementation status
 
-Status: Analyst-facing Streamlit demo, CSV-to-SQLite financial loading, complete SEC document extraction with SQLite reuse, and a `CreditAssessmentAgent` with document tools plus optional borrower-scoped financial, calculation and ML prediction tools. The Streamlit cockpit still uses synthetic cases and fixed assistant responses; document processing and the agent are available through application services and the notebooks. Automatic post-extraction verification is temporarily disabled, with its implementation retained. Structured assessment verification remains active.
+Status: Streamlit runs working borrower assessments on synthetic financials and covenant terms, with deterministic calculations, structured verification, optional risk prediction, and grounded PydanticAI follow-ups. A separate **Benchmark portfolio (mock)** page retains fixed expected examples. Complete SEC document extraction and retrieval remain available through services and notebooks. Automatic post-extraction verification is temporarily disabled, with its implementation retained. Structured assessment verification remains active.
 
 See [document processing and agent usage](docs/document_processing.md) for the service
 interfaces, cache behavior, tool loop, and verification migration notes.
@@ -77,7 +77,20 @@ uv run ruff check .
 uv run streamlit run src/credit_monitoring/web/app.py
 ```
 
-The scaffold import test and demo app do not need credentials or external services. Configuration names are listed in `.env.example` for future use.
+The working assessment needs no credentials. On startup, Streamlit imports bundled financials
+into dedicated storage under `data/processed/streamlit/`; restart the app to reload edited CSVs.
+Select a borrower, reporting period, and information cutoff, then click **Run assessment**.
+The working page displays service results and never reads gold labels or financial notes.
+
+Prediction defaults to **Off**. **Stub** returns no forecast; **Logistic Regression** requires
+`uv sync --extra ml --group dev --locked` and the saved artifact under
+`data/models/logistic_regression/v1/`. Missing model prerequisites leave deterministic results visible.
+
+For analyst follow-ups, set `OPENAI_API_KEY` in the environment or `.env`.
+Optionally set `LLM_MODEL` to a provider-qualified model; the default is
+`openai-responses:gpt-4o-mini`. Chat uses borrower-scoped financial, calculation, and prediction
+tools. Its memory belongs to the browser session and clears on a new assessment or **Clear
+conversation**. SEC borrower/document bindings are configured separately through the services.
 
 Run the notebooks with the project's `.venv` kernel:
 
@@ -149,7 +162,8 @@ with sqlite3.connect(database_path) as connection:
 The assessment service now resolves existing covenant inputs, calculates leverage and coverage,
 and stores calculation history in a separate analytics database. Optional feature engineering
 and a replaceable model service run after those results are persisted. The built-in stub returns
-unknown risk and null probabilities; it does not forecast events. The analyst UI remains a mock.
+unknown risk and null probabilities; it does not forecast events. Streamlit uses this workflow
+for its working borrower assessment page.
 An optional Logistic Regression model can be trained on independently generated synthetic histories
 and loaded through the same model service.
 
@@ -203,4 +217,4 @@ change the monitoring workflow.
 
 ## Next implementation step
 
-Connect the credit assessment agent and its document, calculation and prediction tools to the analyst UI.
+Extend the working analyst UI to explicitly configured SEC borrower/document bindings.

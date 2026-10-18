@@ -1,6 +1,7 @@
 """Offline extraction helper tests with temporary files and injected converters."""
 
 import logging
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -13,6 +14,64 @@ from credit_monitoring.ingestion.chunking.evidence import (
 from credit_monitoring.ingestion.cleaners.sec_html import clean_html
 from credit_monitoring.ingestion.converters.sec_markdown import CONVERSION_VERSION, load_markdown
 from credit_monitoring.ingestion.loaders.sec import download_sec_filing
+
+FINANCIAL_HTML = Path(__file__).parents[2] / "fixtures/sec_financial_content.html"
+
+
+def test_html_cleanup_preserves_financial_identifiers_and_removes_exact_chrome():
+    result = clean_html(FINANCIAL_HTML.read_text())
+    for content in (
+        "Consolidated Statements of Stockholders’ Equity",
+        "<table",
+        "Compensation expense",
+        "Share-based payments",
+        "100",
+        "Earnings per share: 1.25",
+        "Common shares: 500",
+        "Social security expense: 25",
+    ):
+        assert content in result
+    for content in (
+        "Navigation chrome",
+        "Nested sharing chrome",
+        "Social chrome",
+        "Site footer chrome",
+        "Sidebar chrome",
+    ):
+        assert content not in result
+
+
+def test_v1_markdown_reconverts_cached_html_without_downloading(tmp_path, monkeypatch):
+    html_dir, markdown_dir = tmp_path / "html", tmp_path / "markdown"
+    html_dir.mkdir()
+    markdown_dir.mkdir()
+    (html_dir / "SYN.html").write_text(FINANCIAL_HTML.read_text())
+    (markdown_dir / "SYN.md").write_text("Old conversion without financial content")
+    marker = markdown_dir / ".SYN.conversion-version"
+    marker.write_text("beautifulsoup-clean-v1")
+    download = Mock(side_effect=AssertionError("Cached HTML must not be downloaded"))
+    monkeypatch.setattr(
+        "credit_monitoring.ingestion.converters.sec_markdown.download_sec_filing", download
+    )
+
+    def convert(path):
+        cleaned = Path(path).read_text()
+        assert "Consolidated Statements of Stockholders’ Equity" in cleaned
+        assert "Compensation expense" in cleaned
+        assert "Social chrome" not in cleaned
+        return SimpleNamespace(markdown="Preserved financial content")
+
+    converter = Mock()
+    converter.convert_local.side_effect = convert
+    arguments = dict(
+        html_dir=html_dir, markdown_dir=markdown_dir, user_agent="", converter=converter
+    )
+    record = {"document_id": "SYN", "source_url": "https://example.invalid/fixture"}
+    assert load_markdown(record, **arguments) == "Preserved financial content"
+    assert marker.read_text() == CONVERSION_VERSION == "beautifulsoup-clean-v2"
+    assert load_markdown(record, **arguments) == "Preserved financial content"
+    converter.convert_local.assert_called_once()
+    download.assert_not_called()
 
 
 def test_html_cleanup_keeps_substantive_tables():

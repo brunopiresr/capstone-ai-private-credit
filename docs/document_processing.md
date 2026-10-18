@@ -106,6 +106,11 @@ those few passages.
   next service invocation. Only registered documents can be processed.
 - Full Markdown is loaded through the existing download/conversion cache. Downloads
   require an identifying SEC User-Agent; source text is never silently truncated.
+- Conversion version `beautifulsoup-clean-v2` removes chrome by exact class tokens and
+  whole identifiers, preserving financial headings and share-related content. Older Markdown
+  and extraction caches are stale. Explicit document processing reconverts cached HTML without
+  another download when HTML exists, and may require a new model extraction. Historical
+  extraction records remain stored.
 - The default extraction text budget is 60,000 characters per request, including
   separate heading context. This is a conservative operational setting, not an exact
   model token limit. Set `max_chars` to change it; API context/output failures remain
@@ -204,7 +209,8 @@ Tracing is disabled by default. `tracing_enabled=True` enables PydanticAI OpenTe
 instrumentation with content capture disabled; exporters are configured by the host
 application. Console progress and the public tool trace are independent of tracing.
 Single-question methods start fresh; explicit conversations keep history in memory.
-No hosted monitoring, persistent chat storage, or live Streamlit integration is added.
+Streamlit uses session-owned conversations for synthetic borrower follow-ups. Hosted monitoring
+and persistent chat storage remain separate work.
 
 ### Conversations and follow-up questions
 
@@ -286,7 +292,8 @@ Callback exceptions propagate and prevent committing that turn to conversation m
 The console callback summarizes progress and leaves snapshots for a UI to render.
 
 The agent notebook includes an opt-in `show_stream()` demonstration, including final
-confidence. The current Streamlit cockpit remains a mock application.
+confidence. Streamlit's working borrower page renders completed answers, confidence, and executed
+tools; its separate benchmark cockpit remains an explicitly labeled mock.
 
 ## Verification and limitations
 
@@ -305,11 +312,16 @@ the old `v2.0` prompt snapshot is retained alongside the new snapshot.
 
 The agent reports source-supported facts and gaps. Calculations and configured-term
 applicability are delegated to the assessment service; the agent never infers them
-from filing prose. Automatic post-extraction verification and Streamlit integration
-remain outside this implementation. Mocked tests establish
+from filing prose. Automatic post-extraction verification remains disabled. Streamlit supports
+synthetic borrower assessments; SEC document bindings in the UI remain separate work. Mocked tests establish
 pipeline behavior, not live LLM completeness or resistance to injected instructions.
 
 ## Calculation and prediction tools
+
+For assessment-only applications, omit `service` and supply `assessment_service` to
+`CreditAssessmentAgent`. Document tools are registered only when a document service is supplied.
+Assessment-only calls and conversations require an explicit `borrower_id` and cannot specify
+`ticker`. Streamlit uses this mode so synthetic borrowers do not search unrelated SEC filings.
 
 The renamed class lives in `credit_monitoring.agents.credit_assessment`; update
 imports formerly using `credit_monitoring.agents.monitoring.MonitoringAgent`.
@@ -445,7 +457,7 @@ by document-backed assessments. Financial CSV provenance, applied term evidence,
 calculation IDs, feature snapshots and model metadata are available in `tool_trace`
 outcomes and used in the final explanation. Structured assessment verification is
 active; automatic document-extraction verification remains disabled. Neither proves
-the semantic correctness of arbitrary generated prose. The UI remains a mock.
+the semantic correctness of arbitrary generated prose. The working UI displays this distinction.
 
 Before the SDK migration on October 5, 2026, all 29 existing local filings
 partitioned losslessly into 107 sections with the default budget.
