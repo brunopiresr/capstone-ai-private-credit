@@ -113,3 +113,12 @@ A passing mocked or portable check does not establish live model quality.
 
 See the [roadmap](docs/architecture.md#roadmap) for remaining UI bindings, later monitoring,
 and proposed agent work.
+
+## Credit perspective reviews
+
+The [credit review service](docs/credit_review.md) runs bullish and bearish agents over
+one borrower's completed calculations, trends, and optional ML output, then passes both
+full analyses and rationales to a neutral Recommendation agent. Typed results preserve
+supporting arguments and evidence for the analyst. The workflow is available through
+Python services; web UI integration and live news retrieval remain future work.
+See the [recorded architecture decisions](docs/decisions/001-credit-review-agents.md).

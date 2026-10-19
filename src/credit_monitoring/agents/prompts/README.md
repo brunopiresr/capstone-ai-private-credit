@@ -6,6 +6,8 @@
 - `assembly.py`: JSON envelopes shared by both workflows.
 - `credit_assessment.py`: core evidence, scope, citation and confidence rules;
   the builder includes date rules only when assessment tools are enabled.
+- `credit_review.py`: versioned bullish, bearish, and neutral recommendation mandates;
+  complete cited rationales and explicit argument judgments for one borrower.
 
 Tool docstrings own workflow and argument guidance. Assessment tool results carry
 applicable model and availability caveats in their existing `issues` fields.

@@ -1,6 +1,6 @@
 # Architecture
 
-Current implementation reference, updated 18 October 2026. Business scope is in the
+Current implementation reference, updated 19 October 2026. Business scope is in the
 [POC definition](poc_definition.md); older execution plans record historical requirements.
 PydanticAI is the retained agent framework, including its OpenAI provider integration.
 
@@ -74,6 +74,26 @@ Structured assessment verification is active and covers calculation replay, iden
 availability, provenance, prediction linkage, and stub honesty. It does not certify the
 semantic accuracy of generated prose or live extraction quality.
 
+## Credit perspective reviews
+
+`CreditReviewService` provides an application-controlled fan-out/fan-in workflow for
+one borrower's completed assessment. Independent bullish and bearish PydanticAI agents
+analyze the same immutable evidence snapshot in parallel. A dedicated Recommendation
+agent receives both complete structured analyses, including their rationales, assumptions,
+and counterevidence, plus the original evidence. It explains how each argument affects
+its advisory recommendation. No second borrower is selected.
+
+The review service consumes public calculations, trends, prediction, and verification
+outputs without recalculating them. Agents have no function tools. Typed outputs retain
+both perspectives and argument-level judgments for future UI use. Invalid verification
+blocks execution; failed reviewers force deferral and preserve successful analysis.
+An injected news provider defaults to explicit unavailability; no live news search is
+implemented. Services expose synchronous/asynchronous methods and typed progress callbacks;
+the working Streamlit screen does not yet invoke this review workflow.
+
+See [service usage](credit_review.md), the [implementation plan](bullish_bearish_agents_implementation_plan.md),
+and [architecture decisions](decisions/001-credit-review-agents.md).
+
 ## Checks and diagnostics
 
 The [README](../README.md#checks) lists the complete offline surface. Core and homework
@@ -90,11 +110,11 @@ and sanitized failure types. No generic signature-binding decorator or telemetry
 
 - Add explicit SEC borrower/document bindings to the working UI; do not infer entity relationships.
 - Continue Logfire monitoring and fuller live agent/judge evaluation as later learning work.
-- Implement [borrower comparison](borrower_comparison_implementation_plan.md) and
-  [bullish, bearish, and recommendation agents](bullish_bearish_agents_implementation_plan.md)
-  only as their planned requirements are taken up. They are not current capabilities.
-- Create a public-news provider or vector/hybrid retrieval package when a concrete
-  implementation needs it; empty scaffold packages have been removed.
+- Implement [borrower comparison](borrower_comparison_implementation_plan.md) when its
+  planned requirements are taken up. It remains separate from single-borrower reviews.
+- Connect credit perspective reviews to the UI and a live public-news provider when
+  requested. Review services and the unavailable-news extension point are implemented.
+- Create vector/hybrid retrieval packages when a concrete implementation needs them.
 
 Financial rules remain deterministic, missing inputs remain missing, synthetic results remain
 labeled, and the analyst retains responsibility for interpretation and decisions.

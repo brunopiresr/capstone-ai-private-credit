@@ -1,99 +1,161 @@
-# Bullish, Bearish, and Recommendation Agents
+# Credit Perspective Agents — Implementation After Cleanup
 
-Status: planned; not implemented. Current capabilities are described in [architecture](architecture.md).
+Status: implemented at the application-service boundary. See [usage](credit_review.md),
+[architecture](architecture.md), and the [decision record](decisions/001-credit-review-agents.md).
+The requirements below record the agreed implementation scope; UI integration and live
+news collection remain deferred.
 
 ## Summary
 
-Add **three dedicated agents**: two independent reviewers and a neutral recommendation agent. Their purpose is to enrich assessment of an existing credit exposure through different interpretations of shared evidence.
+After the project cleanup is accepted, add three dedicated agents to analyze **one borrower's calculation and ML outputs from two perspectives**:
 
-Keep `RiskAnalysisService` upstream: it currently provides narrative over structured assessment results, rather than acting as a separate decision agent. Its calculations and optional ML outputs will inform all three agents.
+| Agent | Responsibility |
+|---|---|
+| **Bullish** | Identify resilience, improving performance, and credible mitigants. |
+| **Bearish** | Identify deterioration, downside risks, weak mitigants, and material gaps. |
+| **Recommendation** | Weigh both analyses and recommend an action to the credit analyst. |
 
-Deliver application services and typed results ready for later web UI integration.
+Both reviewers assess the same borrower, reporting period, information cutoff, and evidence snapshot. A second borrower is not required or selected. Borrower comparison remains a [separate planned feature](borrower_comparison_implementation_plan.md).
+
+**Both reviewers must return evidence-backed reasoning.** The Recommendation agent receives their complete structured analyses, including rationale, assumptions, and counterevidence. These explanations also remain available in the final analyst result.
 
 ```mermaid
 flowchart LR
-    E["Shared evidence: calculations, trends, risk, future news"]
+    E["One borrower: completed calculations, trends, and ML outputs"]
     E --> B["Bullish agent"]
     E --> R["Bearish agent"]
     E --> C["Recommendation agent"]
-    B --> C
-    R --> C
-    C --> A["Credit analyst"]
+    B -->|Full analysis and rationale| C
+    R -->|Full analysis and rationale| C
+    C --> A["Recommendation and supporting arguments for the credit analyst"]
 ```
 
-## Agent responsibilities
+Deliver application services first, with web UI integration later.
 
-| Agent | Responsibility | Required output |
-|---|---|---|
-| Bullish | Identify resilience, improving trends, mitigants, and evidence supporting continued exposure. | Supported arguments, counterevidence, assumptions, gaps, and what would weaken its view. |
-| Bearish | Identify deterioration, limited headroom, downside risks, and weaknesses in proposed mitigants. | Supported arguments, counterevidence, assumptions, gaps, and what would weaken its view. |
-| Recommendation | Weigh both reviews against the underlying evidence and supplied credit criteria. | Recommended action, rationale, treatment of opposing arguments, conditions, diligence questions, and confidence. |
+## Prerequisites
 
-The reviewers must pursue their assigned perspective without being required to reach a favorable or unfavorable conclusion. Empty or weak cases are valid outcomes.
+Use [the cleanup review](capstone_cleanup_review.md) as the repair roadmap. Start this feature after the repaired baseline is accepted. Revalidate completed fixes rather than reimplementing them:
 
-All agents preserve supplied compliance statuses, calculated values, and prediction limitations. They receive no calculation, retrieval, or execution tools in this first version.
+- Extraction-backed calculations and model prediction work together; retain and revalidate the existing F01 fix.
+- Missing and conflicting inputs produce explicit abstention, including SYN010.
+- Structured verification has negative regression coverage, and source processing preserves substantive evidence.
+- Deterministic trends are available through public assessment results with ML disabled.
+- Dependencies are composed at entry points; consumers need no access to storage internals.
+- The existing analyst flow uses working services, and documented checks have been rerun.
 
-## Implementation changes
+Confirm the final assessment interface and package layout after cleanup. Do not depend on placeholder packages surviving.
 
-### Shared evidence and orchestration
+## Implementation sequence
 
-- Add `CreditReviewService`, with synchronous `review(...)` and asynchronous `review_async(...)` methods. Required inputs are `borrower_id`, `period_end`, and `information_cutoff`; optional inputs are analyst decision context and the existing ML override.
-- Call `AssessmentService.assess(...)` **once per review**. Build a frozen evidence snapshot containing current and historical results, sanitized financial inputs, deterministic trends, optional predictions, verification findings, and provenance.
-- Reuse `RiskFeatureBuilder` for trends when ML is disabled. Missing or incompatible history remains unavailable.
-- Exclude generated assessment narratives, benchmark labels, and source notes from the agents' evidence.
-- Run bullish and bearish reviews concurrently with separate histories and identical evidence. Pass their validated outputs and the original evidence to the recommendation agent.
-- Use application-controlled orchestration and existing PydanticAI dependencies. This follows its documented [programmatic hand-off pattern](https://pydantic.dev/docs/ai/guides/multi-agent-applications/#programmatic-agent-hand-off).
+### 1. Define evidence and analysis contracts
 
-### Public contracts
+Add typed contracts for decision context, shared evidence, perspective assessments, recommendations, review results, and progress events.
 
-Add typed contracts for:
+Build one frozen evidence snapshot from a completed assessment containing its borrower, dates, sanitized financial inputs, covenant results, deterministic trends, optional ML predictions, verification findings, limitations, and provenance. Consume the public assessment outputs without rebuilding features or rerunning calculations or predictions. Preserve calculation/result identifiers, CSV source rows, document citations, and prediction identities.
 
-- **Decision context:** the analyst's question, supplied credit criteria, and constraints. Treat these as analyst inputs, separately from verified financial evidence.
-- **Perspective assessment:** cited arguments, counterevidence, assumptions, limitations, and evidence that would change the view.
-- **Credit recommendation:** action, cited rationale, assessment of both perspectives, conditions, outstanding questions, and evidence confidence.
-- **Review result:** review and assessment identifiers, evidence snapshot, both perspectives, recommendation, completion status, issues, and per-agent execution metadata.
+Exclude generated narratives, benchmark labels, and source notes. Keep analyst-supplied questions, credit criteria, and constraints separate from financial evidence.
 
-Recommendation actions are:
+Each perspective assessment must contain:
 
-- `maintain`: retain current exposure.
-- `increase`: support increasing exposure.
-- `reduce`: support reducing exposure.
-- `review`: recommend analyst reassessment before choosing an exposure change.
-- `defer`: insufficient evidence or criteria to support a recommendation.
+| Field | Required content |
+|---|---|
+| Thesis | Overall interpretation from the assigned perspective. |
+| Arguments | Individually identified arguments with claims and evidence references. |
+| Rationale | Why the cited evidence supports each argument. |
+| Credit implications | How each argument affects the assessment of existing exposure. |
+| Assumptions | Conditions required for the interpretation to hold. |
+| Counterevidence | Facts that weaken or contradict the argument, with an explanation of their significance. |
+| Gaps and limitations | Missing information and limits on the conclusions. |
+| Change-of-view conditions | Evidence that would materially change the assessment. |
+| Confidence | Evidence confidence and its explanation. |
 
-The recommendation agent must explain which arguments carry more weight and why. It must not average the perspectives or treat agreement as independent confirmation.
+Evidence-based arguments require valid evidence references and a nonblank rationale. Assumptions and hypothetical outcomes must be identified explicitly. An agent finding insufficient support must explain that insufficiency rather than manufacture an argument.
 
-### Future public news
+### 2. Implement independent reviewers
 
-- Create an injectable provider at the planned `public_context` boundary when implementing this work (unused placeholder modules were removed); the default reports `unavailable`.
-- Distinguish an unavailable feed from an available feed with no relevant results.
-- Future records must carry explicit borrower scope, source URL, publisher, publication time, and evidence identifier. Exclude records published after the information cutoff and flag unknown publication times.
-- Include accepted records in the shared snapshot so both reviewers see the same news. Implement no live news collection in this release.
+Create separate bullish and bearish PydanticAI agents with versioned prompts, injectable models, and typed outputs.
 
-### Validation and failure behavior
+- Give both identical evidence and decision context, with separate histories.
+- Run them concurrently; neither sees the other's review beforehand.
+- Require each to acknowledge contrary evidence without forcing a favorable or unfavorable conclusion. Empty or weak cases are valid outcomes.
+- Preserve supplied values, compliance statuses, prediction identities, and limitations.
+- Provide no calculation, retrieval, or execution tools in v1.
 
-- Generate provenance and execution identifiers in application code. Validate all agent evidence references against the snapshot.
-- Keep authoritative financial and compliance fields in the service-owned result. Generated prose does not replace them, and reference validation does not certify its interpretation.
-- If structured assessment verification fails, return a blocked review with `defer` and skip agent execution.
-- If a reviewer fails, retain the successful review and return an incomplete result with `defer`. If the recommendation agent fails, return a service-generated `defer` with the completed perspectives.
-- Missing credit criteria require `defer`; the result can still provide useful analysis and diligence questions.
-- Use versioned prompts, separately injectable models, a configurable 60-second timeout per agent, and one output-validation retry.
-- Provide typed stage-progress callbacks and JSON-serializable results for future UI consumption. Record model identity, prompt version, duration, usage, and failures.
+Calculations, trends, verification, and predictions remain upstream services. `RiskAnalysisService` retains its narrative responsibility; the existing `CreditAssessmentAgent` retains its question-answer workflow.
 
-## Test plan
+### 3. Implement recommendation synthesis
 
-- Exercise real assessment services with scripted models: confirm one assessment invocation, identical reviewer evidence, isolated histories, and both reviews reaching the recommendation agent.
-- Cover compliant but deteriorating borrowers, breaches with mitigants, waivers, conflicting inputs, insufficient history, and missing decision criteria.
-- Verify missing, stub, failed, and synthetic-trained ML outputs retain their limitations.
-- Test news unavailable versus empty, future-dated news exclusion, invalid evidence references, malformed outputs, timeouts, and partial failures.
-- Confirm results serialize cleanly and existing assessment, chat, calculation, and prediction tests still pass.
-- Add evaluation cases assessing evidence support, useful differences between perspectives, and whether synthesis addresses the strongest opposing argument. Do not require disagreement for its own sake.
+Give the Recommendation agent:
 
-## Assumptions and delivery
+1. The original shared evidence snapshot for the borrower.
+2. The complete bullish assessment and its reasoning.
+3. The complete bearish assessment and its reasoning.
+4. The analyst's decision context.
 
-- Existing exposures only; numerical exposure sizing, pricing, and new-loan underwriting are deferred.
-- One independent review per perspective, followed by synthesis; no rebuttal round.
-- Recommendations support the analyst's decision and trigger no exposure changes.
-- Reuse the current configured model by default, with independent configuration available for each role.
-- Return review artifacts without adding database persistence in v1.
-- Deliver services, contracts, tests, and API usage documentation. Web UI integration remains later work.
+Pass the structured reviews without an intermediate summarization step that could discard their reasoning.
+
+The recommendation must:
+
+- Identify the strongest arguments from both perspectives.
+- Reference argument identifiers and underlying evidence.
+- Explain which arguments it accepts, qualifies, or rejects, and why.
+- Address disagreements, assumptions, and unresolved uncertainties.
+- Explain how those judgments lead to the recommended action.
+- State conditions, diligence questions, and evidence confidence.
+
+Do not average opinions or treat agreement as independent confirmation. Use application-controlled execution following PydanticAI's [programmatic hand-off pattern](https://pydantic.dev/docs/ai/guides/multi-agent-applications/#programmatic-agent-hand-off).
+
+### 4. Add the application service
+
+Expose these entry points through `CreditReviewService`, with synchronous wrappers:
+
+- `review_assessment_async(assessment, *, decision_context=None)` reviews an existing assessment without recalculation.
+- `review_async(borrower_id, period_end, information_cutoff, *, decision_context=None, ml_enabled=None)` obtains one assessment and delegates to the same workflow.
+
+Return the evidence snapshot, both complete analyses and their reasoning, recommendation, identifiers, completion status, issues, and execution metadata.
+
+Actions are `maintain`, `increase`, `reduce`, `review`, and `defer`. `review` requests analyst reassessment; `defer` indicates insufficient evidence or criteria.
+
+Enforce these boundaries:
+
+- Failed structured verification blocks agent execution and returns `defer`.
+- Missing credit criteria require `defer`, while permitting useful analysis.
+- Reviewer failure preserves successful work and returns an incomplete review with `defer`.
+- Recommendation-agent failure returns a service-generated `defer` alongside completed analyses.
+- Missing ML or news remains an explicit limitation rather than automatically blocking review. Stub or unavailable predictions must never become invented forecasts.
+
+Generate provenance and execution identifiers in application code. Validate evidence and argument references. These checks establish traceability; they do not certify every interpretation in generated explanations. Authoritative financial and compliance fields remain in the service-owned result.
+
+### 5. Prepare news and future UI integration
+
+- Add a minimal injectable news provider with an unavailable default; create its package only when implementing this boundary.
+- Distinguish unavailable, failed, empty, and available results.
+- Require accepted news to retain borrower scope, publisher, URL, publication time, and evidence identifier.
+- Exclude future-dated and unknown-publication-time records from point-in-time evidence, disclosing exclusions.
+- Add accepted news to the same shared snapshot consumed by both reviewers and the Recommendation agent.
+- Return JSON-serializable results and typed progress callbacks.
+- Retain both reviewers' explanations and the recommendation's argument-by-argument assessment for future display.
+- Use existing logging for model, prompt version, duration, usage, and failure metadata.
+
+## Tests and acceptance
+
+- Confirm one assessment invocation through the convenience API and none when reviewing an existing assessment.
+- Verify that a single borrower is sufficient, no second borrower is selected, and all inputs and argument references remain within the configured borrower scope.
+- Verify identical evidence, isolated histories, concurrent reviews, and delivery of both complete analyses to synthesis.
+- Reject missing rationales and invalid evidence or argument references.
+- Confirm final serialization preserves reviewer reasoning and recommendation explanations.
+- Cover improving borrowers, deterioration despite compliance, breaches with mitigants, waivers, conflicting inputs, missing history, and absent criteria.
+- Test malformed outputs, refusals, timeouts, partial failures, ML limitations, news availability, cutoff filtering, and embedded instructions treated as untrusted evidence.
+- Evaluate whether recommendations address the strongest opposing argument and follow from the evidence. Scripted tests establish orchestration; representative opt-in model evaluations assess analysis quality. Do not require disagreement for its own sake.
+- Run the cleaned project's existing regression checks.
+
+## Defaults and delivery boundaries
+
+- One borrower per review, with two analytical perspectives; borrower comparison is separate work.
+- Existing exposures only; the analyst retains the final decision and no exposure changes are executed.
+- Independent reviews followed by synthesis; no rebuttal round.
+- Current configured model by default, configurable per role.
+- Configurable 60-second timeout per agent and one output-validation retry.
+- Confidence means evidence support, not credit risk or probability.
+- Deliver services, contracts, tests, and usage documentation.
+- Defer web UI integration, review persistence, live news collection, numerical exposure sizing, pricing, new-loan underwriting, and new monitoring infrastructure.

@@ -15,6 +15,19 @@ regression skips when its ignored source file is absent. A core install can skip
 cases; `make test-ml` explicitly enables their dependencies. Full notebook runs and live
 model accuracy are separate from these checks.
 
+## Credit perspective reviews
+
+The [review workflow regressions](../tests/integration/workflows/test_credit_review.py)
+exercise real assessments and PydanticAI execution with scripted model boundaries.
+They verify single-borrower scope, parallel independent reviews, complete rationale
+handoff, argument/evidence references, ML and news limitations, failures, and serialization.
+They do not establish live argument quality or the suitability of credit recommendations.
+
+The [review usage guide](credit_review.md#validation-and-model-evaluation) describes
+representative opt-in live cases and evaluation criteria. Capture full typed review
+results so both arguments and the synthesizer's judgments remain inspectable. No live
+calls or new judge infrastructure are added to the portable suite.
+
 ## Public-cache quality
 
 The [SEC comparison guide](../tests/evaluation/extraction/README.md) documents read-only

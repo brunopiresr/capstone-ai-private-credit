@@ -21,3 +21,10 @@ class AssessmentSettings(AssessmentModel):
     ml_enabled: bool = False
     analytics_database: Path = Path("data/processed/analytics.sqlite3")
     risk_model: RiskModelConfig = Field(default_factory=RiskModelConfig)
+
+
+class CreditReviewSettings(AssessmentModel):
+    """Bound each model run, including its single default output-repair attempt."""
+
+    timeout_seconds: float = Field(default=60, gt=0)
+    output_retries: int = Field(default=1, ge=0)

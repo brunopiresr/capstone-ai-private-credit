@@ -5,14 +5,23 @@ from typing import Any
 
 from pydantic_ai.models import Model
 
+from credit_monitoring.agents.credit_review import (
+    BearishCreditAgent,
+    BullishCreditAgent,
+    CreditRecommendationAgent,
+)
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.application.assessment_service import AssessmentService
+from credit_monitoring.application.credit_review_service import (
+    CreditReviewService,
+    ReviewEventHandler,
+)
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.application.risk_analysis_service import (
     AssessmentNarrator,
     RiskAnalysisService,
 )
-from credit_monitoring.config.settings import AssessmentSettings
+from credit_monitoring.config.settings import AssessmentSettings, CreditReviewSettings
 from credit_monitoring.covenants.repositories import CovenantRepository
 from credit_monitoring.covenants.structured import CovenantReader
 from credit_monitoring.features.risk_feature_builder import RiskFeatureBuilder
@@ -24,7 +33,32 @@ from credit_monitoring.persistence.analytics_repositories import (
     RiskFeatureSnapshotRepository,
     RiskPredictionRepository,
 )
+from credit_monitoring.public_context.retrieval import PublicNewsProvider
 from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
+
+
+def create_credit_review_service(
+    *,
+    assessment_service: AssessmentService | None = None,
+    model: Model | str = DEFAULT_MODEL,
+    bullish_model: Model | str | None = None,
+    bearish_model: Model | str | None = None,
+    recommendation_model: Model | str | None = None,
+    settings: CreditReviewSettings | None = None,
+    news_provider: PublicNewsProvider | None = None,
+    event_handler: ReviewEventHandler | None = None,
+) -> CreditReviewService:
+    """Compose independent roles; credentials are resolved only when review is requested."""
+    return CreditReviewService(
+        assessment_service=assessment_service,
+        bullish_agent=BullishCreditAgent(model=bullish_model or model, settings=settings),
+        bearish_agent=BearishCreditAgent(model=bearish_model or model, settings=settings),
+        recommendation_agent=CreditRecommendationAgent(
+            model=recommendation_model or model, settings=settings
+        ),
+        news_provider=news_provider,
+        event_handler=event_handler,
+    )
 
 
 def create_assessment_service(
