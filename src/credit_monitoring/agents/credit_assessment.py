@@ -24,6 +24,7 @@ from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.domain.agent import AgentAnswer, AnswerContent
 from credit_monitoring.observability import SessionContext, session_scope
+from credit_monitoring.observability.activity import activity_scope
 from credit_monitoring.observability.configuration import capture_content_enabled, span
 
 
@@ -204,7 +205,17 @@ class CreditAssessmentAgent:
             event_stream_handler if event_stream_handler is not None else self.event_stream_handler
         )
         prompt = json.dumps({"question": question, "ticker": ticker, "borrower_id": borrower_id})
-        with session_scope(session), span("agent.turn"):
+        with (
+            session_scope(session) as active_session,
+            activity_scope("assessment_assistant", default=True),
+            span(
+                "Agent turn: {agent_name} — {chat_name} [chat {chat_id}]",
+                _span_name="agent.turn",
+                agent_name=self.name,
+                chat_name=active_session.name,
+                chat_id=active_session.session_id,
+            ),
+        ):
             async with aclosing(
                 run_stream(agent, prompt, state, history, tool_names={tool.name for tool in tools})
             ) as stream:

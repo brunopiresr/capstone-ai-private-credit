@@ -273,6 +273,7 @@ def scenario(exporter: TestExporter) -> dict:
             )
     records = exporter.exported_spans_as_dict()
     anchor = next(record for record in records if record["name"] == "agent.session")
+    assert anchor["attributes"]["logfire.msg"] == "Credit assessment"
     for turn in (record for record in records if record["name"] == "validation.turn"):
         assert parent_id(turn) == anchor["context"]["span_id"]
         assert turn["context"]["trace_id"] == anchor["context"]["trace_id"]
@@ -286,7 +287,7 @@ def scenario(exporter: TestExporter) -> dict:
     with TemporaryDirectory(prefix="credit-logfire-") as directory:
         service = assessment_service(Path(directory))
         agent = CreditAssessmentAgent(assessment_service=service, model=conversation_model())
-        session = SessionContext()
+        session = SessionContext(name="Quarterly review — SYN002")
         conversation = agent.start_conversation(borrower_id="SYN002", session=session)
         start = len(exporter.exported_spans_as_dict())
         for _ in range(5):
@@ -295,6 +296,21 @@ def scenario(exporter: TestExporter) -> dict:
         five_turns = exporter.exported_spans_as_dict()[start:]
         turns = [record for record in five_turns if record["name"] == "agent.turn"]
         assert len(turns) == 5
+        session_anchor = next(record for record in five_turns if record["name"] == "agent.session")
+        assert session_anchor["attributes"]["logfire.msg"] == "Quarterly review — SYN002"
+        for turn in turns:
+            assert turn["attributes"]["logfire.msg"] == (
+                f"Agent turn: {agent.name} — {session.name} [chat {session.session_id}]"
+            )
+            assert turn["attributes"]["agent_name"] == agent.name
+            assert turn["attributes"]["chat_name"] == session.name
+            assert turn["attributes"]["chat_id"] == session.session_id
+            assert parent_id(turn) == session_anchor["context"]["span_id"]
+            assert any(
+                record["name"].startswith("invoke_agent")
+                and parent_id(record) == turn["context"]["span_id"]
+                for record in five_turns
+            )
         assert len({record["context"]["trace_id"] for record in five_turns}) == 1
         assert all(
             record["attributes"].get("gen_ai.conversation.id") == conversation.session_id

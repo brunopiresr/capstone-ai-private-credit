@@ -46,7 +46,7 @@ load_dotenv(override=False)
 configure_observability()
 
 # With an existing CreditAssessmentAgent and configured assessment service:
-session = SessionContext()
+session = SessionContext(name="Quarterly review — SYN002")
 conversation = agent.start_conversation(borrower_id="SYN002", session=session)
 first = conversation.ask("Assess 2025-09-30 using the same information cutoff.")
 second = conversation.ask("Explain the reported headroom.")
@@ -54,9 +54,29 @@ print(conversation.session_id)
 conversation.close()
 
 # Standalone services automatically establish a session. To group several calls:
-with session_scope(session):
+with session_scope(SessionContext(name="Covenant assessment — SYN002")):
     assessment = assessment_service.assess(borrower_id, period_end, information_cutoff)
 ```
+
+`SessionContext(name=...)` sets the session's displayed message in Logfire. Names
+default to `Credit assessment`; surrounding whitespace is trimmed and blank names
+raise `ValueError`. The queryable span name remains `agent.session`, so existing
+filters continue to work. `agent.turn` messages include the agent name, session label,
+and session ID, for example `Agent turn: Credit assessment agent — Quarterly review —
+SYN002 [chat <session-id>]`. Native `invoke_agent` spans are unchanged.
+
+In the monitoring demo, `chat.interaction` messages also include the chat mode and
+the coordinating agent's name. Both span types retain their stable queryable names;
+`agent_name`, `chat_name`, and `chat_id` are structured attributes. The chat ID
+matches `gen_ai.conversation.id`; the mode distinguishes the demo's two chat histories
+within the shared session. Resetting the session creates a new chat ID.
+
+Set the name before the first configured execution scope creates the session anchor.
+Explicit and inherited sessions keep their supplied name, and subsequent turns reuse
+the same anchor and displayed message. Changing `session.name` after that point does
+not rename the existing anchor. Names are explicit telemetry metadata, independent of
+the native content capture setting; questions and borrower details are not added
+automatically. Historical traces keep their original labels.
 
 Use `await conversation.ask_async(...)` when an event loop is already running.
 Streamlit retains the same conversation object and session across reruns. Direct

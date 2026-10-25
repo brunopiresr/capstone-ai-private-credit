@@ -14,6 +14,7 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "gitsource" },
+    { name = "httpx" },
     { name = "jupyter" },
     { name = "logfire" },
     { name = "markitdown" },
@@ -45,6 +46,7 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.0" },
     { name = "gitsource", specifier = ">=0.0.5" },
+    { name = "httpx", specifier = ">=0.28,<1" },
     { name = "joblib", marker = "extra == 'ml'", specifier = "==1.5.3" },
     { name = "jupyter", specifier = ">=1.0.0" },
     { name = "logfire", specifier = ">=5.2,<6" },

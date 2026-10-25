@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import logfire
@@ -13,10 +14,20 @@ from credit_monitoring.observability.configuration import is_observability_confi
 
 @dataclass
 class SessionContext:
-    """One conversation's identity and internal Logfire propagation state."""
+    """One conversation's identity, first-use display name, and propagation state."""
 
     session_id: str = field(default_factory=lambda: str(uuid4()))
     carrier: dict[str, str] | None = field(default=None, repr=False)
+    name: str = field(default="Credit assessment", kw_only=True)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC), kw_only=True)
+
+    def __post_init__(self) -> None:
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValueError("Session name must not be blank.")
+        if self.created_at.tzinfo is None:
+            raise ValueError("Session creation time must include a timezone.")
+        self.created_at = self.created_at.astimezone(UTC)
 
 
 _current_session: ContextVar[SessionContext | None] = ContextVar(
@@ -29,8 +40,13 @@ def get_active_session() -> SessionContext | None:
     return _current_session.get()
 
 
-@logfire.instrument("agent.session", new_trace=True, extract_args=False)
-def _capture_session_trace() -> dict[str, str]:
+@logfire.instrument(
+    "{session_name}",
+    span_name="agent.session",
+    new_trace=True,
+    extract_args=["session_name"],
+)
+def _capture_session_trace(session_name: str) -> dict[str, str]:
     return logfire.get_context()
 
 
@@ -50,7 +66,7 @@ def session_scope(session: SessionContext | None = None) -> Iterator[SessionCont
             return
         with logfire.set_baggage(**{"gen_ai.conversation.id": session.session_id}):
             if session.carrier is None:
-                session.carrier = _capture_session_trace()
+                session.carrier = _capture_session_trace(session.name)
             with logfire.attach_context(session.carrier):
                 yield session
     finally:

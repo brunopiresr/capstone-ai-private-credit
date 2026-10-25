@@ -36,6 +36,7 @@ from credit_monitoring.domain.credit_review import (
     ReviewSnapshot,
 )
 from credit_monitoring.observability import session_scope
+from credit_monitoring.observability.activity import activity_scope
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,8 @@ class _ReviewAgent:
         output_type: type[PerspectiveAssessment] | type[CreditRecommendation],
         validate: Callable[[ReviewOutput], None],
     ) -> tuple[ReviewOutput | None, ReviewExecution]:
-        with session_scope() as session:
+        activity = f"{self.role}_review" if self.role != "recommendation" else self.role
+        with session_scope() as session, activity_scope(activity):
             usage = RunUsage()
             started = perf_counter()
             response_id, code, output = None, None, None

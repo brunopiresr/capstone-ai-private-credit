@@ -40,11 +40,16 @@ from credit_monitoring.domain.credit_review import (
 )
 from credit_monitoring.domain.tool_results import ToolFailure
 from credit_monitoring.observability import SessionContext, session_scope
+from credit_monitoring.observability.activity import activity_scope
 from credit_monitoring.observability.configuration import span
 from credit_monitoring.web.workspace import SyntheticWorkspace
 
 ROOT = Path(__file__).resolve().parents[1]
 logger = logging.getLogger("credit_monitoring.monitoring_demo")
+CHAT_AGENT_NAMES = {
+    "Evidence Search": "Evidence search agent",
+    "Credit Analysis": "Credit analysis chat",
+}
 
 CREDIT_INSTRUCTIONS = """
 You are the credit analysis chat coordinator for a monitoring demo.
@@ -276,7 +281,7 @@ class ChatBackend:
             self.evidence = CreditAssessmentAgent(
                 service=service,
                 model=self.model,
-                name="Evidence search agent",
+                name=CHAT_AGENT_NAMES["Evidence Search"],
                 document_tool_names=frozenset({"list_documents", "search_evidence"}),
             ).start_conversation(session=self.session)
         async with aclosing(
@@ -294,7 +299,7 @@ class ChatBackend:
         assert self._turn is not None
         agent = Agent(
             resolve_model(self.model),
-            name="Credit analysis chat",
+            name=CHAT_AGENT_NAMES["Credit Analysis"],
             instructions=CREDIT_INSTRUCTIONS,
             tools=[
                 Tool(self.list_borrowers, sequential=True),
@@ -373,15 +378,24 @@ class ChatBackend:
             raise RuntimeError("Session closed. Reset to start a new session.")
         if self._turn is not None:
             raise RuntimeError("A question is already running in this session.")
-        if not question.strip() or mode not in {"Evidence Search", "Credit Analysis"}:
+        if not question.strip() or mode not in CHAT_AGENT_NAMES:
             raise ValueError("A nonblank question and a supported mode are required.")
         self._turn, self._question = turn, question.strip()
         self._notify = on_update or (lambda turn: None)
         try:
             with (
                 session_scope(self.session),
+                activity_scope(
+                    "evidence_chat" if mode == "Evidence Search" else "credit_coordinator"
+                ),
                 span(
-                    "chat.interaction", mode=mode, interaction_id=turn.interaction_id
+                    "Chat interaction: {mode} — {agent_name} — {chat_name} [chat {chat_id}]",
+                    _span_name="chat.interaction",
+                    mode=mode,
+                    agent_name=CHAT_AGENT_NAMES[mode],
+                    chat_name=self.session.name,
+                    chat_id=self.session.session_id,
+                    interaction_id=turn.interaction_id,
                 ) as interaction,
             ):
                 try:

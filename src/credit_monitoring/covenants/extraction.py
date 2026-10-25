@@ -31,6 +31,7 @@ from credit_monitoring.domain import (
     RetrievedRecord,
 )
 from credit_monitoring.observability import session_scope
+from credit_monitoring.observability.activity import activity_scope
 from credit_monitoring.observability.session import get_active_session
 
 # POC: automatic post-extraction verification is temporarily disabled. Keep the
@@ -86,7 +87,7 @@ def _parse(*, model: Model | str, instructions: str, prompt: str, schema: type) 
         output_type=ToolOutput(schema, strict=True),
         retries=0,
     )
-    with capture_run_messages() as messages:
+    with activity_scope("document_extraction"), capture_run_messages() as messages:
         try:
             session = get_active_session()
             result = agent.run_sync(prompt, conversation_id=session.session_id if session else None)

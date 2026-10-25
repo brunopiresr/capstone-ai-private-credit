@@ -41,8 +41,8 @@ def conversation_logfire(pytestconfig, monkeypatch, disable_monitoring):
 
 def test_conversation_retains_explicit_active_or_new_session(document_service_factory):
     agent = CreditAssessmentAgent(service=document_service_factory(), model=ScriptedModel())
-    explicit = SessionContext()
-    with session_scope() as active:
+    explicit = SessionContext(name="Explicit quarterly review")
+    with session_scope(SessionContext(name="Inherited quarterly review")) as active:
         supplied = agent.start_conversation(session=explicit)
         inherited = agent.start_conversation()
         assert supplied.session_id == explicit.session_id
@@ -64,7 +64,7 @@ def test_five_synchronous_turns_share_retained_session_and_leave_idle_context_cl
     async def callback(event):
         seen.append(get_active_session())
 
-    retained = SessionContext()
+    retained = SessionContext(name="Five-turn quarterly review")
     model = ScriptedModel()
     agent = CreditAssessmentAgent(service=document_service_factory(), model=model)
     conversation = agent.start_conversation(session=retained)

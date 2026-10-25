@@ -15,6 +15,7 @@ from credit_monitoring.web.assessment import (
     render_results,
     render_verification,
 )
+from credit_monitoring.web.cost_footer import render_cost_footer, request_cost_refresh
 from credit_monitoring.web.style import render_style
 from credit_monitoring.web.workspace import (
     DEFAULT_DATA_ROOT,
@@ -39,6 +40,7 @@ def clear_conversation() -> None:
     if conversation is not None:
         conversation.close()
     st.session_state.chat_messages = []
+    st.session_state.pop("analyst_cost_state", None)
 
 
 def render_assistant(assessment: RiskAssessment, *, pending: bool) -> None:
@@ -92,10 +94,18 @@ def render_assistant(assessment: RiskAssessment, *, pending: bool) -> None:
                     "error": f"Assistant unavailable: {type(error).__name__}: {error}",
                 }
             )
+        finally:
+            conversation = st.session_state.get("conversation")
+            if conversation is not None:
+                request_cost_refresh(conversation.session, key="analyst_cost_state")
         st.rerun()
     if st.session_state.chat_messages and st.button("Clear conversation"):
         clear_conversation()
         st.rerun()
+    conversation = st.session_state.get("conversation")
+    render_cost_footer(
+        conversation.session if conversation is not None else None, key="analyst_cost_state"
+    )
 
 
 st.set_page_config(page_title="Covenant Monitor", page_icon="◈", layout="wide")

@@ -46,8 +46,12 @@ Identical tool requests reuse the cached result unless refresh was requested.
 Ordinary Streamlit reruns never execute another interaction.
 
 Both modes share one `SessionContext` and Logfire trace, with a separate
-`chat.interaction` span per submitted question. They keep separate conversation
-histories. **Reset session** closes conversations, clears both histories, reviews
+`chat.interaction` span per submitted question. Its displayed message includes the
+chat mode, agent name, session label, and session ID. Evidence `agent.turn` messages
+include the agent name, session label, and session ID. The stable span names remain
+available for filtering, alongside structured `agent_name`, `chat_name`, and
+`chat_id` attributes. Both modes keep separate conversation histories.
+**Reset session** closes conversations, clears both histories, reviews
 and unsent drafts, and creates a new session/trace while retaining the selected
 mode. Already exported telemetry is retained. Browser sessions are isolated.
 

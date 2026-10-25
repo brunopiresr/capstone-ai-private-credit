@@ -9,6 +9,7 @@ from credit_monitoring.agents.models import DEFAULT_MODEL, check_response, resol
 from credit_monitoring.agents.prompts.assembly import build_prompt as build_prompt
 from credit_monitoring.agents.prompts.narrative import NARRATIVE_INSTRUCTIONS
 from credit_monitoring.observability import session_scope
+from credit_monitoring.observability.activity import activity_scope
 from credit_monitoring.observability.configuration import span
 from credit_monitoring.retrieval.lexical.sec import search
 
@@ -19,7 +20,7 @@ def llm(
     instructions: str = NARRATIVE_INSTRUCTIONS,
     model: Model | str = DEFAULT_MODEL,
 ) -> str:
-    with session_scope() as session:
+    with session_scope() as session, activity_scope("narrative"):
         result = Agent(
             resolve_model(model), name="Assessment narrative", instructions=instructions
         ).run_sync(user_prompt, conversation_id=session.session_id)
@@ -34,7 +35,7 @@ async def llm_async(
     model: Model | str = DEFAULT_MODEL,
 ) -> str:
     """Generate a narrative inside an existing event loop, including Jupyter."""
-    with session_scope() as session:
+    with session_scope() as session, activity_scope("narrative"):
         result = await Agent(
             resolve_model(model), name="Assessment narrative", instructions=instructions
         ).run(user_prompt, conversation_id=session.session_id)

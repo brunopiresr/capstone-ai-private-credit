@@ -45,6 +45,11 @@ class AgentConversation:
         self._in_progress = False
 
     @property
+    def session(self) -> SessionContext:
+        """Retained telemetry identity used to query this conversation's costs."""
+        return self._session
+
+    @property
     def session_id(self) -> str:
         """Stable conversation identity, including across separate event loops."""
         return self._session.session_id

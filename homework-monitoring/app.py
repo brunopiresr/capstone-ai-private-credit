@@ -12,6 +12,7 @@ from monitoring_backend import ROOT, ChatBackend, ChatTurn
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.observability import configure_observability
 from credit_monitoring.observability.configuration import capture_content_enabled
+from credit_monitoring.web.cost_footer import render_cost_footer, request_cost_refresh
 
 MODES = ("Evidence Search", "Credit Analysis")
 MODE_DESCRIPTIONS = {
@@ -148,6 +149,9 @@ def render_message(message: dict, pending: dict | None = None) -> None:
                 )
             finally:
                 st.session_state[f"{PREFIX}busy"] = False
+                request_cost_refresh(
+                    st.session_state[f"{PREFIX}backend"].session, key=f"{PREFIX}cost_state"
+                )
         response_details(turn)
 
 
@@ -252,6 +256,9 @@ def main() -> None:
         )
         if not credentials_available:
             st.info("Set OPENAI_API_KEY in the repository .env to enable agent responses.")
+        render_cost_footer(
+            st.session_state[f"{PREFIX}backend"].session, key=f"{PREFIX}cost_state"
+        )
         st.caption(
             "Monitoring configured · Content capture "
             + ("enabled" if capture_content_enabled() else "disabled")

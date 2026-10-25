@@ -24,6 +24,23 @@ def test_session_defaults_are_independent_and_do_not_capture_context():
     assert UUID(first.session_id)
     assert first.session_id != second.session_id
     assert first.carrier is None and second.carrier is None
+    assert first.name == second.name == "Credit assessment"
+
+
+def test_session_name_is_trimmed_and_preserves_positional_constructor_arguments():
+    carrier = {"traceparent": "existing-context"}
+    session = sessions.SessionContext(
+        "existing-session", carrier, name="  Quarterly review — AAPL\t"
+    )
+    assert session.session_id == "existing-session"
+    assert session.carrier is carrier
+    assert session.name == "Quarterly review — AAPL"
+
+
+@pytest.mark.parametrize("name", ["", " ", "\t\n"])
+def test_blank_session_name_is_rejected(name):
+    with pytest.raises(ValueError, match="Session name must not be blank"):
+        sessions.SessionContext(name=name)
 
 
 def test_unconfigured_scope_reuses_nested_session_without_sdk_calls(monkeypatch):
@@ -51,7 +68,8 @@ def test_independent_scope_restores_outer_session_after_failure():
         assert sessions.get_active_session() is first
 
 
-def test_configured_scope_captures_once_and_does_not_reattach_nested_scope(monkeypatch):
+@pytest.mark.parametrize("name", ["Credit assessment", "Quarterly review — AAPL"])
+def test_configured_scope_captures_once_and_does_not_reattach_nested_scope(monkeypatch, name):
     monkeypatch.setattr(sessions, "is_observability_configured", lambda: True)
     carrier = {"traceparent": "opaque-context-carrier"}
     capture = Mock(return_value=carrier)
@@ -73,7 +91,7 @@ def test_configured_scope_captures_once_and_does_not_reattach_nested_scope(monke
 
     monkeypatch.setattr(sessions.logfire, "set_baggage", baggage)
     monkeypatch.setattr(sessions.logfire, "attach_context", attach)
-    retained = sessions.SessionContext()
+    retained = sessions.SessionContext(name=name)
     for _ in range(2):
         with sessions.session_scope(retained):
             before_nested = list(events)
@@ -82,7 +100,7 @@ def test_configured_scope_captures_once_and_does_not_reattach_nested_scope(monke
             with sessions.session_scope(retained):
                 assert sessions.get_active_session() is retained
             assert events == before_nested
-    capture.assert_called_once_with()
+    capture.assert_called_once_with(name)
     assert retained.carrier is carrier
     assert events == [
         event
