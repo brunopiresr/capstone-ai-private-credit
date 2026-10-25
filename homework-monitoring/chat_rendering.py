@@ -1,5 +1,7 @@
 """Streamlit presentation of public progress and authoritative service results."""
 
+from collections.abc import Callable
+
 import streamlit as st
 from monitoring_backend import ChatTurn
 
@@ -38,7 +40,15 @@ def live_response(turn: ChatTurn):
     return update
 
 
-def response_details(turn: ChatTurn) -> None:
+def _toggle_source(key: str, index: int, on_source_open: Callable[[int], None] | None) -> None:
+    st.session_state[key] = not st.session_state.get(key, False)
+    if st.session_state[key] and on_source_open is not None:
+        on_source_open(index)
+
+
+def response_details(
+    turn: ChatTurn, *, on_source_open: Callable[[int], None] | None = None
+) -> None:
     with st.expander("Tools called"):
         if not turn.tools:
             st.caption("No tools were called in this interaction.")
@@ -47,8 +57,14 @@ def response_details(turn: ChatTurn) -> None:
             st.json(tool)
     if turn.sources:
         with st.expander("Sources"):
-            for source in turn.sources:
-                st.write(f"{source['document_id']}: {source['citation']}")
+            for index, source in enumerate(turn.sources):
+                key = f"monitoring_ui_source_{turn.interaction_id}_{index}"
+                st.button(
+                    f"View citation {index + 1}", key=f"{key}_button",
+                    on_click=_toggle_source, args=(key, index, on_source_open),
+                )
+                if st.session_state.get(key, False):
+                    st.write(f"{source['document_id']}: {source['citation']}")
     if turn.review is None:
         return
     review = turn.review

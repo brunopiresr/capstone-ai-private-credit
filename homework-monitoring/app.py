@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+from functools import partial
 from pathlib import Path
 
 import streamlit as st
@@ -12,6 +13,11 @@ from monitoring_backend import ROOT, ChatBackend, ChatTurn
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.observability import configure_observability
 from credit_monitoring.observability.configuration import capture_content_enabled
+from credit_monitoring.observability.user_events import (
+    FEEDBACK_REASONS,
+    FOLLOW_UP_TYPES,
+    UserEvents,
+)
 from credit_monitoring.web.cost_footer import render_cost_footer, request_cost_refresh
 
 MODES = ("Evidence Search", "Credit Analysis")
@@ -97,7 +103,7 @@ SAMPLE_QUESTIONS = {
 }
 
 
-def initialize_session() -> None:
+def initialize_session(*, previous_chat_id: str | None = None) -> None:
     st.session_state.setdefault(f"{PREFIX}mode", MODES[0])
     if f"{PREFIX}backend" not in st.session_state:
         backend = ChatBackend(model=os.getenv("LLM_MODEL") or DEFAULT_MODEL)
@@ -105,6 +111,20 @@ def initialize_session() -> None:
         st.session_state[f"{PREFIX}session_id"] = backend.session.session_id
         st.session_state[f"{PREFIX}messages"] = {mode: [] for mode in MODES}
         st.session_state[f"{PREFIX}busy"] = False
+    if f"{PREFIX}events" not in st.session_state:
+        events = UserEvents(st.session_state[f"{PREFIX}backend"].session)
+        st.session_state[f"{PREFIX}events"] = events
+        events.start(st.session_state[f"{PREFIX}mode"], previous_chat_id=previous_chat_id)
+    else:
+        # Streamlit retains objects from old module versions across source reloads.
+        # Resume with the current class so cached emitters cannot keep old names.
+        get_user_events()
+
+
+def get_user_events() -> UserEvents:
+    events = UserEvents.resume(st.session_state[f"{PREFIX}events"])
+    st.session_state[f"{PREFIX}events"] = events
+    return events
 
 
 def question_key(mode: str) -> str:
@@ -113,24 +133,89 @@ def question_key(mode: str) -> str:
     return f"{PREFIX}question_{mode.lower().replace(' ', '_')}_{session_id}"
 
 
-def copy_question(mode: str, question: str) -> None:
+def copy_question(mode: str, question: str, sample_index: int) -> None:
     """Prefill the composer; the user edits and submits it separately."""
     st.session_state[question_key(mode)] = question
+    get_user_events().click(mode, "sample_question", sample_index=sample_index)
 
 
 def select_mode(mode: str) -> None:
+    previous_mode = st.session_state[f"{PREFIX}mode"]
     st.session_state[f"{PREFIX}mode"] = mode
+    get_user_events().click(mode, "mode", previous_mode=previous_mode)
 
 
 def reset_session() -> None:
     """Clear this prototype's state while keeping the selected navigation mode."""
     backend = st.session_state.get(f"{PREFIX}backend")
+    previous_chat_id = backend.session.session_id if backend is not None else None
     if backend is not None:
+        mode = st.session_state[f"{PREFIX}mode"]
+        events = get_user_events()
+        histories = st.session_state[f"{PREFIX}messages"]
+        turns = [item["turn"] for items in histories.values() for item in items
+                 if item["role"] == "assistant"]
+        current_turns = [item["turn"] for item in histories[mode] if item["role"] == "assistant"]
+        events.reset_context(
+            mode, cleared_turn_count=len(turns), cleared_modes=list(histories),
+            interaction_id=current_turns[-1].interaction_id if current_turns else None,
+        )
+        events.end(mode)
         backend.close()
     for key in list(st.session_state):
         if key.startswith(PREFIX) and key != f"{PREFIX}mode":
             del st.session_state[key]
-    initialize_session()
+    initialize_session(previous_chat_id=previous_chat_id)
+
+
+def submit_question(mode: str, question: str, *, retry_of: str | None = None) -> None:
+    if st.session_state[f"{PREFIX}busy"] or not question.strip():
+        return
+    messages = st.session_state[f"{PREFIX}messages"][mode]
+    previous = next(
+        (item["turn"] for item in reversed(messages) if item["role"] == "assistant"), None
+    )
+    turn = ChatTurn()
+    get_user_events().submit(
+        mode, turn.interaction_id, question.strip(),
+        previous_interaction_id=previous.interaction_id if previous else None,
+        follow_up_type=st.session_state.get(f"{PREFIX}follow_up_{mode}", "Unspecified"),
+        retry_of=retry_of,
+        previous_error=previous.error if previous else None,
+    )
+    messages.extend([
+        {"role": "user", "content": question.strip()},
+        {"role": "assistant", "turn": turn},
+    ])
+    st.session_state[f"{PREFIX}pending"] = {
+        "mode": mode, "question": question.strip(), "interaction_id": turn.interaction_id,
+    }
+    st.session_state[f"{PREFIX}busy"] = True
+
+
+def retry_question(mode: str, question: str, interaction_id: str) -> None:
+    get_user_events().click(
+        mode, "retry", interaction_id=interaction_id
+    )
+    submit_question(mode, question, retry_of=interaction_id)
+
+
+def render_feedback(turn: ChatTurn, mode: str) -> None:
+    key = f"{PREFIX}feedback_{turn.interaction_id}"
+    with st.expander("Rate this answer"):
+        with st.form(key):
+            rating = st.feedback("thumbs", key=f"{key}_rating")
+            reason = st.selectbox("Reason (optional)", FEEDBACK_REASONS, key=f"{key}_reason")
+            comment = st.text_area("Comment (optional)", key=f"{key}_comment", max_chars=2000)
+            submitted = st.form_submit_button("Send feedback")
+        if submitted:
+            if rating is None:
+                st.info("Choose a thumbs up or thumbs down first.")
+            else:
+                get_user_events().feedback(
+                    mode, turn.interaction_id, rating, reason, comment
+                )
+                st.success("Feedback saved. Thank you.")
 
 
 def render_message(message: dict, pending: dict | None = None) -> None:
@@ -148,11 +233,22 @@ def render_message(message: dict, pending: dict | None = None) -> None:
                     )
                 )
             finally:
+                get_user_events().answer_presented(
+                    pending["mode"], turn.interaction_id, turn.error or (
+                        None if turn.finished else "interrupted"
+                    )
+                )
                 st.session_state[f"{PREFIX}busy"] = False
                 request_cost_refresh(
                     st.session_state[f"{PREFIX}backend"].session, key=f"{PREFIX}cost_state"
                 )
-        response_details(turn)
+        mode = st.session_state[f"{PREFIX}mode"]
+        events = get_user_events()
+        response_details(
+            turn, on_source_open=partial(events.source_opened, mode, turn.interaction_id)
+        )
+        if turn.finished:
+            render_feedback(turn, mode)
 
 
 def main() -> None:
@@ -204,7 +300,7 @@ def main() -> None:
                     key=f"{PREFIX}sample_{mode}_{index}",
                     help=sample,
                     on_click=copy_question,
-                    args=(mode, sample),
+                    args=(mode, sample, index),
                     disabled=busy,
                     icon=":material/arrow_outward:",
                     use_container_width=True,
@@ -245,6 +341,19 @@ def main() -> None:
                 )
             for message in messages:
                 render_message(message, pending)
+        if messages:
+            st.selectbox(
+                "Next question type (optional)", FOLLOW_UP_TYPES,
+                key=f"{PREFIX}follow_up_{mode}", disabled=busy,
+            )
+            previous = messages[-1]["turn"]
+            if previous.finished and previous.error:
+                st.button(
+                    "Retry question", key=f"{PREFIX}retry_{previous.interaction_id}",
+                    on_click=retry_question,
+                    args=(mode, messages[-2]["content"], previous.interaction_id),
+                    disabled=busy or not bool(os.getenv("OPENAI_API_KEY", "").strip()),
+                )
         placeholder = (
             "Ask about a company or filing…"
             if mode == "Evidence Search"
@@ -269,19 +378,7 @@ def main() -> None:
             # is consumed before restoring enabled controls on the next rerun.
             st.rerun()
         if question and question.strip():
-            turn = ChatTurn()
-            messages.extend(
-                [
-                    {"role": "user", "content": question.strip()},
-                    {"role": "assistant", "turn": turn},
-                ]
-            )
-            st.session_state[f"{PREFIX}pending"] = {
-                "mode": mode,
-                "question": question.strip(),
-                "interaction_id": turn.interaction_id,
-            }
-            st.session_state[f"{PREFIX}busy"] = True
+            submit_question(mode, question)
             st.rerun()
 
 

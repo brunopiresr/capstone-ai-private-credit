@@ -17,6 +17,9 @@ uv sync --group dev --locked
 uv run --locked streamlit run src/credit_monitoring/web/app.py
 ```
 
+The workspace defaults to a white background with light gray controls. Change the
+theme in Streamlit's Settings menu; the layout follows the selected theme.
+
 Choose a borrower, reporting period, and information cutoff, then **Run assessment**.
 The working page uses bundled synthetic financials and covenant terms through real
 services. It displays exact statuses, headroom, provenance, deterministic trends, and

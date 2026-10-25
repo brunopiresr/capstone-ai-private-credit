@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 os.environ["LOGFIRE_SEND_TO_LOGFIRE"] = "false"
 os.environ["LOGFIRE_CAPTURE_CONTENT"] = "false"
+os.environ["LOGFIRE_MIN_LEVEL"] = "info"
 os.environ["PYDANTIC_AI_NO_BANNER"] = "1"
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT), str(ROOT.parent / "tests")]
@@ -25,6 +26,7 @@ from pydantic_ai import models
 
 from credit_monitoring.observability import SessionContext, configure_observability
 from credit_monitoring.observability.session import get_active_session
+from credit_monitoring.observability.user_events import UserEvents
 
 
 def parent(record):
@@ -76,11 +78,28 @@ def main():
         ),
         ("Credit Analysis", "What are the review limitations?", [text_response()]),
     ]
+    events = UserEvents(chat.session)
+    events.start("Evidence Search")
+    previous = {}
     for mode, question, replies in scripts:
         model.respond.side_effect = replies
-        result = asyncio.run(chat.run_turn(mode, question, ChatTurn()))
+        turn = ChatTurn()
+        events.submit(
+            mode, turn.interaction_id, question,
+            previous_interaction_id=previous.get(mode),
+        )
+        result = asyncio.run(chat.run_turn(mode, question, turn))
+        events.answer_presented(mode, turn.interaction_id, result.error)
+        previous[mode] = turn.interaction_id
         assert not result.error, result
         assert get_active_session() is None
+    events.feedback("Credit Analysis", turn.interaction_id, 0, "Unclear", "PRIVATE USER COMMENT")
+    events.source_opened("Evidence Search", previous["Evidence Search"], 0)
+    events.reset_context(
+        "Credit Analysis", cleared_turn_count=len(scripts),
+        cleared_modes=["Evidence Search", "Credit Analysis"], interaction_id=turn.interaction_id,
+    )
+    events.end("Credit Analysis")
     logfire.force_flush(timeout_millis=2000)
     records = exporter.exported_spans_as_dict()
     traces = {record["context"]["trace_id"] for record in records}
@@ -90,6 +109,25 @@ def main():
         for record in records
     )
     anchor = next(r for r in records if r["name"] == "agent.session")
+    user_records = [r for r in records if "event_name" in r["attributes"]]
+    assert {r["attributes"]["event_name"] for r in user_records} >= {
+        "user.started", "user.question_submitted", "user.follow_up",
+        "user.feedback", "user.click", "user.answer_presented", "user.ended",
+        "user.reset_context",
+    }
+    for record in user_records:
+        event_name = record["attributes"]["event_name"]
+        assert record["name"] == event_name
+        assert record["attributes"]["logfire.msg_template"] == event_name
+        assert record["attributes"]["logfire.msg"] == event_name
+    assert all(parent(r) == anchor["context"]["span_id"] for r in user_records)
+    assert all(r["attributes"]["chat_id"] == chat.session.session_id for r in user_records)
+    assert all(isinstance(r["attributes"]["elapsed_seconds"], (int, float)) for r in user_records)
+    assert all(isinstance(r["attributes"]["active_seconds"], (int, float)) for r in user_records)
+    assert all(
+        r["attributes"]["gen_ai.conversation.id"] == chat.session.session_id for r in user_records
+    )
+    assert "PRIVATE USER COMMENT" not in json.dumps(records)
     turns = [r for r in records if r["name"] == "chat.interaction"]
     assert len(turns) == 5 and all(parent(r) == anchor["context"]["span_id"] for r in turns)
     interactions = {record["context"]["span_id"]: record for record in turns}
@@ -144,6 +182,8 @@ def main():
     previous = next(iter(traces))
     chat.close()
     fresh = ChatBackend(model=ScriptedModel(response=text_response()))
+    fresh_events = UserEvents(fresh.session)
+    fresh_events.start("Credit Analysis", previous_chat_id=chat.session.session_id)
     asyncio.run(fresh.run_turn("Credit Analysis", "Which details do you need?", ChatTurn()))
     assert fresh.session.session_id != chat.session.session_id
     fresh_turn = next(
@@ -154,6 +194,13 @@ def main():
     assert fresh_turn["attributes"]["chat_id"] == fresh.session.session_id
     assert fresh.session.session_id in fresh_turn["attributes"]["logfire.msg"]
     assert chat.session.session_id not in fresh_turn["attributes"]["logfire.msg"]
+    fresh_start = next(
+        r for r in exporter.exported_spans_as_dict()
+        if r["attributes"].get("event_name") == "user.started"
+        and r["attributes"]["chat_id"] == fresh.session.session_id
+    )
+    assert fresh_start["name"] == "user.started"
+    assert fresh_start["attributes"]["previous_chat_id"] == chat.session.session_id
     print(
         json.dumps(
             {

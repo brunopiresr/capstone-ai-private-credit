@@ -78,6 +78,18 @@ not rename the existing anchor. Names are explicit telemetry metadata, independe
 the native content capture setting; questions and borrower details are not added
 automatically. Historical traces keep their original labels.
 
+The monitoring demo also records feedback, UI clicks, questions/follow-ups, explicit
+retries, context resets, response outcomes and session timing as structured Logfire **log records**
+under the same session trace. Filter by the `event_name` attribute (for example,
+`user.feedback`) and join `interaction_id` to `chat.interaction` to investigate the
+answer's tools, errors, latency and native model usage. Question text and feedback
+comments respect `LOGFIRE_CAPTURE_CONTENT`. See the demo's
+[user-event fields and timing limits](../homework-monitoring/README.md) before
+aggregating engagement or feedback metrics. The **Reset session** button emits
+`user.reset_context` on the old chat trace; the new chat's `user.started` event links
+back through `previous_chat_id`. New records use their concrete event name as the
+span name and message; historical exported names are unchanged.
+
 Use `await conversation.ask_async(...)` when an event loop is already running.
 Streamlit retains the same conversation object and session across reruns. Direct
 stream consumers must close generators in the consuming task, including on early exits:
