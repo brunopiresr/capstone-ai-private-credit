@@ -1,5 +1,6 @@
 .env
 .logfire/
+/homework-monitoring/runtime/
 .venv/
 __pycache__/
 *.py[cod]

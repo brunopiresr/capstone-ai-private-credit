@@ -40,11 +40,21 @@ class CreditAssessmentAgent:
         tracing_enabled: bool | None = None,
         name: str = "Credit assessment agent",
         event_stream_handler: EventStreamHandler | None = None,
+        document_tool_names: frozenset[str] | None = None,
     ) -> None:
         if max_tool_rounds <= 0:
             raise ValueError("max_tool_rounds must be positive.")
         if service is None and assessment_service is None:
             raise ValueError("Configure a document or assessment service.")
+        if document_tool_names is not None:
+            known = {
+                "list_documents",
+                "get_document_extraction",
+                "search_evidence",
+                "process_document",
+            }
+            if unknown := document_tool_names - known:
+                raise ValueError(f"Unknown document tools: {sorted(unknown)}")
         self.service = service
         self.assessment_service = assessment_service
         self.model = model
@@ -52,6 +62,9 @@ class CreditAssessmentAgent:
         self.tracing_enabled = tracing_enabled
         self.name = name
         self.event_stream_handler = event_stream_handler
+        self.document_tool_names = (
+            frozenset(document_tool_names) if document_tool_names is not None else None
+        )
 
     def start_conversation(
         self,
@@ -148,6 +161,8 @@ class CreditAssessmentAgent:
             raise ValueError("Question must not be empty.")
         self._validate_scope(ticker, borrower_id)
         tools = DocumentTools(self.service, ticker=ticker).tools if self.service else []
+        if self.document_tool_names is not None:
+            tools = [tool for tool in tools if tool.name in self.document_tool_names]
         if borrower_id is not None:
             if self.assessment_service is None:
                 raise ValueError("Configure an assessment_service before supplying a borrower ID.")

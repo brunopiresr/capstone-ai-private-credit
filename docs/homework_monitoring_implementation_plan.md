@@ -1,125 +1,85 @@
-# Simple Streamlit chat for testing Logfire
+# Connect the monitoring demo to live agents
 
-## Purpose and delivery order
+Status: implemented. The prototype lives in `homework-monitoring`; it consumes the
+shared [platform Logfire integration](logfire_implementation_plan.md).
 
-Build a small chat prototype in `homework-monitoring` to test agent monitoring
-and the concept of the final application. Use native Streamlit controls and
-minimal HTML, styled after AI Shipping Labs (Inter, dark neutral surfaces, lime
-accents, thin borders), without reusing the full analyst dashboard.
+## Agent and service integration
 
-**The shared Logfire dependencies, configuration, context, and monitoring helpers
-will be implemented by another coding agent**, following
-[the platform monitoring plan](logfire_implementation_plan.md). Do not duplicate
-that implementation or change its dependencies as part of the UI-only step.
+- Evidence Search reuses `CreditAssessmentAgent`, its scoped conversation memory,
+  document service, and streaming events. Its new optional `document_tool_names`
+  allowlist preserves existing callers' defaults; the demo enables only
+  `list_documents` and `search_evidence`. Answers expose executed tools and citations.
+- Credit Analysis uses a named PydanticAI coordinator with borrower discovery and a
+  typed `run_credit_review` tool. Required borrower/dates/criteria come from analyst
+  messages; missing or ambiguous details are requested in chat. Tools validate
+  borrower and reporting-period availability, cutoff ordering, and nonblank criteria.
+- The tool calls the existing assessment/review composition: SQLite financials,
+  deterministic calculations and verification, requested ML, concurrent bullish and
+  bearish agents, and final recommendation. Unspecified ML defaults to Logistic
+  Regression and the coordinator is instructed to disclose that default.
+- Completed structured reviews remain the evidence for follow-ups. Equal requests
+  reuse the cached review; changed inputs or an explicit refresh can run a new one.
+  Calculations and forecasts are never implemented in the coordinator.
+- Runtime databases are isolated beneath ignored `homework-monitoring/runtime`.
+  Business services and calculations retain ownership of their existing behavior.
 
-## Step 1: runnable UI and navigation
+## Chat feedback
 
-- Provide **Evidence Search** and **Credit Analysis** modes with independent chat
-  histories in Streamlit session state. Switching modes retains the UI session.
-- Show a small static HTML header, mode navigation, chat input, chat messages,
-  current UI session ID, and an always-visible **Reset session** button.
-- Both modes take their inputs only from the user's prompt. Credit Analysis has
-  no required form. A **Help** button opens guidance for including borrower ID,
-  reporting period, information cutoff, ML preference, and credit criteria.
-- Show five sample questions per mode in a panel on the right. Each has a short,
-  clickable title; clicking copies the full prompt into the editable chat input
-  without submitting it. Sample credit prompts include explicit dates and criteria.
-- Accept messages and return clearly labeled placeholder replies. Show that no
-  tools were called and no trace was sent. Do not fabricate analysis or telemetry.
-- Reset clears both mode histories and chat inputs, replaces the UI session ID,
-  and retains the current mode. State belongs to each browser session.
-- Keep the UI runnable with existing dependencies and without API credentials,
-  database access, model loading, or Logfire imports.
+- Every submitted question appears immediately, followed by an assistant message
+  with live activity and streaming answer text. Submitted trigger values are consumed
+  before reruns restore controls, preventing duplicate executions.
+- Evidence events show actual model/tool progress. Native coordinator events show
+  its tool dispatch and text. The assessment appears as one combined step; existing
+  review callbacks report separate concurrent bullish/bearish and recommendation
+  stages. No synthetic per-calculation progress or private reasoning is displayed.
+- Activity and tool/source/result records persist with the message. Expandable
+  sections show authoritative calculations, verification, ML, reviewer outputs,
+  recommendation, limitations, and source records.
+- Errors preserve available review results and completed activity, mark incomplete
+  execution, and restore input controls. Cancellation and callback failure release
+  session context. Streaming consumers retain `aclosing()`.
 
-Run from the repository root:
+## Sessions and monitoring
 
-```bash
-uv run --locked streamlit run homework-monitoring/app.py
-```
+- Startup loads repository `.env` and invokes the shared idempotent initializer.
+  Missing model credentials disable chat with a setup message. UI status describes
+  configuration rather than claiming confirmed cloud delivery.
+- One retained `SessionContext` supplies both modes' session ID and trace. Every
+  submitted question, including clarification, enters `session_scope()` and a
+  `chat.interaction` span carrying mode, interaction ID, and final outcome.
+- Native model/tool instrumentation and platform workflow spans retain parentage
+  through worker-thread assessment and concurrent reviewers. No separate exporter,
+  transcript logging, token counters, or per-question flushing is added.
+- Reset closes conversations, clears both histories, cached reviews and drafts, and
+  creates a new session context. Mode selection and exported telemetry are retained.
+  Browser conversations are never shared through a resource cache.
+- The styling, visible mode cards, Help, sample questions and monitoring-demo notice
+  remain. All analysis inputs come from prompts; there is no required form.
 
-Validate navigation, separate mode histories, sample selection without submission,
-editing/sending copied questions, placeholder replies, reset behavior,
-browser-session isolation, and clean startup using Streamlit `AppTest`.
+## Validation and limits
 
-## Step 2: connect agents after shared Logfire is available
+- Offline tests cover streamed evidence with citations, tool allowlisting, full
+  review/progress, clarification, validation, cached follow-ups, changed inputs,
+  refresh, missing ML artifacts, failed reviewers, provider failure, cancellation,
+  callback failure, UI reset, samples, rerun behavior, and browser isolation.
+- A separate-process Logfire probe checks five turns across both modes retain one
+  trace/session, actual tool → review → worker assessment/agent parentage, and a
+  new trace after reset. Ordinary tests explicitly disable export. The existing
+  shared offline fixture was already corrected to `false` when implementation began.
+- The demo's tests are included in routine pytest and lint discovery and in
+  `make test-offline`. Existing platform regression checks are run separately from
+  live-provider smoke checks.
+- Live smoke on 2026-10-25 completed evidence search, full SYN001 analysis with
+  Logistic Regression, a follow-up with no tool calls, and a new-session clarification.
+  The original session was `a91c63bc-4d28-4456-813a-9ff4b84c6ec9`; its trace was
+  `01a172dc412ff844739c4f56fa10ffaa`. Reset produced a separate session and trace.
+- Successful live model calls and locally captured trace relationships do not prove
+  that a trace renders correctly in the Logfire UI. Manual Logfire UI/Agents-view
+  inspection remains outstanding. A separate small transport check received HTTP
+  **200** from the configured EU `/v1/traces` endpoint.
+- Final offline regression run: **644 passed, 6 skipped**. The prototype contributes
+  **19 passing tests**. Repository Ruff checks and changed-file formatting pass.
 
-### Evidence Search
-
-- Use one named evidence agent with document discovery and local evidence-search
-  tools, reusing existing document-tool methods and retrieval services.
-- Resolve the prompt's company/ticker against the SEC catalog and search existing
-  local Markdown. Return cited passages and answers; report missing evidence explicitly.
-- Keep downloads and extraction outside this search workflow.
-
-### Credit Analysis
-
-- Use synthetic borrower data through the existing assessment workspace, with
-  dedicated ignored runtime SQLite storage beneath `homework-monitoring`.
-  Keep existing databases untouched.
-- Resolve borrower, reporting period, information cutoff, ML preference, and credit
-  criteria from user messages. Ask in chat for missing required details; do not
-  substitute form values or silently assume dates or credit criteria. Clearly
-  label synthetic data and demo criteria supplied in sample prompts.
-- On the first sufficiently specified question, pass that question and its criteria as
-  `ExposureDecisionContext` and run the existing credit-review workflow:
-  SQLite financials → deterministic calculations and verification → features and
-  ML → concurrent bullish/bearish agents → recommendation.
-- Display assessment results, perspectives, recommendation, and limitations in
-  the assistant message. Preserve existing blocked, incomplete, deferred, and
-  unavailable-ML outcomes; deterministic results remain visible on ML failure.
-- Answer subsequent questions with a small named chat agent supplied with the
-  completed structured review and its own conversation history. Do not rerun the
-  full review for follow-ups.
-- A prompt changing issuer or analysis inputs invalidates the affected review;
-  the next sufficiently specified analysis runs a new review. Mode changes retain independent
-  histories within the same monitoring session.
-- Execute only on question submission; ordinary reruns must not repeat work.
-
-### Monitoring integration points
-
-The platform owns the mechanisms below. The prototype consumes them once ready.
-
-| Interaction requirement | Integration needed |
-|---|---|
-| One session across questions and mode changes | Retain one shared `SessionContext` in Streamlit session state. Replace the temporary UI UUID with its session ID. |
-| One trace across Streamlit reruns | Reattach the shared context carrier for every submitted question; equal session attributes alone do not establish parentage. |
-| Every question is observable | Create one `chat.interaction` span per submission with mode, interaction ID, applicable business identifiers, and outcome. |
-| Agents and tools are visible | Use central PydanticAI instrumentation and the shared session ID as `conversation_id`. |
-| Calculations, ML, and review are visible | Consume the platform's workflow spans and logging bridge, retaining parentage through worker threads and concurrent reviewers. |
-| Tools are visible in the chat | Render actual executed tool events/results; distinguish service workflow stages from model tool calls. Explicitly show when none ran. |
-| Failures remain observable | Record handled incomplete outcomes as well as escaping exceptions through shared monitoring conventions. |
-| Reset starts independent monitoring | Close conversations, clear cached reviews and histories, and create a new `SessionContext`; retain exported telemetry. |
-
-One user session has one session ID and one trace ID. Each interaction is a child
-span in that trace, not an independent trace. Nested service scopes retain the
-active parent. The short session anchor does not measure total session duration.
-
-Keep content capture disabled unless `LOGFIRE_CAPTURE_CONTENT=true`. Use native
-model-request token usage and derive session totals in Logfire, including retries
-and reviewers without double counting. Do not add local telemetry storage, token
-counters, duplicate SDK instrumentation, or per-question exporter flushing.
-
-The shared initializer must support repeated Streamlit startup, no-token/offline
-usage without authentication prompts, and background export. Refer to the
-platform plan for its exact configuration and implementation contracts.
-
-## Integration acceptance checks
-
-- Five questions across reruns retain one session and trace. Reset creates both
-  identifiers anew and clears both modes. Independent browsers stay isolated.
-- Evidence search shows actual executed tools and citations without extraction.
-- First analysis runs the full workflow once; follow-ups reuse it; input changes
-  invalidate it and cause the next question to run a new review.
-- Calculations in worker threads and concurrent reviewers retain correct parents.
-- Success, handled failures, cancellation, and interrupted consumption restore
-  tracing context. Repeated setup adds no duplicate handlers/instrumentation.
-- Ordinary tests use scripted models, temporary storage, and Logfire in-memory
-  utilities with network export explicitly disabled.
-- Disabled content capture retains metadata and usage. Existing conversation,
-  streaming, review, logging, and UI regressions continue to pass.
-- With credentials, smoke-test evidence search, full analysis, follow-up, and reset;
-  inspect session grouping, nesting, errors, and usage directly in Logfire.
-  Report cloud verification as outstanding if credentials are unavailable.
-
-Authentication, persistent chat storage, custom analytics dashboards, and production
-deployment remain outside this prototype.
+Authentication, durable chat recovery, custom analytics dashboards, production
+hosting, and a public-news provider remain outside this demo. Runtime SQLite files
+are retained for diagnostics; reset does not delete them.

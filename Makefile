@@ -12,7 +12,7 @@ format:
 test: test-offline
 
 test-offline:
-	uv run --locked pytest tests homework-tests
+	uv run --locked pytest tests homework-tests homework-monitoring/tests
 
 test-homework:
 	uv run --locked pytest homework-tests

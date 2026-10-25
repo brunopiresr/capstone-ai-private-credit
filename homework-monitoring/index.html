@@ -1,0 +1,117 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  /* Palette and typography inspired by https://aishippinglabs.com/. */
+  .stApp {
+    --lab-bg: #0a0a0a;
+    --lab-card: #121212;
+    --lab-fg: #fafafa;
+    --lab-muted: #b8b8b8;
+    --lab-border: #474747;
+    --lab-accent: hsl(75, 100%, 50%);
+    --background-color: var(--lab-bg);
+    --secondary-background-color: var(--lab-card);
+    --text-color: var(--lab-fg);
+    --primary-color: var(--lab-accent);
+    color-scheme: dark;
+    background: var(--lab-bg);
+    color: var(--lab-fg);
+    font-family: Inter, system-ui, sans-serif;
+  }
+  [data-testid="stHeader"], [data-testid="stBottom"] { background: #0a0a0a; }
+  .stMainBlockContainer { max-width: 1240px; padding-top: 2.5rem; padding-bottom: 2rem; }
+  .stApp h1, .stApp h2, .stApp h3,
+  .stApp p, .stApp label, .stApp button { font-family: Inter, system-ui, sans-serif; }
+  .stApp h2, .stApp h3 { color: var(--lab-fg); letter-spacing: -.025em; }
+  .stApp h3 { font-size: 1.12rem; font-weight: 600; }
+  .stApp [data-testid="stCaptionContainer"] { color: var(--lab-muted); }
+  .stApp [data-testid="stWidgetLabel"] { color: var(--lab-muted); }
+  .stApp hr { border-color: var(--lab-border); }
+  .playground-header {
+    border-bottom: 1px solid var(--lab-border);
+    padding: .25rem 0 1.75rem;
+    margin-bottom: .5rem;
+    background: radial-gradient(ellipse at 85% 0%, #bfff000a, transparent 65%);
+  }
+  .playground-header .eyebrow {
+    display: inline-flex; align-items: center; gap: .5rem;
+    border: 1px solid var(--lab-border); border-radius: 999px;
+    padding: .3rem .8rem; color: var(--lab-muted); font-size: .75rem;
+  }
+  .playground-header .status-dot {
+    width: .4rem; height: .4rem; border-radius: 50%; background: var(--lab-accent);
+  }
+  .playground-header h1 {
+    color: var(--lab-fg); font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 600; letter-spacing: -.045em; line-height: 1.15;
+    margin: 1rem 0 .75rem; padding: 0;
+  }
+  .playground-header h1 span { color: var(--lab-accent); }
+  .playground-header p { color: var(--lab-muted); margin: 0; line-height: 1.7; }
+  .demo-notice {
+    margin-top: 1.25rem; padding: .85rem 1rem;
+    border: 1px solid #bfff0040; border-left: 3px solid var(--lab-accent);
+    border-radius: .45rem; background: #bfff000a;
+    color: var(--lab-fg); font-size: .9rem; line-height: 1.6;
+  }
+  .demo-notice strong { color: var(--lab-accent); }
+  .st-key-mode_card_0, .st-key-mode_card_1 {
+    background: var(--lab-card); border-color: var(--lab-border); border-radius: .65rem;
+  }
+  .st-key-mode_card_0 button, .st-key-mode_card_1 button {
+    min-height: 3.2rem; font-size: 1rem; font-weight: 600;
+  }
+  .stApp button[kind="primary"] {
+    background: var(--lab-accent); color: #0a0a0a;
+    border: 1px solid var(--lab-accent); border-radius: .45rem;
+  }
+  .stApp button[kind="primary"]:hover {
+    background: #d0ff40; border-color: #d0ff40; color: #0a0a0a;
+  }
+  .stApp button[kind="secondary"] {
+    background: var(--lab-card); color: var(--lab-fg);
+    border: 1px solid var(--lab-border); border-radius: .45rem;
+    transition: border-color .15s, background .15s;
+  }
+  .stApp button[kind="secondary"]:hover {
+    border-color: var(--lab-accent); background: #bfff000d; color: var(--lab-accent);
+  }
+  .stApp button:focus-visible { outline: 2px solid var(--lab-accent); outline-offset: 3px; }
+  .st-key-question_library {
+    background: var(--lab-card); border-color: var(--lab-border); border-radius: .65rem;
+  }
+  .st-key-question_library button { text-align: left; justify-content: flex-start; }
+  .st-key-conversation { background: var(--lab-card); border-color: var(--lab-border); }
+  .stApp [data-testid="stChatMessage"] { background: #1e1e1e; color: var(--lab-fg); }
+  .stApp [data-testid="stChatInput"] { background: var(--lab-card); border-color: var(--lab-border); }
+  .stApp [data-testid="stChatInput"]:focus-within { border-color: var(--lab-accent); }
+  .stApp [data-testid="stChatInput"] textarea { background: var(--lab-card); color: var(--lab-fg); }
+  .stApp [data-testid="stChatInput"] textarea::placeholder { color: var(--lab-muted); }
+  .stApp [data-testid="stChatInputSubmitButton"] { color: var(--lab-accent); }
+  .stApp [data-testid="stPopoverButton"] {
+    background: var(--lab-card); color: var(--lab-fg); border-color: var(--lab-border);
+  }
+  .stApp [data-testid="stExpander"] { border-color: var(--lab-border); color: var(--lab-fg); }
+  .chat-welcome { padding: 4.25rem 1.5rem; text-align: center; }
+  .welcome-mark {
+    display: inline-grid; place-items: center; width: 2.75rem; height: 2.75rem;
+    border: 1px solid #bfff0040; border-radius: .6rem; background: #bfff0010;
+    color: var(--lab-accent); font-size: 1.5rem; margin-bottom: .8rem;
+  }
+  .chat-welcome h3 { margin: 0 0 .5rem; padding: 0; }
+  .chat-welcome p { color: var(--lab-muted); font-size: .9rem; line-height: 1.65; }
+  @media (max-width: 760px) {
+    .stMainBlockContainer { padding: 1rem; }
+    .playground-header { padding-bottom: 1.25rem; }
+    .chat-welcome { padding: 3rem 1rem; }
+  }
+</style>
+<header class="playground-header">
+  <span class="eyebrow"><span class="status-dot"></span>Credit monitoring · UI prototype</span>
+  <h1>Explore evidence.<br><span>Build a credit view.</span></h1>
+  <p>A simple agent playground. Start with a question and follow the evidence.</p>
+  <aside class="demo-notice" role="note">
+    <strong>Monitoring demo · Not the final application.</strong><br>
+    This prototype is for testing agent interactions and monitoring features.
+  </aside>
+</header>
