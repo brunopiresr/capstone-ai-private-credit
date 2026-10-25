@@ -38,6 +38,9 @@ The UI accepts `LLM_MODEL`; its default is `openai-responses:gpt-4o-mini`.
 Notebooks select their model explicitly. [.env.example](.env.example) distinguishes
 active entry-point settings from reserved names; configuration is not loaded globally.
 
+[Logfire setup and validation](docs/logfire_setup.md) covers optional EU telemetry,
+content capture, conversation traces, and the separate offline/live SDK smoke script.
+
 ## Load inputs and assess from the CLI
 
 ```bash

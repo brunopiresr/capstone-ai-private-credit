@@ -3,13 +3,15 @@
 import asyncio
 import json
 import logging
-from types import SimpleNamespace
+from contextlib import contextmanager
+from datetime import date
 
 import pytest
 
 from credit_monitoring.calculations.leverage import CalculationInputError, divide
 from credit_monitoring.observability.logging import (
     StructuredConsoleFormatter,
+    _update_logger_threshold,
     configure_logging,
     log_event,
     log_step,
@@ -17,16 +19,18 @@ from credit_monitoring.observability.logging import (
 )
 
 
+def _use_package_logger(monkeypatch, logger):
+    get_logger = logging.getLogger
+    monkeypatch.setattr(
+        logging,
+        "getLogger",
+        lambda name=None: logger if name == "credit_monitoring" else get_logger(name),
+    )
+
+
 def test_console_logging_is_visible_and_idempotent(monkeypatch, capsys):
     logger = logging.Logger("credit_monitoring")
-    monkeypatch.setattr(
-        "credit_monitoring.observability.logging.logging",
-        SimpleNamespace(
-            getLogger=lambda _: logger,
-            StreamHandler=logging.StreamHandler,
-            Formatter=logging.Formatter,
-        ),
-    )
+    _use_package_logger(monkeypatch, logger)
     configure_logging()
     configure_logging()
     assert len(logger.handlers) == 1
@@ -46,16 +50,78 @@ def test_console_configuration_preserves_external_handlers(monkeypatch):
     external.set_name("future_logfire_handler")
     external.setLevel(logging.DEBUG)
     logger.addHandler(external)
-    monkeypatch.setattr(
-        "credit_monitoring.observability.logging.logging",
-        SimpleNamespace(getLogger=lambda _: logger, StreamHandler=logging.StreamHandler),
-    )
+    _use_package_logger(monkeypatch, logger)
     configure_logging()
     configure_logging("WARNING")
     assert logger.handlers[0] is external
     assert external.level == logging.DEBUG
     assert len(logger.handlers) == 2
     assert logger.handlers[1].level == logging.WARNING
+    assert logger.level == logging.DEBUG
+
+
+@pytest.mark.parametrize("external_level", [logging.DEBUG, logging.NOTSET])
+def test_console_warning_keeps_debug_enabled_for_other_handlers(monkeypatch, external_level):
+    logger = logging.Logger("credit_monitoring")
+    records = []
+
+    class RecordingHandler(logging.Handler):
+        def emit(self, record):
+            records.append(record)
+
+    external = RecordingHandler(external_level)
+    logger.addHandler(external)
+    _use_package_logger(monkeypatch, logger)
+    configure_logging(logging.WARNING)
+    logger.debug("Detailed calculation")
+    assert logger.level == logging.DEBUG
+    assert [record.getMessage() for record in records] == ["Detailed calculation"]
+    assert logger.handlers[1].level == logging.WARNING
+
+
+@pytest.mark.parametrize(
+    "levels, expected",
+    [
+        ([], logging.INFO),
+        ([logging.WARNING], logging.WARNING),
+        ([logging.WARNING, logging.INFO], logging.INFO),
+        ([logging.NOTSET, logging.ERROR], logging.DEBUG),
+    ],
+)
+def test_logger_threshold_uses_attached_handlers(levels, expected):
+    logger = logging.Logger("credit_monitoring")
+    for level in levels:
+        logger.addHandler(logging.NullHandler(level))
+    _update_logger_threshold(logger)
+    assert logger.level == expected
+    assert not logger.propagate
+
+
+def test_log_step_projects_context_without_mutating_inputs(monkeypatch):
+    captured = []
+
+    @contextmanager
+    def span(name, **attributes):
+        captured.append((name, attributes))
+        yield
+
+    monkeypatch.setattr("credit_monitoring.observability.logging.span", span)
+    payload = {"period_end": date(2025, 9, 30), "values": [1, 2]}
+    logger = logging.Logger("credit_monitoring")
+    with logging_context(borrower_id="parent", agreement_id="agreement"):
+        with log_step(logger, "assessment", borrower_id="child", inputs=payload):
+            payload["values"].append(3)
+    assert captured == [
+        (
+            "assessment",
+            {
+                "borrower_id": "child",
+                "agreement_id": "agreement",
+                "inputs": {"period_end": "2025-09-30", "values": [1, 2]},
+            },
+        )
+    ]
+    assert payload["period_end"] == date(2025, 9, 30)
 
 
 def test_structured_console_output_preserves_handler_attributes(caplog):

@@ -28,6 +28,7 @@ from credit_monitoring.ingestion.loaders.sec import (
     full_document_record,
     load_catalog,
 )
+from credit_monitoring.observability import session_scope
 from credit_monitoring.observability.logging import log_step
 from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
 
@@ -180,7 +181,10 @@ class DocumentProcessingService:
         ]
 
     def process_document(self, document_id: str, force: bool = False) -> DocumentExtraction:
-        with log_step(logger, "Process document", document_id=document_id, force=force):
+        with (
+            session_scope(),
+            log_step(logger, "Process document", document_id=document_id, force=force),
+        ):
             record = self.catalog_record(document_id)
             with log_step(logger, "Load Markdown", document_id=document_id):
                 text = load_markdown(
@@ -282,7 +286,7 @@ class DocumentProcessingService:
         any document is processed; individual errors return failed outcomes so
         subsequent documents are still attempted.
         """
-        with log_step(logger, "Process all documents", ticker=ticker, force=force):
+        with session_scope(), log_step(logger, "Process all documents", ticker=ticker, force=force):
             with log_step(logger, "Load and validate catalog"):
                 catalog = self._catalog()
             selected = [
@@ -305,6 +309,10 @@ class DocumentProcessingService:
                 try:
                     outcome = self.process_document(document_id, force=force)
                 except Exception as exc:
+                    logger.error(
+                        "Batch document failed",
+                        extra={"document_id": document_id, "error_type": type(exc).__name__},
+                    )
                     outcome = DocumentExtraction(
                         document_id=document_id,
                         citation=filing_citation(record),

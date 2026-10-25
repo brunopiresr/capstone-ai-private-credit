@@ -15,9 +15,19 @@ from credit_monitoring.ingestion.converters.sec_markdown import CONVERSION_VERSI
 models.ALLOW_MODEL_REQUESTS = False
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--conversation-logfire",
+        action="store_true",
+        help="Export synthetic telemetry from the five-turn conversation test to Logfire.",
+    )
+
+
 @pytest.fixture(autouse=True)
-def quiet_framework_banner(monkeypatch):
+def offline_environment(monkeypatch):
     monkeypatch.setenv("PYDANTIC_AI_NO_BANNER", "1")
+    # Locally stored Logfire credentials must never enable export in ordinary tests.
+    monkeypatch.setenv("LOGFIRE_SEND_TO_LOGFIRE", "false")
 
 
 @pytest.fixture

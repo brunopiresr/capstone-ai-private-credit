@@ -9,6 +9,8 @@ from datetime import date
 from time import perf_counter
 from typing import Any
 
+from credit_monitoring.observability.configuration import span
+
 _context: ContextVar[dict[str, Any]] = ContextVar("credit_monitoring_log_context", default={})
 _CONTEXT_FIELDS = (
     "assessment_run_id",
@@ -95,6 +97,12 @@ def log_event(
     )
 
 
+def _update_logger_threshold(logger: logging.Logger) -> None:
+    """Keep console and cloud verbosity independent, including NOTSET handlers."""
+    logger.setLevel(min((h.level or logging.DEBUG for h in logger.handlers), default=logging.INFO))
+    logger.propagate = False
+
+
 def configure_logging(level: int | str = logging.INFO) -> None:
     """Show package logs, including in notebooks; repeated calls do not add handlers."""
     logger = logging.getLogger("credit_monitoring")
@@ -107,26 +115,26 @@ def configure_logging(level: int | str = logging.INFO) -> None:
         )
         logger.addHandler(handler)
     handler.setLevel(level)
-    logger.setLevel(level)
-    logger.propagate = False
+    _update_logger_threshold(logger)
 
 
 @contextmanager
 def log_step(logger: logging.Logger, action: str, **context: Any) -> Iterator[None]:
     """Emit before blocking work and report its duration or failure without source text."""
-    details = " ".join(f"{key}={value}" for key, value in context.items())
-    started = perf_counter()
-    logger.info("%s started %s", action, details)
-    try:
-        yield
-    except Exception as exc:
-        logger.error(
-            "%s failed %s elapsed_s=%.2f error_type=%s",
-            action,
-            details,
-            perf_counter() - started,
-            type(exc).__name__,
-        )
-        raise
-    else:
-        logger.info("%s complete %s elapsed_s=%.2f", action, details, perf_counter() - started)
+    with span(action, **_snapshot({**_context.get(), **context})):
+        details = " ".join(f"{key}={value}" for key, value in context.items())
+        started = perf_counter()
+        logger.info("%s started %s", action, details)
+        try:
+            yield
+        except Exception as exc:
+            logger.error(
+                "%s failed %s elapsed_s=%.2f error_type=%s",
+                action,
+                details,
+                perf_counter() - started,
+                type(exc).__name__,
+            )
+            raise
+        else:
+            logger.info("%s complete %s elapsed_s=%.2f", action, details, perf_counter() - started)

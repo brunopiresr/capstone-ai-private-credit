@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from collections.abc import Callable
 from time import perf_counter
 
@@ -34,6 +35,9 @@ from credit_monitoring.domain.credit_review import (
     ReviewRole,
     ReviewSnapshot,
 )
+from credit_monitoring.observability import session_scope
+
+logger = logging.getLogger(__name__)
 
 type ReviewOutput = PerspectiveAssessment | CreditRecommendation
 
@@ -91,60 +95,69 @@ class _ReviewAgent:
         output_type: type[PerspectiveAssessment] | type[CreditRecommendation],
         validate: Callable[[ReviewOutput], None],
     ) -> tuple[ReviewOutput | None, ReviewExecution]:
-        usage = RunUsage()
-        started = perf_counter()
-        response_id, code, output = None, None, None
-        try:
-            async with asyncio.timeout(self.settings.timeout_seconds):
-                agent = Agent(
-                    resolve_model(self.model),
-                    name=f"Credit review: {self.role}",
-                    instructions=self.instructions,
-                    output_type=ToolOutput(output_type, name="final_result", strict=True),
-                    retries={"output": self.settings.output_retries},
+        with session_scope() as session:
+            usage = RunUsage()
+            started = perf_counter()
+            response_id, code, output = None, None, None
+            try:
+                async with asyncio.timeout(self.settings.timeout_seconds):
+                    agent = Agent(
+                        resolve_model(self.model),
+                        name=f"Credit review: {self.role}",
+                        instructions=self.instructions,
+                        output_type=ToolOutput(output_type, name="final_result", strict=True),
+                        retries={"output": self.settings.output_retries},
+                    )
+
+                    @agent.output_validator
+                    def validate_output(ctx: RunContext, candidate: ReviewOutput) -> ReviewOutput:
+                        check_response(ctx.messages[-1])
+                        try:
+                            validate(candidate)
+                        except ValueError as error:
+                            raise ModelRetry(str(error)) from error
+                        return candidate
+
+                    async with agent.iter(
+                        json.dumps(payload, sort_keys=True, allow_nan=False),
+                        usage=usage,
+                        conversation_id=session.session_id,
+                        usage_limits=UsageLimits(request_limit=self.settings.output_retries + 1),
+                    ) as run:
+                        async for node in run:
+                            if Agent.is_call_tools_node(node):
+                                # Reject refusals/partial responses before output or retries.
+                                check_response(node.model_response)
+                        result = run.result
+                    if result is None:
+                        raise ModelFailure("Model run did not complete.", "model_incomplete")
+                    check_response(result.response)
+                    response_id = result.response.provider_response_id
+                    output = result.output
+            except Exception as error:
+                code = _error_code(error)
+                logger.error(
+                    "Credit review agent failed",
+                    extra={
+                        "role": self.role,
+                        "error_code": code,
+                        "error_type": type(error).__name__,
+                    },
                 )
-                agent.instrument = False
-
-                @agent.output_validator
-                def validate_output(ctx: RunContext, candidate: ReviewOutput) -> ReviewOutput:
-                    check_response(ctx.messages[-1])
-                    try:
-                        validate(candidate)
-                    except ValueError as error:
-                        raise ModelRetry(str(error)) from error
-                    return candidate
-
-                async with agent.iter(
-                    json.dumps(payload, sort_keys=True, allow_nan=False),
-                    usage=usage,
-                    usage_limits=UsageLimits(request_limit=self.settings.output_retries + 1),
-                ) as run:
-                    async for node in run:
-                        if Agent.is_call_tools_node(node):
-                            # Reject refusals/partial responses before output dispatch or retries.
-                            check_response(node.model_response)
-                    result = run.result
-                if result is None:
-                    raise ModelFailure("Model run did not complete.", "model_incomplete")
-                check_response(result.response)
-                response_id = result.response.provider_response_id
-                output = result.output
-        except Exception as error:
-            code = _error_code(error)
-            response_id = getattr(error, "response_id", None)
-        execution = ReviewExecution(
-            role=self.role,
-            status="failed" if code else "complete",
-            model=model_identity(self.model),
-            prompt_version=CREDIT_REVIEW_PROMPT_VERSION,
-            elapsed_seconds=perf_counter() - started,
-            requests=usage.requests,
-            input_tokens=usage.input_tokens,
-            output_tokens=usage.output_tokens,
-            response_id=response_id,
-            error_code=code,
-        )
-        return output, execution
+                response_id = getattr(error, "response_id", None)
+            execution = ReviewExecution(
+                role=self.role,
+                status="failed" if code else "complete",
+                model=model_identity(self.model),
+                prompt_version=CREDIT_REVIEW_PROMPT_VERSION,
+                elapsed_seconds=perf_counter() - started,
+                requests=usage.requests,
+                input_tokens=usage.input_tokens,
+                output_tokens=usage.output_tokens,
+                response_id=response_id,
+                error_code=code,
+            )
+            return output, execution
 
 
 class _PerspectiveAgent(_ReviewAgent):

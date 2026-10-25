@@ -1,6 +1,7 @@
 """Serializable UI events and an optional console consumer."""
 
 from collections.abc import AsyncIterable, Awaitable, Callable
+from contextlib import aclosing, nullcontext
 from typing import Literal, Protocol
 
 from pydantic import ConfigDict, Field
@@ -42,8 +43,12 @@ class AgentEventCallback:
 
     async def print_function_calls(self, event: AgentEvent | AsyncIterable[AgentEvent]) -> None:
         if isinstance(event, AsyncIterable):
-            async for sub in event:
-                await self.print_function_calls(sub)
+            iterator = aiter(event)
+            async with (
+                aclosing(iterator) if hasattr(iterator, "aclose") else nullcontext(iterator)
+            ) as stream:
+                async for sub in stream:
+                    await self.print_function_calls(sub)
             return
         name = self.agent.name if self.agent is not None else event.agent_name
         if event.kind == "model_start":

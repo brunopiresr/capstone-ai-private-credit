@@ -1,4 +1,5 @@
 .env
+.logfire/
 .venv/
 __pycache__/
 *.py[cod]

@@ -1,6 +1,7 @@
 """Strict argument types and expected service-error conversion for function tools."""
 
 import asyncio
+import logging
 import sqlite3
 from collections.abc import Awaitable, Callable
 from functools import wraps
@@ -14,6 +15,8 @@ from credit_monitoring.covenants.extraction import ExtractionError
 from credit_monitoring.domain.documents import RetrievedRecord
 from credit_monitoring.domain.processing import DocumentSummary
 from credit_monitoring.domain.tool_results import ToolFailure, ToolOutcome
+
+logger = logging.getLogger(__name__)
 
 NonEmptyString = Annotated[StrictStr, Field(min_length=1)]
 ISODate = Annotated[StrictStr, Field(pattern=r"^\d{4}-\d{2}-\d{2}$")]
@@ -60,6 +63,11 @@ def service_errors[**P, T](function: Callable[P, T]) -> Callable[P, Awaitable[T 
             requests.RequestException,
             ExtractionError,
         ) as exc:
+            logger.log(
+                logging.WARNING if isinstance(exc, InvalidToolArguments) else logging.ERROR,
+                "Agent tool failed",
+                extra={"tool_name": function.__name__, "error_type": type(exc).__name__},
+            )
             return ToolFailure(
                 code="invalid_arguments"
                 if isinstance(exc, InvalidToolArguments)

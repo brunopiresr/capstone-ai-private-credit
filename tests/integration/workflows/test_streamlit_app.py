@@ -22,6 +22,8 @@ APP = ROOT / "src/credit_monitoring/web/app.py"
 
 @pytest.fixture
 def working_app(tmp_path, monkeypatch):
+    # UI tests exercise application behavior; SDK setup belongs to its validation script.
+    monkeypatch.setattr("credit_monitoring.observability.configure_observability", lambda: None)
     data = tmp_path / "data"
     data.mkdir()
     for filename in (
@@ -238,6 +240,10 @@ def test_followups_use_real_tools_and_session_owned_conversations(working_app, m
     }
     assert app.session_state["active_assessment"] == assessment
     assert any("Executed tools" in item.label for item in app.expander)
+    session_id = conversations[0].session_id
+    app.run()
+    assert app.session_state["conversation"] is conversations[0]
+    assert app.session_state["conversation"].session_id == session_id
     second_session = AppTest.from_file(str(APP), default_timeout=20).run()
     run_assessment(second_session)
     assert second_session.session_state["chat_messages"] == []

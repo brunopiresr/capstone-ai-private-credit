@@ -1,6 +1,7 @@
 """One graph execution path for streamed and completed agent answers."""
 
 import json
+import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
@@ -31,6 +32,9 @@ from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.common import tool_outcome
 from credit_monitoring.domain.agent import AgentAnswer, AnswerContent
 from credit_monitoring.domain.tool_results import ToolFailure
+from credit_monitoring.observability.session import get_active_session
+
+logger = logging.getLogger(__name__)
 
 
 async def _model_updates(
@@ -96,6 +100,7 @@ def _tool_event(
         part = event.part
         call = calls[part.tool_call_id]
         if isinstance(part, RetryPromptPart):
+            logger.warning("Agent tool arguments rejected", extra={"tool_name": call.tool_name})
             outcome = ToolFailure(
                 code="invalid_arguments" if call.tool_name in tool_names else "unknown_tool",
                 message=part.model_response(),
@@ -154,10 +159,12 @@ async def run_stream(
     """
     name = agent.name or "Credit assessment agent"
     calls: dict[str, ToolCallPart] = {}
+    session = get_active_session()
     try:
         async with agent.iter(
             prompt,
             message_history=history,
+            conversation_id=session.session_id if session else None,
             usage_limits=UsageLimits(request_limit=state.max_tool_rounds + 1),
         ) as run:
             try:
@@ -185,10 +192,13 @@ async def run_stream(
             answer = state.answer(run.result.output)
             state.history = run.result.all_messages()
     except ModelFailure as exc:
+        logger.error("Agent execution failed", extra={"error_code": exc.code})
         answer = state.answer(str(exc), exc.code)
     except UsageLimitExceeded:
+        logger.warning("Agent execution stopped", extra={"error_code": "tool_round_limit"})
         answer = state.answer("Processing stopped at the tool-round limit.", "tool_round_limit")
     except (ModelAPIError, UnexpectedModelBehavior) as exc:
+        logger.error("Agent model failed", extra={"error_type": type(exc).__name__})
         answer = state.answer(f"Agent model request/response failed: {exc}", "model_error")
     if history is not None and not answer.complete:
         state.history = _failure_history(history, prompt, answer)

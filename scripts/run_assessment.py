@@ -4,10 +4,14 @@ import argparse
 from datetime import date
 from pathlib import Path
 
+import logfire
+from dotenv import load_dotenv
+
 from credit_monitoring.application.bootstrap import create_assessment_service
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
+from credit_monitoring.observability import configure_observability
 from credit_monitoring.observability.logging import configure_logging
 
 
@@ -35,27 +39,32 @@ def main() -> None:
         help="Enable package logs on stderr; INFO shows calculation inputs and results.",
     )
     arguments = parser.parse_args()
+    load_dotenv(root / ".env", override=False)
+    configure_observability()
     if arguments.log_level is not None:
         configure_logging(arguments.log_level)
-    service = create_assessment_service(
-        financial_repository=FinancialRepository(arguments.financial_db),
-        covenant_reader=SyntheticCovenantReader(arguments.terms),
-        settings=AssessmentSettings(
-            analytics_database=arguments.analytics_db,
-            risk_model=RiskModelConfig(
-                type=arguments.model_type,
-                version=arguments.model_version,
-                artifact_path=arguments.model_artifact,
+    try:
+        service = create_assessment_service(
+            financial_repository=FinancialRepository(arguments.financial_db),
+            covenant_reader=SyntheticCovenantReader(arguments.terms),
+            settings=AssessmentSettings(
+                analytics_database=arguments.analytics_db,
+                risk_model=RiskModelConfig(
+                    type=arguments.model_type,
+                    version=arguments.model_version,
+                    artifact_path=arguments.model_artifact,
+                ),
             ),
-        ),
-    )
-    assessment = service.assess(
-        arguments.borrower_id,
-        arguments.period_end,
-        arguments.information_cutoff,
-        ml_enabled=arguments.ml,
-    )
-    print(assessment.model_dump_json(indent=2))
+        )
+        assessment = service.assess(
+            arguments.borrower_id,
+            arguments.period_end,
+            arguments.information_cutoff,
+            ml_enabled=arguments.ml,
+        )
+        print(assessment.model_dump_json(indent=2))
+    finally:
+        logfire.force_flush(timeout_millis=3000)
 
 
 if __name__ == "__main__":

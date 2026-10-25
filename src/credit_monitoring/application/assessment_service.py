@@ -16,6 +16,8 @@ from credit_monitoring.domain.risk_prediction import RiskPrediction
 from credit_monitoring.features.risk_feature_builder import RiskFeatureBuilder
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ml.factory import RiskModelFactory
+from credit_monitoring.observability import session_scope
+from credit_monitoring.observability.configuration import span
 from credit_monitoring.observability.logging import log_event, logging_context
 from credit_monitoring.persistence.analytics_repositories import (
     CovenantResultRepository,
@@ -71,11 +73,15 @@ class AssessmentService:
                 "A borrower and a cutoff on or after the reporting period are required."
             )
         run_id = new_identifier()
-        with logging_context(
-            assessment_run_id=run_id,
-            borrower_id=borrower_id,
-            period_end=period_end,
-            information_cutoff=information_cutoff,
+        with (
+            session_scope(),
+            span("credit.assessment", borrower_id=borrower_id),
+            logging_context(
+                assessment_run_id=run_id,
+                borrower_id=borrower_id,
+                period_end=period_end,
+                information_cutoff=information_cutoff,
+            ),
         ):
             use_ml = self.settings.ml_enabled if ml_enabled is None else ml_enabled
             log_event(logger, "assessment", inputs={"ml_enabled": use_ml}, status="started")
@@ -151,6 +157,10 @@ class AssessmentService:
                             assessment_run_id=run_id,
                         )
                     except Exception as error:
+                        logger.error(
+                            "Deterministic trends failed",
+                            extra={"error_type": type(error).__name__},
+                        )
                         assessment.issues.append(
                             f"Deterministic trends unavailable: {type(error).__name__}: {error}"
                         )
@@ -163,6 +173,9 @@ class AssessmentService:
             try:
                 assessment.narrative = self.risk_analysis_service.analyze(assessment)
             except Exception as error:
+                logger.error(
+                    "Assessment narrative failed", extra={"error_type": type(error).__name__}
+                )
                 assessment.issues.append(f"Narrative unavailable: {type(error).__name__}: {error}")
             assessment.verification = verify_assessment(assessment)
             log_event(
@@ -173,7 +186,7 @@ class AssessmentService:
                     "history_result_count": len(assessment.history),
                     "verification_valid": assessment.verification.is_valid,
                     "ml_status": assessment.ml_status,
-                    "issues": list(assessment.issues),
+                    "issue_count": len(assessment.issues),
                 },
             )
             return assessment
@@ -223,6 +236,7 @@ class AssessmentService:
             self.prediction_repository.save(prediction)
             assessment.ml_status = prediction.prediction_status
         except Exception as error:
+            logger.error("Assessment prediction failed", extra={"error_type": type(error).__name__})
             assessment.prediction = None
             assessment.ml_status = "failed"
             message = f"ML unavailable: {type(error).__name__}: {error}"
@@ -241,4 +255,8 @@ class AssessmentService:
                     self.prediction_repository.save(failure)
                     assessment.prediction = failure
                 except Exception as storage_error:
+                    logger.error(
+                        "ML failure storage failed",
+                        extra={"error_type": type(storage_error).__name__},
+                    )
                     assessment.issues.append(f"ML failure record unavailable: {storage_error}")

@@ -26,6 +26,8 @@ from credit_monitoring.domain.credit_review import (
     ReviewExecution,
     ReviewSnapshot,
 )
+from credit_monitoring.observability import session_scope
+from credit_monitoring.observability.configuration import span
 from credit_monitoring.observability.logging import log_event
 from credit_monitoring.public_context.events import PublicNewsContext
 from credit_monitoring.public_context.retrieval import (
@@ -77,6 +79,10 @@ class _ReviewProgress:
             try:
                 await self.handler(event)
             except Exception as error:
+                logger.error(
+                    "Review callback failed",
+                    extra={"stage": stage, "error_type": type(error).__name__},
+                )
                 self.issues.append(f"Progress callback failed: {type(error).__name__}.")
 
     def record(self, execution: ReviewExecution) -> None:
@@ -167,16 +173,27 @@ class CreditReviewService:
     ) -> CreditReviewResult:
         if self.assessment_service is None:
             raise ValueError("Configure an assessment service or review an existing assessment.")
-        assessment = await asyncio.to_thread(
-            self.assessment_service.assess,
-            borrower_id,
-            period_end,
-            information_cutoff,
-            ml_enabled=ml_enabled,
-        )
-        return await self.review_assessment_async(assessment, decision_context=decision_context)
+        with session_scope(), span("credit.review", borrower_id=borrower_id):
+            assessment = await asyncio.to_thread(
+                self.assessment_service.assess,
+                borrower_id,
+                period_end,
+                information_cutoff,
+                ml_enabled=ml_enabled,
+            )
+            return await self._review_assessment_async(
+                assessment, decision_context=decision_context
+            )
 
     async def review_assessment_async(
+        self, assessment: RiskAssessment, *, decision_context: ExposureDecisionContext | None = None
+    ) -> CreditReviewResult:
+        with session_scope(), span("credit.review", borrower_id=assessment.borrower_id):
+            return await self._review_assessment_async(
+                assessment, decision_context=decision_context
+            )
+
+    async def _review_assessment_async(
         self, assessment: RiskAssessment, *, decision_context: ExposureDecisionContext | None = None
     ) -> CreditReviewResult:
         # Capture caller-owned mutable objects before any awaits or parallel work.
@@ -253,6 +270,7 @@ class CreditReviewService:
                     assessment.information_cutoff,
                 )
         except Exception as error:
+            logger.error("Public news retrieval failed", extra={"error_type": type(error).__name__})
             news = PublicNewsContext(
                 borrower_id=assessment.borrower_id,
                 information_cutoff=assessment.information_cutoff,

@@ -7,6 +7,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from credit_monitoring.domain.assessment import RiskAssessment
+from credit_monitoring.observability import configure_observability
 from credit_monitoring.web.assessment import (
     render_answer,
     render_evidence,
@@ -99,6 +100,7 @@ def render_assistant(assessment: RiskAssessment, *, pending: bool) -> None:
 
 st.set_page_config(page_title="Covenant Monitor", page_icon="◈", layout="wide")
 load_dotenv(DEFAULT_DATA_ROOT.parent / ".env")
+configure_observability()
 render_style()
 
 pending_focus = st.session_state.pop("pending_focus", None)

@@ -23,6 +23,8 @@ from credit_monitoring.agents.tools.documents import DocumentTools
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.domain.agent import AgentAnswer, AnswerContent
+from credit_monitoring.observability import SessionContext, session_scope
+from credit_monitoring.observability.configuration import capture_content_enabled, span
 
 
 class CreditAssessmentAgent:
@@ -35,7 +37,7 @@ class CreditAssessmentAgent:
         assessment_service: AssessmentService | None = None,
         model: Model | str = DEFAULT_MODEL,
         max_tool_rounds: int = 6,
-        tracing_enabled: bool = False,
+        tracing_enabled: bool | None = None,
         name: str = "Credit assessment agent",
         event_stream_handler: EventStreamHandler | None = None,
     ) -> None:
@@ -52,10 +54,14 @@ class CreditAssessmentAgent:
         self.event_stream_handler = event_stream_handler
 
     def start_conversation(
-        self, *, ticker: str | None = None, borrower_id: str | None = None
+        self,
+        *,
+        ticker: str | None = None,
+        borrower_id: str | None = None,
+        session: SessionContext | None = None,
     ) -> AgentConversation:
         self._validate_scope(ticker, borrower_id)
-        return AgentConversation(self, ticker=ticker, borrower_id=borrower_id)
+        return AgentConversation(self, ticker=ticker, borrower_id=borrower_id, session=session)
 
     def _validate_scope(self, ticker: str | None, borrower_id: str | None) -> None:
         if self.service is None:
@@ -113,6 +119,7 @@ class CreditAssessmentAgent:
         borrower_id: str | None = None,
         event_stream_handler: EventStreamHandler | None = None,
     ) -> AsyncIterator[AgentEvent]:
+        """Stream a question; direct consumers must use contextlib.aclosing on early exits."""
         state = AgentRunState(max_tool_rounds=self.max_tool_rounds)
         async with aclosing(
             self._stream_question(
@@ -135,6 +142,7 @@ class CreditAssessmentAgent:
         borrower_id: str | None = None,
         history: list[ModelMessage] | None = None,
         event_stream_handler: EventStreamHandler | None = None,
+        session: SessionContext | None = None,
     ) -> AsyncIterator[AgentEvent]:
         if not question.strip():
             raise ValueError("Question must not be empty.")
@@ -156,9 +164,14 @@ class CreditAssessmentAgent:
             retries={"tools": self.max_tool_rounds, "output": 1},
             model_settings={"parallel_tool_calls": False},
         )
-        agent.instrument = (
-            InstrumentationSettings(include_content=False) if self.tracing_enabled else False
-        )
+        if self.tracing_enabled is not None:
+            agent.instrument = (
+                InstrumentationSettings(
+                    include_content=capture_content_enabled(), include_binary_content=False
+                )
+                if self.tracing_enabled
+                else False
+            )
 
         @agent.output_validator
         async def validate_answer(ctx: RunContext, output: AnswerContent) -> AnswerContent:
@@ -176,10 +189,11 @@ class CreditAssessmentAgent:
             event_stream_handler if event_stream_handler is not None else self.event_stream_handler
         )
         prompt = json.dumps({"question": question, "ticker": ticker, "borrower_id": borrower_id})
-        async with aclosing(
-            run_stream(agent, prompt, state, history, tool_names={tool.name for tool in tools})
-        ) as stream:
-            async for event in stream:
-                if handler is not None:
-                    await handler(event.model_copy(deep=True))
-                yield event
+        with session_scope(session), span("agent.turn"):
+            async with aclosing(
+                run_stream(agent, prompt, state, history, tool_names={tool.name for tool in tools})
+            ) as stream:
+                async for event in stream:
+                    if handler is not None:
+                        await handler(event.model_copy(deep=True))
+                    yield event

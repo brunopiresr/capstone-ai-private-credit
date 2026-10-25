@@ -11,6 +11,8 @@ from pydantic_ai.messages import ModelMessage
 from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
 from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.domain.agent import AgentAnswer, SourceReference
+from credit_monitoring.observability import SessionContext
+from credit_monitoring.observability.session import get_active_session
 
 if TYPE_CHECKING:
     from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
@@ -29,16 +31,23 @@ class AgentConversation:
         *,
         ticker: str | None = None,
         borrower_id: str | None = None,
+        session: SessionContext | None = None,
     ) -> None:
         if borrower_id is not None and agent.assessment_service is None:
             raise ValueError("Configure an assessment_service before supplying a borrower ID.")
         self._agent = agent
         self._ticker = ticker
         self._borrower_id = borrower_id
+        self._session = session if session is not None else get_active_session() or SessionContext()
         self._history: list[ModelMessage] = []
         self._sources: list[SourceReference] = []
         self._closed = False
         self._in_progress = False
+
+    @property
+    def session_id(self) -> str:
+        """Stable conversation identity, including across separate event loops."""
+        return self._session.session_id
 
     @property
     def closed(self) -> bool:
@@ -88,7 +97,7 @@ class AgentConversation:
         *,
         event_stream_handler: EventStreamHandler | None = None,
     ) -> AsyncIterator[AgentEvent]:
-        """Stream one turn, committing only its terminal outcome to memory."""
+        """Stream a turn; direct consumers must use contextlib.aclosing for early exits."""
         if self.closed:
             raise RuntimeError("Conversation is closed; start a new conversation.")
         if question.strip().casefold() in {"close", "done", "quit"}:
@@ -110,6 +119,7 @@ class AgentConversation:
                     borrower_id=self._borrower_id,
                     event_stream_handler=event_stream_handler,
                     history=deepcopy(self._history),
+                    session=self._session,
                 )
             ) as stream:
                 async for event in stream:

@@ -30,6 +30,8 @@ from credit_monitoring.domain import (
     ExtractionResult,
     RetrievedRecord,
 )
+from credit_monitoring.observability import session_scope
+from credit_monitoring.observability.session import get_active_session
 
 # POC: automatic post-extraction verification is temporarily disabled. Keep the
 # validators and their tests; restore this import and the calls below to re-enable.
@@ -79,13 +81,15 @@ def _records(values: Iterable[RetrievedRecord | Mapping[str, Any]]) -> list[Retr
 def _parse(*, model: Model | str, instructions: str, prompt: str, schema: type) -> Any:
     agent = Agent(
         resolve_model(model),
+        name="Document extraction",
         instructions=instructions,
         output_type=ToolOutput(schema, strict=True),
         retries=0,
     )
     with capture_run_messages() as messages:
         try:
-            result = agent.run_sync(prompt)
+            session = get_active_session()
+            result = agent.run_sync(prompt, conversation_id=session.session_id if session else None)
         except (ValidationError, UnexpectedModelBehavior, ModelAPIError) as exc:
             failure = exc
         else:
@@ -121,23 +125,24 @@ def extract_covenants(
     model: Model | str = DEFAULT_MODEL,
 ) -> ExtractionResult:
     """Extract facts unchanged; validation is null while POC verification is disabled."""
-    records = _records(search_results)
-    if not any(r.text.strip() for r in records):
-        extraction = CovenantExtraction(gaps=["No relevant evidence was retrieved."])
-    else:
-        extraction = _parse(
-            model=model,
-            instructions=EXTRACTION_INSTRUCTIONS,
-            prompt=build_prompt(query, records, include_catalog_notes=False),
-            schema=CovenantExtraction,
+    with session_scope():
+        records = _records(search_results)
+        if not any(r.text.strip() for r in records):
+            extraction = CovenantExtraction(gaps=["No relevant evidence was retrieved."])
+        else:
+            extraction = _parse(
+                model=model,
+                instructions=EXTRACTION_INSTRUCTIONS,
+                prompt=build_prompt(query, records, include_catalog_notes=False),
+                schema=CovenantExtraction,
+            )
+        return ExtractionResult(
+            prompt_version=EXTRACTION_PROMPT_VERSION,
+            extraction=extraction,
+            # POC: restore this call with the validator import when verification resumes.
+            # validation=validate_extraction(extraction, records),
+            validation=None,
         )
-    return ExtractionResult(
-        prompt_version=EXTRACTION_PROMPT_VERSION,
-        extraction=extraction,
-        # POC: restore this call with the validator import when verification resumes.
-        # validation=validate_extraction(extraction, records),
-        validation=None,
-    )
 
 
 def extract_all_companies(
@@ -148,46 +153,47 @@ def extract_all_companies(
     model: Model | str = DEFAULT_MODEL,
 ) -> AllCompanyExtractionResult:
     """One request for all companies; automatic post-extraction verification is disabled."""
-    records = _records(documents)
-    if any(
-        not isinstance(t, str) or not t.strip() or not isinstance(c, str) or not c.strip()
-        for t, c in company_by_ticker.items()
-    ):
-        raise ExtractionInputError("Company catalog requires nonempty ticker/name strings.")
-    if not company_by_ticker or not any(r.text.strip() for r in records):
-        extraction = AllCompanyCovenantExtraction(
-            summary="No indexed SEC evidence or company catalog is available.",
-            companies=[
-                CompanyCovenantExtraction(
-                    company=company,
-                    ticker=ticker,
-                    extraction=CovenantExtraction(gaps=["No relevant evidence was retrieved."]),
-                )
+    with session_scope():
+        records = _records(documents)
+        if any(
+            not isinstance(t, str) or not t.strip() or not isinstance(c, str) or not c.strip()
+            for t, c in company_by_ticker.items()
+        ):
+            raise ExtractionInputError("Company catalog requires nonempty ticker/name strings.")
+        if not company_by_ticker or not any(r.text.strip() for r in records):
+            extraction = AllCompanyCovenantExtraction(
+                summary="No indexed SEC evidence or company catalog is available.",
+                companies=[
+                    CompanyCovenantExtraction(
+                        company=company,
+                        ticker=ticker,
+                        extraction=CovenantExtraction(gaps=["No relevant evidence was retrieved."]),
+                    )
+                    for ticker, company in sorted(company_by_ticker.items())
+                ],
+                gaps=["No indexed SEC evidence or company catalog is available."],
+            )
+        else:
+            payload = json.loads(build_prompt(query, records, include_catalog_notes=False))
+            payload["company_catalog"] = [
+                {"company": company, "ticker": ticker}
                 for ticker, company in sorted(company_by_ticker.items())
-            ],
-            gaps=["No indexed SEC evidence or company catalog is available."],
+            ]
+            extraction = _parse(
+                model=model,
+                instructions=ALL_COMPANY_INSTRUCTIONS,
+                prompt=json.dumps(payload, ensure_ascii=False, indent=2),
+                schema=AllCompanyCovenantExtraction,
+            )
+        # POC: retain this report-building block for restoring verification later.
+        # report = validate_all_companies(extraction, records, company_by_ticker)
+        # if not company_by_ticker:
+        #     report.add(
+        #         "warning", "no_company_catalog", "companies", "No company catalog was supplied."
+        #     )
+        return AllCompanyExtractionResult(
+            prompt_version=f"{EXTRACTION_PROMPT_VERSION}+{BATCH_PROMPT_VERSION}",
+            extraction=extraction,
+            # validation=report,
+            validation=None,
         )
-    else:
-        payload = json.loads(build_prompt(query, records, include_catalog_notes=False))
-        payload["company_catalog"] = [
-            {"company": company, "ticker": ticker}
-            for ticker, company in sorted(company_by_ticker.items())
-        ]
-        extraction = _parse(
-            model=model,
-            instructions=ALL_COMPANY_INSTRUCTIONS,
-            prompt=json.dumps(payload, ensure_ascii=False, indent=2),
-            schema=AllCompanyCovenantExtraction,
-        )
-    # POC: retain this report-building block for restoring verification later.
-    # report = validate_all_companies(extraction, records, company_by_ticker)
-    # if not company_by_ticker:
-    #     report.add(
-    #         "warning", "no_company_catalog", "companies", "No company catalog was supplied."
-    #     )
-    return AllCompanyExtractionResult(
-        prompt_version=f"{EXTRACTION_PROMPT_VERSION}+{BATCH_PROMPT_VERSION}",
-        extraction=extraction,
-        # validation=report,
-        validation=None,
-    )
