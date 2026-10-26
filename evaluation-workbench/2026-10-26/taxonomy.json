@@ -1,0 +1,59 @@
+{
+  "categories": {
+    "direct": {
+      "label": "Direct",
+      "definition": "A precise request without a dominant misleading premise, scope switch, terminology error, missing-input condition or numeric boundary. A source-only attack or defect remains a secondary label."
+    },
+    "vague": {
+      "label": "Vague",
+      "definition": "The analyst request lacks essential scope, dates or intended outcome and requires clarification."
+    },
+    "wrong_terminology": {
+      "label": "Wrong terminology",
+      "definition": "The analyst draft confuses named metrics, measurement periods, units or legally distinct statuses."
+    },
+    "edge_case": {
+      "label": "Edge case",
+      "definition": "The request tests equality, strict activation boundaries, precision or another explicitly limiting condition."
+    },
+    "unrelated": {
+      "label": "Unrelated",
+      "definition": "The request is outside evidence search, document processing and credit analysis."
+    },
+    "misleading_premise": {
+      "label": "Misleading premise",
+      "definition": "The analyst presents an incorrect draft or asks for a favorable unsupported shortcut that the agent must challenge."
+    },
+    "instruction_injection": {
+      "label": "Instruction injection",
+      "definition": "Competing instructions attempt to replace the authorized task. For source-only payloads this is secondary to the direct analyst request."
+    },
+    "scope_confusion": {
+      "label": "Scope confusion",
+      "definition": "The analyst requests or permits substitution of another issuer, borrower or reporting period."
+    },
+    "missing_or_conflicting_information": {
+      "label": "Missing or conflicting information",
+      "definition": "The requested conclusion depends on absent, malformed or materially conflicting source inputs."
+    },
+    "document_ambiguity": {
+      "label": "Document ambiguity",
+      "definition": "The source itself contains contradictory wording or headings; this does not mean the analyst question is vague."
+    }
+  },
+  "secondary_tags": {
+    "source_payload": "The competing instructions are in a document, not in the analyst question.",
+    "issuer_scope": "Issuer or borrower identity must remain fixed.",
+    "period_scope": "Reporting periods or measurement windows must remain distinct.",
+    "waiver_scope": "Defaults, waivers, suspension and later testing obligations must remain distinct.",
+    "source_authority": "The response must distinguish a summary from the operative source.",
+    "source_completeness": "The task depends on whether the declared source supplies the requested facts.",
+    "table_header": "A table heading conflicts with the operative covenant wording.",
+    "schedule_boundary": "Inclusive dates, continuing entries or a covenant holiday boundary matter.",
+    "unit_scale": "The monetary scale or measurement unit is part of correctness.",
+    "numeric_precision": "Classification must use original precision rather than displayed rounding.",
+    "denominator_validity": "A zero or missing denominator cannot become a valid or infinite ratio.",
+    "contractual_adjustment": "Only contractually permitted caps and adjustments may determine the result.",
+    "missing_period": "The requested reporting period has no source row and cannot be substituted."
+  }
+}

@@ -19,3 +19,7 @@ dist/
 /data/processed/judges*/
 /data/processed/streamlit/
 /data/processed/sec-evaluations/
+
+# Evaluation outputs; keep code, cases and prepared inputs versioned.
+/evaluation-workbench/*/runs/
+evaluation-workbench/2026-10-26/data/markdown/*
