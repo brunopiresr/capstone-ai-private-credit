@@ -13,7 +13,7 @@ from credit_monitoring.domain.risk_features import (
     CovenantRiskFeatures,
 )
 from credit_monitoring.domain.risk_prediction import RiskPrediction
-from credit_monitoring.ml.factory import RiskModelFactory
+from credit_monitoring.ml.factory import create_risk_model
 from credit_monitoring.persistence.analytics_repositories import (
     CovenantResultRepository,
     RiskFeatureSnapshotRepository,
@@ -126,9 +126,20 @@ def test_sql_constraints_and_prediction_identity(records):
             connection.execute("UPDATE risk_feature_snapshots SET features_json='bad json'")
 
 
-def test_factory_rejects_unknown_and_duplicate_types():
-    factory = RiskModelFactory()
+def test_model_selection_rejects_unknown_types():
     with pytest.raises(ValueError, match="Unknown"):
-        factory.create(RiskModelConfig(type="untrained"))
-    with pytest.raises(ValueError, match="once"):
-        factory.register("stub", lambda config: None)
+        create_risk_model(RiskModelConfig(type="untrained"))
+
+
+def test_model_selection_constructs_stub_with_requested_version():
+    model = create_risk_model(RiskModelConfig(type="stub", version="test-v2"))
+    prediction = model.predict(
+        BorrowerRiskFeatures(
+            borrower_id="BORROWER",
+            period_end=date(2025, 9, 30),
+            information_cutoff=date(2025, 9, 30),
+        )
+    )
+    assert prediction.model_version == "test-v2"
+    assert prediction.prediction_status == "stub"
+    assert prediction.breach_probability is None

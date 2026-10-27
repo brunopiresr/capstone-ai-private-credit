@@ -9,14 +9,14 @@ from credit_monitoring.ingestion.loaders.sec import load_catalog
 from credit_monitoring.verification.extraction import validate_extraction
 
 ROOT = Path(__file__).parents[3]
-SOURCE = ROOT / "data/sec_documents/markdown/DOC_AVD_AMD8_2025.md"
+SOURCE = ROOT / "data/cache/sec/markdown/DOC_AVD_AMD8_2025.md"
 
 
 @pytest.mark.skipif(not SOURCE.exists(), reason="Optional ignored local SEC Markdown is absent.")
 def test_existing_local_quote_has_exact_provenance():
     record = next(
         r
-        for r in load_catalog(ROOT / "data/public_sec_documents.csv")
+        for r in load_catalog(ROOT / "data/app/sec/public_sec_documents.csv")
         if r["document_id"] == "DOC_AVD_AMD8_2025"
     )
     quote = next(

@@ -28,4 +28,4 @@ operator contamination, covenant-family classification, and invented evidence qu
 Version 2.3 preserves source covenant names and records contradictory table headers
 without combining separate clauses. Its extraction input assembly also excludes
 descriptive catalog notes while preserving source text and provenance.
-See [public benchmark triage](../../../docs/public_sec_benchmark_triage.md).
+See [public benchmark triage](../../../docs/reviews/public_sec_benchmark_triage.md).

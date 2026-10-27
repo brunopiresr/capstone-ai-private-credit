@@ -163,7 +163,7 @@ def test_captured_fmc_errors_remain_visible_and_replay_without_a_database():
     excerpts = json.loads((fixture / "fmc_source_excerpts.json").read_text())
     gold = [
         row
-        for row in read_csv(root / "data/public_sec_gold_cases.csv")
+        for row in read_csv(root / "data/evaluation/public_sec_gold_cases.csv")
         if row["case_id"] in {"PUB_FMC_2025Q1_LEV", "PUB_FMC_2025Q1_ICR"}
     ]
     report = compare_snapshot(snapshot, gold, strict=True)

@@ -1,6 +1,6 @@
 .env
 .logfire/
-/homework-monitoring/runtime/
+/homework/monitoring/runtime/
 .venv/
 __pycache__/
 *.py[cod]
@@ -11,15 +11,8 @@ __pycache__/
 build/
 dist/
 *.egg-info/
-/data/sec_documents/*
-# /data/processed/*.sqlite3
-# /data/processed/*.sqlite3-*
-#/data/synthetic_training/
-#/data/models/
-/data/processed/judges*/
-/data/processed/streamlit/
-/data/processed/sec-evaluations/
+/data/cache/
+/data/runtime/
 
 # Evaluation outputs; keep code, cases and prepared inputs versioned.
-/evaluation-workbench/*/runs/
-evaluation-workbench/2026-10-26/data/markdown/*
+/homework/evaluation/*/runs/

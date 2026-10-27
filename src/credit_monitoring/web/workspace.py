@@ -15,9 +15,10 @@ from credit_monitoring.domain.agent import AgentAnswer
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
+from credit_monitoring.paths import DATA_ROOT, RUNTIME_DIR
 
-DEFAULT_DATA_ROOT = Path(__file__).resolve().parents[3] / "data"
-DEFAULT_WORKSPACE_DIR = DEFAULT_DATA_ROOT / "processed" / "streamlit"
+DEFAULT_DATA_ROOT = DATA_ROOT
+DEFAULT_WORKSPACE_DIR = RUNTIME_DIR / "streamlit"
 PREDICTION_MODES = ("Off", "Stub", "Logistic Regression")
 
 
@@ -29,9 +30,10 @@ class SyntheticWorkspace:
         self.working_dir = Path(working_dir)
         self.working_dir.mkdir(parents=True, exist_ok=True)
         database = self.working_dir / "financials.sqlite3"
-        load_financials(self.data_root / "synthetic_quarterly_financials.csv", database)
+        synthetic_dir = self.data_root / "app" / "synthetic"
+        load_financials(synthetic_dir / "synthetic_quarterly_financials.csv", database)
         self.financial_repository = FinancialRepository(database)
-        with (self.data_root / "synthetic_borrowers.csv").open(newline="", encoding="utf-8") as f:
+        with (synthetic_dir / "synthetic_borrowers.csv").open(newline="", encoding="utf-8") as f:
             self.borrowers = sorted(
                 (
                     {key: row[key] for key in ("borrower_id", "borrower_name", "industry")}
@@ -56,7 +58,7 @@ class SyntheticWorkspace:
         return create_assessment_service(
             financial_repository=self.financial_repository,
             covenant_reader=SyntheticCovenantReader(
-                self.data_root / "synthetic_covenant_terms.csv"
+                self.data_root / "app" / "synthetic" / "synthetic_covenant_terms.csv"
             ),
             settings=AssessmentSettings(
                 analytics_database=self.working_dir / "analytics.sqlite3",

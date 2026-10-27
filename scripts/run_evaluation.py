@@ -17,7 +17,7 @@ def main() -> int:
             uv,
             "run",
             "--project",
-            str(root / "tools/llm_judges"),
+            str(root / "homework/llm-judges"),
             "--locked",
             "python",
             "-m",

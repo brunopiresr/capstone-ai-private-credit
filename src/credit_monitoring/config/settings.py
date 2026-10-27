@@ -5,6 +5,7 @@ from pathlib import Path
 from pydantic import Field
 
 from credit_monitoring.domain.analytics_base import AssessmentModel
+from credit_monitoring.paths import RUNTIME_DIR
 
 
 class RiskModelConfig(AssessmentModel):
@@ -19,7 +20,7 @@ class AssessmentSettings(AssessmentModel):
     """Assessment defaults leave ML disabled and source storage unchanged."""
 
     ml_enabled: bool = False
-    analytics_database: Path = Path("data/processed/analytics.sqlite3")
+    analytics_database: Path = RUNTIME_DIR / "analytics.sqlite3"
     risk_model: RiskModelConfig = Field(default_factory=RiskModelConfig)
 
 

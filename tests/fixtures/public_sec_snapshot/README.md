@@ -12,6 +12,6 @@ that 4.77 and 3.84 are actuals, while 5.25 and 3.00 are contractual limits. The
 amendment cache incorrectly borrows an interest-coverage operator/quotation for
 leverage. Tests retain these failures rather than substituting expected outputs.
 
-See [triage](../../../docs/public_sec_benchmark_triage.md) for the full baseline,
+See [triage](../../../docs/reviews/public_sec_benchmark_triage.md) for the full baseline,
 the extraction prompt correction, and the separate live refresh results. These
 fixtures prove detection and replay, not that the revised prompt always succeeds.

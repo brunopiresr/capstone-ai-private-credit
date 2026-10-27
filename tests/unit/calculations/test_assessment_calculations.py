@@ -24,7 +24,7 @@ from credit_monitoring.domain.assessment import (
     ResolvedCovenant,
 )
 
-TERMS = Path(__file__).resolve().parents[3] / "data/synthetic_covenant_terms.csv"
+TERMS = Path(__file__).resolve().parents[3] / "data/app/synthetic/synthetic_covenant_terms.csv"
 
 
 def test_amendments_resolve_for_their_own_periods():

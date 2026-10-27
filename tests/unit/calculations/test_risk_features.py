@@ -1,4 +1,4 @@
-"""Verify feature comparability and missing-period behavior over persisted results."""
+"""Verify feature comparability and missing-period behavior over in-memory calculation results."""
 
 from datetime import date
 from pathlib import Path
@@ -9,12 +9,11 @@ from credit_monitoring.calculations.covenants import calculate_covenant
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.assessment import CovenantResolution, FinancialPeriod
 from credit_monitoring.features.model_features import model_feature_row
-from credit_monitoring.features.risk_feature_builder import RiskFeatureBuilder
+from credit_monitoring.features.risk_feature_builder import build_risk_features
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
-from credit_monitoring.persistence.analytics_repositories import CovenantResultRepository
 
-DATA = Path(__file__).resolve().parents[3] / "data"
+DATA = Path(__file__).resolve().parents[3] / "data" / "app" / "synthetic"
 
 
 @pytest.fixture
@@ -35,14 +34,14 @@ def result_history(tmp_path):
                 information_cutoff=cutoff,
             )
         )
-    return CovenantResultRepository(tmp_path / "analytics.sqlite3"), results
+    return results
 
 
-def test_features_require_current_persisted_results(result_history):
-    repository, results = result_history
-    repository.save_all(results[:-1])
-    with pytest.raises(ValueError, match="Persist current"):
-        RiskFeatureBuilder(repository).build(
+def test_features_require_current_results(result_history):
+    results = result_history
+    with pytest.raises(ValueError, match="Current covenant"):
+        build_risk_features(
+            results[:-1],
             "SYN002",
             date(2025, 9, 30),
             date(2025, 9, 30),
@@ -51,62 +50,51 @@ def test_features_require_current_persisted_results(result_history):
 
 
 def test_contractual_basis_change_suppresses_ratio_deltas(result_history):
-    repository, results = result_history
+    results = result_history
     results[-1].resolved_covenant.cash_netting_cap = 20
-    repository.save_all(results)
-    features = (
-        RiskFeatureBuilder(repository)
-        .build(
-            "SYN002",
-            date(2025, 9, 30),
-            date(2025, 9, 30),
-            assessment_run_id="run",
-        )
-        .covenants[0]
-    )
+    features = build_risk_features(
+        results,
+        "SYN002",
+        date(2025, 9, 30),
+        date(2025, 9, 30),
+        assessment_run_id="run",
+    ).covenants[0]
     assert features.basis_changed
     assert features.metric_change_qoq is None
     assert features.headroom_change_qoq is None
 
 
 def test_threshold_change_is_separate_from_metric_change(result_history):
-    repository, results = result_history
+    results = result_history
     results[-1].threshold += 0.5
     results[-1].resolved_covenant.threshold += 0.5
     results[-1].headroom += 0.5
-    repository.save_all(results)
-    features = (
-        RiskFeatureBuilder(repository)
-        .build(
-            "SYN002",
-            date(2025, 9, 30),
-            date(2025, 9, 30),
-            assessment_run_id="run",
-        )
-        .covenants[0]
-    )
+    features = build_risk_features(
+        results,
+        "SYN002",
+        date(2025, 9, 30),
+        date(2025, 9, 30),
+        assessment_run_id="run",
+    ).covenants[0]
     assert not features.basis_changed
     assert features.threshold_change_qoq == 0.5
     assert features.headroom_change_qoq == pytest.approx(0.5 - features.metric_change_qoq)
 
 
 def test_multiple_covenants_are_preserved(result_history):
-    repository, results = result_history
+    results = result_history
     second = results[-1].model_copy(
         deep=True, update={"result_id": "second", "covenant_id": "other:lev"}
     )
     second.resolved_covenant.covenant_id = "other:lev"
-    repository.save_all(results + [second])
-    features = (
-        RiskFeatureBuilder(repository)
-        .build(
-            "SYN002",
-            date(2025, 9, 30),
-            date(2025, 9, 30),
-            assessment_run_id="run",
-        )
-        .covenants
-    )
+    results = results + [second]
+    features = build_risk_features(
+        results,
+        "SYN002",
+        date(2025, 9, 30),
+        date(2025, 9, 30),
+        assessment_run_id="run",
+    ).covenants
     assert len(features) == 2
     assert (
         next(item for item in features if item.covenant_id == "other:lev").previous_breach is None
@@ -135,12 +123,8 @@ def test_features_use_configured_formula_family(tmp_path, borrower_id, source_ty
     result = calculate_covenant(
         resolution, financials, assessment_run_id="run", information_cutoff=period
     )
-    repository = CovenantResultRepository(tmp_path / "analytics.sqlite3")
-    repository.save_all([result])
 
-    features = RiskFeatureBuilder(repository).build(
-        borrower_id, period, period, assessment_run_id="run"
-    )
+    features = build_risk_features([result], borrower_id, period, period, assessment_run_id="run")
 
     assert features.covenants[0].covenant_type == formula
     assert features.covenants[0].actual_value == result.actual_value
@@ -148,15 +132,12 @@ def test_features_use_configured_formula_family(tmp_path, borrower_id, source_ty
     assert row[f"{formula}__covenant_count"] == 1
     assert row[f"{formula}__mean_actual_value"] == result.actual_value
     assert result.covenant_type == result.resolved_covenant.covenant_type == source_type
-    assert repository.get_history(
-        borrower_id, period_end=period, information_cutoff=period, assessment_run_id="run"
-    ) == [result]
 
 
 @pytest.mark.parametrize("covenant_name", ["Maximum Net Leverage", "Maximum Total Leverage"])
 @pytest.mark.parametrize("resolved", [True, False], ids=["reported", "unresolved"])
 def test_unmapped_leverage_is_not_inferred_from_its_name(result_history, covenant_name, resolved):
-    repository, results = result_history
+    results = result_history
     current = results[-1]
     covenant = current.resolved_covenant
     covenant.covenant_type = "leverage"
@@ -174,9 +155,12 @@ def test_unmapped_leverage_is_not_inferred_from_its_name(result_history, covenan
         assessment_run_id="run",
         information_cutoff=current.information_cutoff,
     )
-    repository.save_all([result])
-    features = RiskFeatureBuilder(repository).build(
-        result.borrower_id, result.period_end, result.information_cutoff, assessment_run_id="run"
+    features = build_risk_features(
+        [result],
+        result.borrower_id,
+        result.period_end,
+        result.information_cutoff,
+        assessment_run_id="run",
     )
 
     assert features.covenants[0].covenant_type == "leverage"
@@ -189,3 +173,22 @@ def test_unmapped_leverage_is_not_inferred_from_its_name(result_history, covenan
         assert result.compliance_status == "compliant"
     else:
         assert result.compliance_status == "unresolved"
+
+
+def test_feature_inputs_are_bounded_sorted_and_left_unchanged(result_history):
+    period = date(2025, 9, 30)
+    current = result_history[-1]
+    excluded = [
+        current.model_copy(update={"borrower_id": "OTHER"}),
+        current.model_copy(update={"assessment_run_id": "other-run"}),
+        current.model_copy(update={"period_end": date(2025, 12, 31)}),
+        current.model_copy(update={"information_cutoff": date(2025, 10, 1)}),
+    ]
+    inputs = list(reversed(result_history)) + excluded
+    before = [result.model_dump(mode="json") for result in inputs]
+    expected = build_risk_features(
+        result_history, "SYN002", period, period, assessment_run_id="run"
+    )
+    actual = build_risk_features(inputs, "SYN002", period, period, assessment_run_id="run")
+    assert actual == expected
+    assert [result.model_dump(mode="json") for result in inputs] == before

@@ -5,15 +5,15 @@ import json
 from pathlib import Path
 
 from credit_monitoring.ml.training import train_model
+from credit_monitoring.paths import MODELS_DIR, TRAINING_DIR
 
 
 def main() -> None:
     """Save the fitted pipeline and its evaluation manifest to a versioned directory."""
-    root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset-directory", type=Path, default=root / "data/synthetic_training")
+    parser.add_argument("--dataset-directory", type=Path, default=TRAINING_DIR)
     parser.add_argument(
-        "--artifact-directory", type=Path, default=root / "data/models/logistic_regression/v1"
+        "--artifact-directory", type=Path, default=MODELS_DIR / "logistic_regression" / "v1"
     )
     parser.add_argument("--version", default="v1")
     parser.add_argument("--seed", type=int, default=42)

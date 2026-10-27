@@ -37,7 +37,7 @@ Without the strict flag, missing sources yield a partial comparison if available
 core facts match; strict mode also fails incomplete source coverage. Unsupported
 assessment targets are always reported separately, and never count as extracted
 facts or make `is_complete` true. The historical 37 failures remain visible in the
-[failure register](../../../docs/public_sec_benchmark_triage.md); green portable
+[failure register](../../../docs/reviews/public_sec_benchmark_triage.md); green portable
 tests do not mean public extraction quality passed.
 
 `validate_gold_case(gold_row, extractions_by_document_id)` lives in

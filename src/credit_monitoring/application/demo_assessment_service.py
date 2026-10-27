@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
-from pathlib import Path
 
-_DATA_ROOT = Path(__file__).resolve().parents[3] / "data"
+from credit_monitoring.paths import APP_SYNTHETIC_DIR, EVALUATION_DIR
 
 
 @dataclass(frozen=True)
@@ -45,7 +44,9 @@ class PortfolioItem:
 
 
 def _read_csv(filename: str) -> list[dict[str, str]]:
-    with (_DATA_ROOT / filename).open(newline="", encoding="utf-8") as file:
+    # Only this explicitly mocked benchmark reads expected answers.
+    directory = EVALUATION_DIR if filename == "synthetic_gold_labels.csv" else APP_SYNTHETIC_DIR
+    with (directory / filename).open(newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
 
 

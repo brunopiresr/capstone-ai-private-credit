@@ -9,7 +9,13 @@ import pytest
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
 
-SOURCE = Path(__file__).resolve().parents[3] / "data" / "synthetic_quarterly_financials.csv"
+SOURCE = (
+    Path(__file__).resolve().parents[3]
+    / "data"
+    / "app"
+    / "synthetic"
+    / "synthetic_quarterly_financials.csv"
+)
 
 
 def write_csv(path: Path, rows: list[list[str]], header: list[str] | None = None) -> Path:

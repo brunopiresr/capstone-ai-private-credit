@@ -5,7 +5,6 @@ from types import SimpleNamespace
 
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.application.risk_analysis_service import RiskAnalysisService
 from credit_monitoring.config.settings import AssessmentSettings
 
 
@@ -18,9 +17,6 @@ def test_assessment_with_in_memory_collaborators_does_not_initialize_storage(tmp
         result_repository=SimpleNamespace(save_all=saved.extend),
         snapshot_repository=object(),
         prediction_repository=object(),
-        feature_builder=object(),
-        model_factory=object(),
-        risk_analysis_service=RiskAnalysisService(),
     )
     result = service.assess("BORROWER", date(2025, 9, 30), date(2025, 9, 30))
     assert result.verification.is_valid and result.results == []

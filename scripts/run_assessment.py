@@ -13,24 +13,24 @@ from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.observability import configure_observability
 from credit_monitoring.observability.logging import configure_logging
+from credit_monitoring.paths import APP_SYNTHETIC_DIR, ROOT, RUNTIME_DIR
 
 
 def main() -> None:
     """Print a typed assessment; ML remains disabled unless explicitly requested."""
-    root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--borrower-id", required=True)
     parser.add_argument("--period-end", type=date.fromisoformat, required=True)
     parser.add_argument("--information-cutoff", type=date.fromisoformat, required=True)
+    parser.add_argument("--financial-db", type=Path, default=RUNTIME_DIR / "financials.sqlite3")
+    parser.add_argument("--analytics-db", type=Path, default=RUNTIME_DIR / "analytics.sqlite3")
     parser.add_argument(
-        "--financial-db", type=Path, default=root / "data/processed/financials.sqlite3"
+        "--terms", type=Path, default=APP_SYNTHETIC_DIR / "synthetic_covenant_terms.csv"
     )
-    parser.add_argument(
-        "--analytics-db", type=Path, default=root / "data/processed/analytics.sqlite3"
-    )
-    parser.add_argument("--terms", type=Path, default=root / "data/synthetic_covenant_terms.csv")
     parser.add_argument("--ml", action="store_true", help="Enable the configured risk model.")
-    parser.add_argument("--model-type", default="stub", help="Registered model type.")
+    parser.add_argument(
+        "--model-type", default="stub", help="Model type: stub or logistic_regression."
+    )
     parser.add_argument("--model-version", default="v1")
     parser.add_argument("--model-artifact", type=Path, help="Local trained-artifact directory.")
     parser.add_argument(
@@ -39,7 +39,7 @@ def main() -> None:
         help="Enable package logs on stderr; INFO shows calculation inputs and results.",
     )
     arguments = parser.parse_args()
-    load_dotenv(root / ".env", override=False)
+    load_dotenv(ROOT / ".env", override=False)
     configure_observability()
     if arguments.log_level is not None:
         configure_logging(arguments.log_level)

@@ -18,7 +18,7 @@ from credit_monitoring.domain.assessment import (
 )
 
 PERIOD = date(2025, 9, 30)
-TERMS = Path(__file__).resolve().parents[3] / "data/synthetic_covenant_terms.csv"
+TERMS = Path(__file__).resolve().parents[3] / "data/app/synthetic/synthetic_covenant_terms.csv"
 
 
 @pytest.fixture

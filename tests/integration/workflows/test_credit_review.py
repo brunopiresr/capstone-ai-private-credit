@@ -34,10 +34,9 @@ from credit_monitoring.domain.credit_review import (
 from credit_monitoring.domain.risk_prediction import RiskPrediction
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
-from credit_monitoring.ml.factory import RiskModelFactory
 from credit_monitoring.public_context.events import PublicNewsContext, PublicNewsItem
 
-DATA = Path(__file__).resolve().parents[3] / "data"
+DATA = Path(__file__).resolve().parents[3] / "data" / "app" / "synthetic"
 PERIOD = date(2025, 9, 30)
 DECISION = ExposureDecisionContext(
     question="Should the existing exposure be maintained?",
@@ -231,8 +230,7 @@ def test_convenience_assesses_once_and_completed_path_never_recalculates(
     assessment = original("SYN002", PERIOD, PERIOD, ml_enabled=True)
     monkeypatch.setattr(source_service, "assess", Mock(side_effect=AssertionError("recalculated")))
     monkeypatch.setattr(
-        source_service.feature_builder,
-        "build",
+        "credit_monitoring.application.assessment_service.build_risk_features",
         Mock(side_effect=AssertionError("rebuilt features")),
     )
     completed = service.review_assessment(assessment, decision_context=DECISION)
@@ -488,9 +486,7 @@ def test_complete_and_failed_ml_outputs_reach_all_agents(source_service, model_s
                 top_drivers=["Comparable headroom trend"],
             )
 
-    factory = RiskModelFactory()
-    factory.register("review_test", lambda config: Model())
-    source_service.model_factory = factory
+    source_service.risk_model = Model()
     source_service.settings.risk_model = RiskModelConfig(type="review_test")
     assessment = source_service.assess("SYN002", PERIOD, PERIOD, ml_enabled=True)
     result = service_for(model_set).review_assessment(assessment, decision_context=DECISION)

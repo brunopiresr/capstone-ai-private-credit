@@ -15,4 +15,4 @@ applicable model and availability caveats in their existing `issues` fields.
 The extraction prompt changes only through a separately reviewed version update.
 The extraction/batch prompts are versioned `v2.1`; full-document extraction must
 include every fiscal-quarter schedule row and preserve exact ratio wording.
-See [current service and agent usage](../../../../docs/document_processing.md).
+See [current service and agent usage](../../../../docs/guides/document_processing.md).

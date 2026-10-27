@@ -17,21 +17,17 @@ from credit_monitoring.application.credit_review_service import (
     ReviewEventHandler,
 )
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.application.risk_analysis_service import (
-    AssessmentNarrator,
-    RiskAnalysisService,
-)
 from credit_monitoring.config.settings import AssessmentSettings, CreditReviewSettings
 from credit_monitoring.covenants.repositories import CovenantRepository
 from credit_monitoring.covenants.structured import CovenantReader
-from credit_monitoring.features.risk_feature_builder import RiskFeatureBuilder
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.chunking.sections import DEFAULT_MAX_CHARS
-from credit_monitoring.ml.factory import RiskModelFactory
+from credit_monitoring.ml.base import RiskModel
 from credit_monitoring.persistence.analytics_repositories import (
     CovenantResultRepository,
     RiskFeatureSnapshotRepository,
     RiskPredictionRepository,
+    initialize_analytics,
 )
 from credit_monitoring.public_context.retrieval import PublicNewsProvider
 from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
@@ -66,13 +62,13 @@ def create_assessment_service(
     financial_repository: FinancialRepository,
     covenant_reader: CovenantReader,
     settings: AssessmentSettings | None = None,
-    model_factory: RiskModelFactory | None = None,
-    narrator: AssessmentNarrator | None = None,
+    risk_model: RiskModel | None = None,
 ) -> AssessmentService:
     settings = settings or AssessmentSettings()
     analytics_path = settings.analytics_database.expanduser().resolve()
     if analytics_path == financial_repository.database_path.expanduser().resolve():
         raise ValueError("Analytics storage must be separate from the source financial database.")
+    initialize_analytics(analytics_path)
     results = CovenantResultRepository(analytics_path)
     return AssessmentService(
         financial_repository=financial_repository,
@@ -81,9 +77,7 @@ def create_assessment_service(
         result_repository=results,
         snapshot_repository=RiskFeatureSnapshotRepository(analytics_path),
         prediction_repository=RiskPredictionRepository(analytics_path),
-        feature_builder=RiskFeatureBuilder(results),
-        model_factory=model_factory or RiskModelFactory(),
-        risk_analysis_service=RiskAnalysisService(narrator),
+        risk_model=risk_model,
     )
 
 

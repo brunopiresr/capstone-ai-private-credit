@@ -12,7 +12,7 @@ import requests
 from credit_monitoring.ingestion.converters.sec_markdown import load_markdown
 from credit_monitoring.ingestion.loaders.sec import load_sec_html
 
-SCRIPT = Path(__file__).parents[3] / "data/download_sec_documents.py"
+SCRIPT = Path(__file__).parents[3] / "scripts/download_sec_documents.py"
 RECORD = {"document_id": "SYN", "source_url": "https://example.invalid/filing.htm"}
 
 

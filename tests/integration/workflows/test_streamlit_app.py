@@ -11,9 +11,9 @@ from model_helpers import ScriptedModel, model_response
 from streamlit.testing.v1 import AppTest
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
+from credit_monitoring.application import assessment_service as assessment_module
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.risk_prediction import RiskPrediction
-from credit_monitoring.ml.factory import RiskModelFactory
 from credit_monitoring.web import workspace as workspace_module
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -25,13 +25,14 @@ def working_app(tmp_path, monkeypatch):
     # UI tests exercise application behavior; SDK setup belongs to its validation script.
     monkeypatch.setattr("credit_monitoring.observability.configure_observability", lambda: None)
     data = tmp_path / "data"
-    data.mkdir()
+    synthetic = data / "app" / "synthetic"
+    synthetic.mkdir(parents=True)
     for filename in (
         "synthetic_borrowers.csv",
         "synthetic_quarterly_financials.csv",
         "synthetic_covenant_terms.csv",
     ):
-        shutil.copyfile(ROOT / "data" / filename, data / filename)
+        shutil.copyfile(ROOT / "data/app/synthetic" / filename, synthetic / filename)
     # No gold file is available: accidental benchmark reads cannot satisfy these tests.
     monkeypatch.setattr(workspace_module, "DEFAULT_DATA_ROOT", data)
     monkeypatch.setattr(workspace_module, "DEFAULT_WORKSPACE_DIR", tmp_path / "working")
@@ -147,7 +148,7 @@ def test_complete_prediction_displays_zero_probability_and_model_details(working
     app, _, _ = working_app
     configurations = []
 
-    def create(factory, config):
+    def create(config):
         configurations.append(config)
         model = Mock()
         model.predict.side_effect = lambda features: RiskPrediction(
@@ -160,7 +161,7 @@ def test_complete_prediction_displays_zero_probability_and_model_details(working
         )
         return model
 
-    monkeypatch.setattr(RiskModelFactory, "create", create)
+    monkeypatch.setattr(assessment_module, "create_risk_model", create)
     assessment = run_assessment(app, mode="Logistic Regression")
     assert configurations[0].type == "logistic_regression"
     assert configurations[0].artifact_path.name == "v1"
@@ -282,8 +283,13 @@ def test_benchmark_page_is_labeled_and_does_not_execute_assessments(working_app,
 
     app, directory, _ = working_app
     data = workspace_module.DEFAULT_DATA_ROOT
-    shutil.copyfile(ROOT / "data/synthetic_gold_labels.csv", data / "synthetic_gold_labels.csv")
-    monkeypatch.setattr(demo_assessment_service, "_DATA_ROOT", data)
+    evaluation = data / "evaluation"
+    evaluation.mkdir()
+    shutil.copyfile(
+        ROOT / "data/evaluation/synthetic_gold_labels.csv", evaluation / "synthetic_gold_labels.csv"
+    )
+    monkeypatch.setattr(demo_assessment_service, "APP_SYNTHETIC_DIR", data / "app" / "synthetic")
+    monkeypatch.setattr(demo_assessment_service, "EVALUATION_DIR", evaluation)
     app.radio(key="workspace_page").set_value("Benchmark portfolio (mock)").run()
     assert not app.exception
     assert any("Fixed benchmark examples" in item.value for item in app.info)

@@ -31,7 +31,7 @@ from credit_monitoring.ingestion.loaders.financials import load_financials
 from credit_monitoring.ml.artifacts import file_hash, write_json
 from credit_monitoring.ml.synthetic_dataset import generate_dataset, outcome_label
 
-DATA = Path(__file__).resolve().parents[3] / "data"
+DATA = Path(__file__).resolve().parents[3] / "data" / "app" / "synthetic"
 
 
 def _csv_rows(path):

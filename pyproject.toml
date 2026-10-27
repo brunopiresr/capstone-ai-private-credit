@@ -8,7 +8,6 @@ dependencies = [
     "beautifulsoup4>=4.14.0",
     "gitsource>=0.0.5",
     "httpx>=0.28,<1",
-    "jupyter>=1.0.0",
     "logfire>=5.2,<6",
     "markitdown>=0.1.0",
     "minsearch>=0.0.5",
@@ -30,10 +29,13 @@ ml = [
 
 [dependency-groups]
 dev = [
+    "nbformat>=5.10.0",
     "pytest>=8.3.0",
     "pytest-asyncio>=1.0.0,<2",
     "ruff>=0.9.0",
 ]
+
+notebooks = ["jupyter>=1.0.0"]
 
 [build-system]
 requires = ["hatchling>=1.26.0"]
@@ -43,14 +45,15 @@ build-backend = "hatchling.build"
 packages = ["src/credit_monitoring"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "homework-tests", "homework-monitoring/tests"]
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py314"
 include = [
     "src/**/*.py", "tests/**/*.py", "scripts/**/*.py",
-    "homework-tests/**/*.py", "homework-monitoring/**/*.py", "data/download_sec_documents.py",
+    "homework/agent-tests/**/*.py", "homework/monitoring/**/*.py",
+    "homework/notebooks/tests/**/*.py", "homework/evaluation/*/*.py",
 ]
 
 [tool.ruff.lint]

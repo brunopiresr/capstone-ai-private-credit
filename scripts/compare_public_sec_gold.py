@@ -14,17 +14,18 @@ from credit_monitoring.evaluation.sec_snapshot import (
     read_csv,
     render_report,
 )
+from credit_monitoring.paths import EVALUATION_DIR, ROOT, SEC_CACHE_DIR, SEC_CATALOG
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
+    root = ROOT
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--database", type=Path)
     source.add_argument("--snapshot", type=Path)
-    parser.add_argument("--gold", type=Path, default=root / "data/public_sec_gold_cases.csv")
-    parser.add_argument("--catalog", type=Path, default=root / "data/public_sec_documents.csv")
-    parser.add_argument("--sources", type=Path, default=root / "data/sec_documents/markdown")
+    parser.add_argument("--gold", type=Path, default=EVALUATION_DIR / "public_sec_gold_cases.csv")
+    parser.add_argument("--catalog", type=Path, default=SEC_CATALOG)
+    parser.add_argument("--sources", type=Path, default=SEC_CACHE_DIR / "markdown")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--require-complete-sources", action="store_true")
     args = parser.parse_args()

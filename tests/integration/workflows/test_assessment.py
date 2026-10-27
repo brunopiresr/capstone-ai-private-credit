@@ -18,11 +18,10 @@ from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.risk_prediction import RiskPrediction
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
-from credit_monitoring.ml.factory import RiskModelFactory
 from credit_monitoring.observability.logging import log_event
 
-DATA = Path(__file__).resolve().parents[3] / "data"
-with (DATA / "synthetic_gold_labels.csv").open(newline="") as source:
+DATA = Path(__file__).resolve().parents[3] / "data" / "app" / "synthetic"
+with (DATA.parents[1] / "evaluation" / "synthetic_gold_labels.csv").open(newline="") as source:
     GOLD_CASES = list(csv.DictReader(source))
 
 
@@ -167,9 +166,7 @@ def test_ml_failures_preserve_compliance(assessment_service, monkeypatch, failur
                 breach_probability=0.4,
             )
 
-    factory = RiskModelFactory()
-    factory.register("test", lambda config: TestModel())
-    assessment_service.model_factory = factory
+    assessment_service.risk_model = TestModel()
     assessment_service.settings.risk_model = RiskModelConfig(type="test")
 
     def storage_failure(record):
@@ -198,7 +195,7 @@ def test_ml_failures_preserve_compliance(assessment_service, monkeypatch, failur
     )
 
 
-def test_registered_model_and_narrator_receive_typed_context(assessment_service):
+def test_injected_model_and_context_cannot_mutate_calculation_inputs(assessment_service):
     class TestModel:
         def predict(self, features):
             features.covenants.clear()
@@ -213,20 +210,10 @@ def test_registered_model_and_narrator_receive_typed_context(assessment_service)
                 top_drivers=["Declining headroom"],
             )
 
-    class Narrator:
-        def summarize(self, context):
-            assert context["ml_prediction"]["breach_probability"] == 0.41
-            assert context["risk_features"]["covenants"]
-            assert context["evidence"]
-            assert "notes" not in json.dumps(context)
-            context["current_financials"][0]["financial_period"]["metrics"]["total_debt"] = 999
-            return "The model predicts a 41% breach probability; current compliance is unchanged."
+    from credit_monitoring.application.risk_analysis_service import assessment_context
 
-    factory = RiskModelFactory()
-    factory.register("baseline", lambda config: TestModel())
-    assessment_service.model_factory = factory
+    assessment_service.risk_model = TestModel()
     assessment_service.settings.risk_model = RiskModelConfig(type="baseline")
-    assessment_service.risk_analysis_service.narrator = Narrator()
     period = date(2025, 9, 30)
     assessment = assessment_service.assess("SYN002", period, period, ml_enabled=True)
     assert assessment.ml_status == "complete"
@@ -235,6 +222,15 @@ def test_registered_model_and_narrator_receive_typed_context(assessment_service)
         assessment.results[0].financial_inputs["financial_period"]["metrics"]["total_debt"] == 145
     )
     assert assessment.feature_snapshot.features.covenants
+    context = assessment_context(assessment)
+    assert context["ml_prediction"]["breach_probability"] == 0.41
+    assert context["risk_features"]["covenants"] and context["evidence"]
+    assert "notes" not in json.dumps(context)
+    context["current_financials"][0]["financial_period"]["metrics"]["total_debt"] = 999
+    assert (
+        assessment.results[0].financial_inputs["financial_period"]["metrics"]["total_debt"] == 145
+    )
+    assert "predictions, not observed" in assessment.narrative
 
 
 def test_missing_borrower_and_invalid_cutoff(assessment_service):
@@ -283,7 +279,7 @@ def test_logs_link_resolution_calculations_and_trends_to_each_run(assessment_ser
 def test_cli_logging_keeps_stdout_json_and_is_opt_in(assessment_service, tmp_path, level):
     command = [
         sys.executable,
-        str(DATA.parent / "scripts/run_assessment.py"),
+        str(Path(__file__).resolve().parents[3] / "scripts/run_assessment.py"),
         "--borrower-id",
         "SYN006",
         "--period-end",
@@ -308,27 +304,29 @@ def test_cli_logging_keeps_stdout_json_and_is_opt_in(assessment_service, tmp_pat
         assert outcome.stderr == ""
 
 
-def test_trends_are_identical_without_prediction_and_model_is_not_created(assessment_service):
+def test_trends_are_identical_without_prediction_and_model_is_not_created(
+    assessment_service, monkeypatch
+):
     from unittest.mock import Mock
 
+    from credit_monitoring.application import assessment_service as module
     from credit_monitoring.application.risk_analysis_service import assessment_context
 
-    factory = assessment_service.model_factory
-    forbidden_factory = Mock()
-    forbidden_factory.create.side_effect = AssertionError("ML is off")
-    assessment_service.model_factory = forbidden_factory
+    create = module.create_risk_model
+    forbidden_create = Mock(side_effect=AssertionError("ML is off"))
+    monkeypatch.setattr(module, "create_risk_model", forbidden_create)
     period = date(2025, 9, 30)
     offline = assessment_service.assess("SYN002", period, period, ml_enabled=False)
     assert offline.trends.covenants[0].metric_change_qoq == pytest.approx(135 / 26 - 130 / 28)
     assert offline.trends.reported_ebitda_growth_qoq == pytest.approx(-2 / 28)
     assert offline.trends.reported_ebitda_growth_yoy is None
     assert offline.prediction is None and offline.feature_snapshot is None
-    forbidden_factory.create.assert_not_called()
+    forbidden_create.assert_not_called()
     with sqlite3.connect(assessment_service.result_repository.database_path) as connection:
         assert connection.execute("SELECT COUNT(*) FROM risk_feature_snapshots").fetchone()[0] == 0
         assert connection.execute("SELECT COUNT(*) FROM risk_predictions").fetchone()[0] == 0
     assert assessment_context(offline)["risk_features"] == offline.trends.model_dump(mode="json")
-    assessment_service.model_factory = factory
+    monkeypatch.setattr(module, "create_risk_model", create)
     predicted = assessment_service.assess("SYN002", period, period, ml_enabled=True)
     assert predicted.trends == offline.trends == predicted.feature_snapshot.features
 
@@ -338,7 +336,9 @@ def test_trend_failure_preserves_deterministic_results(assessment_service, monke
     def fail(*args, **kwargs):
         raise ValueError("Broken history")
 
-    monkeypatch.setattr(assessment_service.feature_builder, "build", fail)
+    monkeypatch.setattr(
+        "credit_monitoring.application.assessment_service.build_risk_features", fail
+    )
     period = date(2025, 9, 30)
     assessment = assessment_service.assess("SYN002", period, period, ml_enabled=use_ml)
     assert assessment.results[0].compliance_status == "compliant"
@@ -367,8 +367,8 @@ def test_invalid_calculations_are_not_saved_or_used_for_trends(
     build = Mock()
     create = Mock()
     monkeypatch.setattr(assessment_service.result_repository, "save_all", save)
-    monkeypatch.setattr(assessment_service.feature_builder, "build", build)
-    monkeypatch.setattr(assessment_service.model_factory, "create", create)
+    monkeypatch.setattr(module, "build_risk_features", build)
+    monkeypatch.setattr(module, "create_risk_model", create)
     period = date(2025, 9, 30)
     assessment = assessment_service.assess("SYN002", period, period, ml_enabled=use_ml)
     assert not assessment.verification.is_valid
@@ -378,3 +378,20 @@ def test_invalid_calculations_are_not_saved_or_used_for_trends(
     save.assert_not_called()
     build.assert_not_called()
     create.assert_not_called()
+
+
+def test_trends_and_ml_use_this_runs_results_without_reading_them_back(
+    assessment_service, monkeypatch
+):
+    def unavailable_history(*args, **kwargs):
+        raise AssertionError("The current calculation run must stay in memory.")
+
+    monkeypatch.setattr(assessment_service.result_repository, "get_history", unavailable_history)
+    period = date(2025, 9, 30)
+    assessment = assessment_service.assess("SYN002", period, period, ml_enabled=True)
+    assert assessment.verification.is_valid
+    assert assessment.ml_status == "stub"
+    assert assessment.trends.covenants[0].metric_change_qoq == pytest.approx(135 / 26 - 130 / 28)
+    assert assessment.feature_snapshot.source_result_ids == [
+        result.result_id for result in assessment.history + assessment.results
+    ]

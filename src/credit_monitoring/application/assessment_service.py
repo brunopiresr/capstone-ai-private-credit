@@ -4,7 +4,7 @@ import logging
 from datetime import date
 
 from credit_monitoring.application.risk_analysis_service import (
-    RiskAnalysisService,
+    format_assessment_summary,
 )
 from credit_monitoring.calculations.covenants import calculate_covenant
 from credit_monitoring.config.settings import AssessmentSettings
@@ -13,9 +13,10 @@ from credit_monitoring.domain.analytics_base import new_identifier
 from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
 from credit_monitoring.domain.risk_features import BorrowerFeatureSnapshot
 from credit_monitoring.domain.risk_prediction import RiskPrediction
-from credit_monitoring.features.risk_feature_builder import RiskFeatureBuilder
+from credit_monitoring.features.risk_feature_builder import build_risk_features
 from credit_monitoring.financials.repositories import FinancialRepository
-from credit_monitoring.ml.factory import RiskModelFactory
+from credit_monitoring.ml.base import RiskModel
+from credit_monitoring.ml.factory import create_risk_model
 from credit_monitoring.observability import session_scope
 from credit_monitoring.observability.configuration import span
 from credit_monitoring.observability.logging import log_event, logging_context
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class AssessmentService:
-    """Persist calculations before invoking optional feature, model, and narrative services."""
+    """Calculate and verify results, build trends, then invoke an optional risk model."""
 
     def __init__(
         self,
@@ -41,9 +42,7 @@ class AssessmentService:
         result_repository: CovenantResultRepository,
         snapshot_repository: RiskFeatureSnapshotRepository,
         prediction_repository: RiskPredictionRepository,
-        feature_builder: RiskFeatureBuilder,
-        model_factory: RiskModelFactory,
-        risk_analysis_service: RiskAnalysisService,
+        risk_model: RiskModel | None = None,
     ) -> None:
         self.financial_repository = financial_repository
         self.covenant_reader = covenant_reader
@@ -51,9 +50,7 @@ class AssessmentService:
         self.result_repository = result_repository
         self.snapshot_repository = snapshot_repository
         self.prediction_repository = prediction_repository
-        self.feature_builder = feature_builder
-        self.model_factory = model_factory
-        self.risk_analysis_service = risk_analysis_service
+        self.risk_model = risk_model
 
     def assess(
         self,
@@ -150,7 +147,8 @@ class AssessmentService:
                 self.result_repository.save_all(results)
                 if assessment.results:
                     try:
-                        assessment.trends = self.feature_builder.build(
+                        assessment.trends = build_risk_features(
+                            results,
                             borrower_id,
                             period_end,
                             information_cutoff,
@@ -170,13 +168,7 @@ class AssessmentService:
                             self._run_ml(assessment)
                 elif use_ml:
                     assessment.ml_status = "unavailable"
-            try:
-                assessment.narrative = self.risk_analysis_service.analyze(assessment)
-            except Exception as error:
-                logger.error(
-                    "Assessment narrative failed", extra={"error_type": type(error).__name__}
-                )
-                assessment.issues.append(f"Narrative unavailable: {type(error).__name__}: {error}")
+            assessment.narrative = format_assessment_summary(assessment)
             assessment.verification = verify_assessment(assessment)
             log_event(
                 logger,
@@ -197,21 +189,25 @@ class AssessmentService:
             features = assessment.trends
             if features is None:
                 raise ValueError("Deterministic features are unavailable.")
-            stored_history = self.result_repository.get_history(
-                assessment.borrower_id,
-                period_end=assessment.period_end,
-                information_cutoff=assessment.information_cutoff,
-                assessment_run_id=assessment.assessment_run_id,
-            )
             snapshot = BorrowerFeatureSnapshot(
                 assessment_run_id=assessment.assessment_run_id,
                 features=features,
-                source_result_ids=[result.result_id for result in stored_history],
+                source_result_ids=[
+                    result.result_id
+                    for result in sorted(
+                        assessment.results + assessment.history,
+                        key=lambda result: (result.period_end, result.covenant_id),
+                    )
+                ],
             )
             self.snapshot_repository.save(snapshot)
             snapshot_saved = True
             assessment.feature_snapshot = snapshot
-            model = self.model_factory.create(self.settings.risk_model)
+            model = (
+                self.risk_model
+                if self.risk_model is not None
+                else create_risk_model(self.settings.risk_model)
+            )
             prediction = RiskPrediction.model_validate(
                 model.predict(features.model_copy(deep=True))
             )

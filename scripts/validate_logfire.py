@@ -96,10 +96,12 @@ def conversation_model() -> FunctionModel:
 
 def assessment_service(directory: Path):
     database = directory / "financials.sqlite3"
-    load_financials(ROOT / "data/synthetic_quarterly_financials.csv", database)
+    load_financials(ROOT / "data/app/synthetic/synthetic_quarterly_financials.csv", database)
     return create_assessment_service(
         financial_repository=FinancialRepository(database),
-        covenant_reader=SyntheticCovenantReader(ROOT / "data/synthetic_covenant_terms.csv"),
+        covenant_reader=SyntheticCovenantReader(
+            ROOT / "data/app/synthetic/synthetic_covenant_terms.csv"
+        ),
         settings=AssessmentSettings(analytics_database=directory / "analytics.sqlite3"),
     )
 

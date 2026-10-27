@@ -1,0 +1,203 @@
+![](sri-20251105xexx992earni001.jpg "slide1")
+
+stoneridge.com © 2025 Q3 2025 Results November 6, 2025 Exhibit 99.2
+
+---
+
+![](sri-20251105xexx992earni002.jpg "slide2")
+
+stoneridge.com © 2025 Q3 2025 Results 2 Non-GAAP Financial Measures This presentation contains information about the Company’s financial results that is not presented in accordance with accounting principles generally accepted in the United States (“GAAP”). Such non-GAAP financial measures are reconciled to their closest GAAP financial measures at the end of this presentation. The provision of these non-GAAP financial measures for 2025 and 2024 is not intended to indicate that Stoneridge is explicitly or implicitly providing projections on those non-GAAP financial measures, and actual results for such measures are likely to vary from those presented. The reconciliations include all information reasonably available to the Company at the date of this presentation and the adjustments that management can reasonably predict. In evaluating its business, the Company considers and uses free cash flow and net debt as supplemental measures of its liquidity and the other non-GAAP financial measures as supplemental measures of its operating performance. Management believes the non-GAAP financial measures used in this presentation are useful to both management and investors in their analysis of the Company’s financial position and results of operations. In particular, management believes that adjusted gross profit and margin, adjusted operating income (loss) and margin, adjusted income (loss) before tax, adjusted income tax expense (benefit), adjusted net income (loss), adjusted earnings (loss) per share (“EPS”), adjusted EBITDA, adjusted EBITDA margin, net debt, adjusted net debt, adjusted debt, adjusted cash, free cash flow and adjusted free cash flow are useful measures in assessing the Company’s financial performance by excluding certain items that are not indicative of the Company’s core operating performance or that may obscure trends useful in evaluating the Company’s continuing operating activities. Management also believes that these measures are useful to both management and investors in their analysis of the Company’s results of operations and provide improved comparability between fiscal periods. Adjusted gross profit and margin, adjusted operating income (loss) and margin, adjusted income (loss) before tax, adjusted income tax expense(benefit), adjusted net income (loss), adjusted EPS, adjusted EBITDA, adjusted EBITDA margin, net debt, adjusted net debt, adjusted debt, adjusted cash, free cash flow and adjusted free cash flow should not be considered in isolation or as a substitute for gross profit, operating income (loss), income (loss) before tax, income tax expense (benefit), net income (loss), EPS, debt, cash and cash equivalents, cash provided by operating activities or other income statement or cash flow statement data prepared in accordance with GAAP. Q3 2025 Reported Q3 2025 Adjusted / Non- GAAP -$210.3 millionSales $43.7 million 20.8% $42.8 million 20.3% Gross Profit Margin $2.4 million 1.2% $(3.3) million (1.6)% Operating Income (Loss) Margin $(5.1) million (2.4)% $(9.4) million (4.5)% Net Loss % of sales $9.3 million 4.4% EBITDA Margin $54.0 millionCash and Cash Equivalents $171.1 millionTotal Debt $117.2 millionNet Debt (Non-GAAP) Other GAAP / Non-GAAP Measures – Q3 2025 $25.2 millionYTD Net Cash Provided by Operating Activities $16.2 millionYTD Adjusted Free Cash Flow (Non-GAAP)
+
+---
+
+![](sri-20251105xexx992earni003.jpg "slide3")
+
+stoneridge.com © 2025 Q3 2025 Results 3 Forward-Looking Statements Statements in this presentation that are not historical facts are forward-looking statements, which involve risks and uncertainties that could cause actual events or results to differ materially from those expressed in or implied by these statements. Important factors that could cause actual results to differ materially from those in the forward-looking statements include, among other factors, the ability of our suppliers to supply us with parts and components at competitive prices on a timely basis, including the impact of potential tariffs and trade considerations on their operations and output; fluctuations in the cost and availability of key materials and components (including semiconductors, printed circuit boards, resin, aluminum, steel and copper) and our ability to offset cost increases through negotiated price increases with our customers or other cost reduction actions, as necessary; global economic trends, competition and geopolitical risks, including impacts from ongoing or potential global conflicts and any related sanctions and other measures, or an escalation of sanctions, tariffs or other trade tensions between the U.S. and other countries; tariffs specifically in countries where we have significant direct or indirect manufacturing or supply chain exposure and our ability to either mitigate the impact of tariffs or pass any incremental costs to our customers; our ability to achieve cost reductions that offset or exceed customer-mandated selling price reductions; the reduced purchases, loss, financial distress or bankruptcy of a major customer or supplier; the costs and timing of business realignment, facility closures or similar actions; a significant change in commercial, automotive, off-highway or agricultural vehicle production; competitive market conditions and resulting effects on sales and pricing; foreign currency fluctuations and our ability to manage those impacts; customer acceptance of new products; our ability to successfully launch/produce products for awarded business; adverse changes in laws, government regulations or market conditions, affecting our products, our suppliers, or our customers’ products; liabilities arising from warranty claims, product recall or field actions, product liability and legal proceedings to which we are or may become a party, or the impact of product recall or field actions on our customers; labor disruptions at Stoneridge’s facilities or at any of Stoneridge significant customers or suppliers; the amount of Stoneridge’s indebtedness and the restrictive covenants contained in the agreements governing its indebtedness, including its revolving credit facility; capital availability or costs, including changes in interest rates; refinancing risk and access to capital markets and liquidity; the occurrence or non-occurrence of circumstances beyond Stoneridge’s control; and the items described in “Risk Factors” and other uncertainties or risks discussed in Stoneridge’s periodic and current reports filed with the Securities and Exchange Commission. Important factors that could cause the performance of the commercial vehicle and automotive industry to differ materially from those in the forward-looking statements include factors such as (1) continued economic instability or poor economic conditions in the United States and global markets, (2) changes in economic conditions, housing prices, foreign currency exchange rates, commodity prices, including shortages of and increases or volatility in the price of oil, (3) changes in laws and regulations, (4) the state of the credit markets, (5) political stability, (6) international conflicts and (7) the occurrence of force majeure events. These factors should not be construed as exhaustive and should be considered with the other cautionary statements in Stoneridge’s filings with the Securities and Exchange Commission. Forward-looking statements are not guarantees of future performance; Stoneridge’s actual results of operations, financial condition and liquidity, and the development of the industry in which Stoneridge operates may differ materially from those described in or suggested by the forward-looking statements contained in this presentation. In addition, even if Stoneridge’s results of operations, financial condition and liquidity, and the development of the industry in which Stoneridge operates are consistent with the forward-looking statements contained in this presentation, those results or developments may not be indicative of results or developments in subsequent periods. This presentation contains time-sensitive information that reflects management’s best analysis only as of the date of this presentation. Any forward-looking statements in this presentation speak only as of the date of this presentation, and Stoneridge undertakes no obligation to update such statements. Comparisons of results for current and any prior periods are not intended to express any future trends or indications of future performance, unless expressed as such, and should only be viewed as historical data Stoneridge does not undertake any obligation to publicly update or revise any forward-looking statement as a result of new information, future events or otherwise, except as otherwise required by law. Rounding Disclosure: There may be slight immaterial differences between figures represented in our public filings compared to what is shown in this presentation. The differences are the result of rounding due to the representation of values in millions rather than thousands in public filings.
+
+---
+
+![](sri-20251105xexx992earni004.jpg "slide4")
+
+stoneridge.com © 2025 Q3 2025 Results • Continued progress across key operating initiatives • Excluding non-operating FX expense of $2.4 million, adjusted EBITDA was $11.7 million, or 5.6% of sales which improved 200 bps vs. Q2 2025\* • MirrorEye sales remain strong • Year-to-date MirrorEye sales growth of 78% vs. Q3 YTD 2024 • Adjusted operating margin improved by 100 bps vs. Q2 2025 • Year-to-date quality-related cost improvement of $5.3 million vs. 2024 • Announced over $185 million of program awards and extensions • Announced new MirrorEye program award for a heavy-duty commercial vehicle platform with an additional European truck OEM • Announced second program award for Leak Detection Module with Chinese OEM • Announced Park Lock Actuator program extensions with Ford • Review of strategic alternatives for Control Devices is still in process Q3 2025 Overview of Achievements Sales $210M Q3 2025 Highlights $2.4M 4 Adjusted EBITDA $9.3M +240 bps vs.Q2 2025 Adjusted Operating Income +100 bps vs. Q2 2025 Includes $2.4m of non-operating FX expense +110 bps over weighted-average end markets\*\* \*Comparison vs. Q2 adjusted EBITDA excluding non-operating FX expenses \*\*Based on current IHS production forecast data including MHCV Q4 2025 and LVP Oct 2025
+
+---
+
+![](sri-20251105xexx992earni005.jpg "slide5")
+
+5stoneridge.com © 2025 Q3 2025 Results Q3 2025 Key Drivers • Sales outpaced underlying weighted average end-markets by 110 basis points\*\* • Sales declined by 7.8% vs. Q2 2025 primarily driven by lower customer production volumes in commercial vehicle end markets • Adjusted operating margin improved by 100 basis points vs. Q2 2025 • Material costs improved by 200 bps • Year-to-date quality related costs have declined by $5.3 million vs. year- to-date 2024 • Continued to focus on reducing operating costs to align with current market conditions • Adjusted EBITDA of $9.3 million improved by $4.7 million while adjusted EBITDA margin improved by 240 basis points vs. Q2 2025 • Adjusted EBITDA of $11.7 million, excluding the impact of non-operating FX expense, improved by $3.7 million while margin improved by 200 bps vs. Q2 2025 Financial Summary \*Excludes non-operating FX expense of $2.4 million and $3.4 million recognized in Q3 2025 and Q2 2025, respectively Sales Adjusted Gross Profit Adjusted Operating Income Adjusted EBITDA Q2 2025 vs. Q3 2025 +100 bps +200 bps\* $228.0 $210.3 Q2 2025 Q3 2025 $0.4 $2.4 0.2% 1.2% Q2 2025 Q3 2025 $48.9 $43.7 21.5% 20.8% Q2 2025 Q3 2025 $4.6 $9.3 $8.1 $11.7 Q2 2025 Q3 2025 Q2 2025 ex Non- Op FX\* Q3 2025 ex Non- Op FX\* 5.6% 3.5% 4.4% 2.0% \*\*Based on current IHS forecast including MHCV Q4 2025 and LVP Oct 2025
+
+---
+
+![](sri-20251105xexx992earni006.jpg "slide6")
+
+stoneridge.com © 2025 Q3 2025 Results Commercial Updates MirrorEye 6 MirrorEye Program Award with Additional OEM • Program awarded for a heavy-duty commercial vehicle platform with an additional OEM • Total Program Award of ~$55 million - assumes initial take rate of 25-30% • Program launch expected in Q1 2028 • Expecting further opportunities with this global customer Continued Positive Momentum Globally • MirrorEye year-to-date sales growth of 78% vs. same period in 2024 • Feedback from our customers remains extremely positive, customers in North America are expecting improved take-rates on recently launched programs • As previously announced, MirrorEye is now available on another prominent North American OEM Awarded MirrorEye program with an additional OEM customer Continued positive momentum across our key end markets
+
+---
+
+![](sri-20251105xexx992earni007.jpg "slide7")
+
+stoneridge.com © 2025 Q3 2025 Results 7 Commercial Updates Control Devices Park Lock Actuator – Program Extension • Ford program extensions on several hybrid and electric vehicle programs • Programs extended for five years (2027-2031) • Includes Ford Maverick, Transit, Kuga, Mach-E and F-150 lightning vehicle programs • Total Program Award of $130 million with estimated peak annual revenue ~$38 million New Control Devices programs awarded in Q3 aligned with hybrid applications - Control Devices remains well-positioned for growth Leak Detection Module – New Program • Second program awarded for Leak Detection Module on another hybrid vehicle platform • Start of production in Q2 2026 • New technology designed as a cost competitive emissions system solution to improve evaporative emissions system performance • Well-positioned for continued growth amid the global hybrid vehicle expansion
+
+---
+
+![](sri-20251105xexx992earni008.jpg "slide8")
+
+stoneridge.com © 2025 Financial Update
+
+---
+
+![](sri-20251105xexx992earni009.jpg "slide9")
+
+9stoneridge.com © 2025 Q3 2025 Results $9.3 $2.4 $11.7 Q3 Adjusted EBITDA Non-operating FX Expenses Q3 Adjusted EBITDA ex. Non-operating FX Q3 2025 Financial Highlights Key Performance Drivers • Adjusted EBITDA, excluding non-operating FX expense of $2.4 million incurred during Q3, was $11.7 million, or 5.6% of sales • Continued volatility in commercial vehicle end markets drove sales lower than previously expected • Continued focus on direct material costs (200 bps decline vs. Q2 2025) and quality related costs ($5.3 million decline year-to-date vs. 2024) • Continued focus on cash performance with year-to-date adjusted free cash flow of $16.2 million, an improvement of $4.3 million vs. 2024 • Year-to-date net debt reduction of $12.6 million • Year-to-date inventory reduction of $5.9 million Continued operating performance progression Q3 2025 Adj. EBITDA Performance Adj. EBITDA Margin Adj. Operating Income Margin Adj. Gross Profit Margin Sales $9.3 million 4.4% $2.4 million 1.2% $43.7 million 20.8% $210.3 million Q3 2025 Results +200 bps vs. Q2 2025\* \*Excluding non-operating FX expense of $2.4 million and $3.4 million recognized in Q3 2025 and Q2 2025, respectively 4.4% 5.6% 4.4%
+
+---
+
+![](sri-20251105xexx992earni010.jpg "slide10")
+
+10stoneridge.com © 2025 Q3 2025 Results Sales Adjusted Operating Income Control Devices Performance Q2 2025 vs. Q3 2025 Q3 2025 Financial Results • Q3 sales increased by 1.9% vs. Q2 2025 primarily driven by higher sales in the North American passenger vehicle end market • Q3 adjusted operating margin declined by 190 basis points vs. Q2 2025 • Higher overhead costs due in part to incremental tariff-related costs 2025 Full-year Expectations • Volume stabilizing in North America • Potential supply chain volatility could impact customers’ production • Focus remains on material cost reduction and manufacturing performance to drive stable and improving margins Focus on operating performance as volumes continue to stabilize $’s in USD Millions +1.9% $71.2 $72.5 Q2 2025 Q3 2025 $2.8 $1.5 4.0% 2.1% Q2 2025 Q3 2025
+
+---
+
+![](sri-20251105xexx992earni011.jpg "slide11")
+
+11stoneridge.com © 2025 Q3 2025 Results Sales Adjusted Operating Income Electronics Performance Q3 2025 Financial Results • Q3 sales declined by 14.4% vs. Q2 2025 • Lower customer production volumes in commercial vehicle end markets • Operating margin increased by 250 basis points vs. Q2 2025 • Quality-related costs improved by $0.9 million • Improved direct material costs 2025 Full-year Expectations • Continued headwinds expected in North America commercial vehicle end- market driven by declining customer production volumes • Impact of recently announced tariffs still being digested by market • Continued focus on controlling what we can control - material cost and quality- related improvement activities Margin expansion driven by improvement in material, quality and operating costs – customer production headwinds continue Q2 2025 vs Q3 2025 $’s in USD Millions 4.9% +250 bps $149.6 $128.0 Q2 2025 Q3 2025 $4.2 $6.7 2.8% 5.3% Q2 2025 Q3 2025
+
+---
+
+![](sri-20251105xexx992earni012.jpg "slide12")
+
+12stoneridge.com © 2025 Q3 2025 Results Sales Operating Income Stoneridge Brazil Performance Q3 2025 Financial Results • Q3 sales of $18.9 million increased by 23.5% vs. Q2 2025 • Local OEM sales growth of ~22% • Q3 operating margin improved by 790 basis points vs. Q2 2025 • Primarily attributable to contribution margin of higher sales 2025 Expectations • Focus remains on growth in local OEM business • Utilizing engineering resources to continue to support global Electronics business Continued strong revenue growth and margin expansion Local OEM business remains strong Q2 2025 vs. Q3 2025 $’s in USD Millions + 23.5% +790 bps $15.3 $18.9 Q2 2025 Q3 2025 $1.0 $2.7 6.3% 14.2% Q2 2025 Q3 2025
+
+---
+
+![](sri-20251105xexx992earni013.jpg "slide13")
+
+13stoneridge.com © 2025 Q3 2025 Results $36 $(3) $(2) $31 2025 Adj. EBITDA Guidance Midpoint (Previously Provided) Revenue Reduction Impact Q3 Non-operating FX impact 2025 Adj. EBITDA Guidance Midpoint (Updated) $875 $(46) $36 $865 2025 Revenue Guidance Midpoint (Previously Provided) IHS Forecasted Production Volume Reduction\* Stoneridge Specific Growth Drivers 2025 Revenue Guidance Midpoint (Updated) Full-year 2025 Guidance Update Updating full-year 2025 guidance to reflect Q3 performance and current market conditions $’s in USD Millions Full-Year 2025 Revenue Guidance Walk Full-Year 2025 EBITDA Guidance Walk Revenue Guidance Drivers • Updating full-year revenue guidance to low end of previously provided range ($860 - $870 million) • North American commercial vehicle production is expected to decline by 27.7% in 2025 vs. 2024 (previously expected to decline by 17.6% as of Q2)\* • European commercial vehicle production is expected to decline by 6.4% in 2025 vs. 2024 (previously expected to increase by 2.9% as of Q2)\* Adjusted EBITDA Margin Guidance Drivers • Production volume headwinds expected to reduce EBITDA by approximately $3 million based on $10 million midpoint reduction and 25% – 30% contribution margin • Reflects additional non-operating FX expense of $2.4 million in Q3 Updated 2025 Full-Year Guidance • Sales of $860 million - $870 million (midpoint of $865 million) • Adjusted EBITDA of $30 million - $32 million (3.5% - 3.7% of sales) (midpoint of $31 million or 3.6% of sales) \*Current IHS forecast based on MHCV Q4 2025 and LVP Oct 2025. Prior (Q2) IHS forecast based on MHCV Q3 2025 and LVP July 2025. At average expected contribution margin of 27.5% 1.1% reduction to the midpoint vs. 5.3% implied IHS reduction to weighted average end- markets\* 4.1% 3.6%
+
+---
+
+![](sri-20251105xexx992earni014.jpg "slide14")
+
+14stoneridge.com © 2025 Q3 2025 Results $11.9 $16.2 Q3 2024 YTD Q3 2025 YTD $176.4 $145.4 Q3 2024 Q3 2025 Capital Structure Update Strong focus on cash performance results in year-to-date adjusted free cash flow improvement 3.0x - 3.5x Compliance Leverage Ratio (Adj. Net Debt / TTM EBITDA\*) 3.39x 3.67x Capital Structure Update • Year-to-date adjusted free cash flow of $16.2 million improved by $4.3 million vs. year-to-date Q3 2024 • Inventory has improved by $31.0 million vs. Q3 2024 • Targeting compliance leverage ratio of 3.0x – 3.5x by the end of 2025 Credit Facility Considerations • Credit facility matures in less than 1-year (November 2, 2026) • Strategic alternatives review for Control Devices with intent to sell the segment in-process • Received waiver to extend interest coverage ratio relief at 2.5x through Q1 2026 • Expect to remain compliant with all required covenants • Once we have completed the strategic review process for Control Devices we expect to refinance the credit facility to align with the long-term Company structure Compliance Net Debt Ending Inventory Balances Adjusted Free Cash Flow \*Compliance Leverage Ratio calculation includes adjustments in accordance with the Revolving Credit Facility agreement. Periods presented reflect the updated compliance calculation method permissible under the terms of the existing credit facility. Refer to Reconciliations to US GAAP for reconciliations. $31M improvement 3.60x Required Compliance Leverage Ratio\*\* 4.50x 3.50x5.50x6.00x \*\*Compliance Net Debt Leverage Ratio Maximum was previously amended for the periods ending Q1 2025, Q2 2025, and Q3 2025 +$4.3M improvement $55.8 $36.4 $37.6 $149.0 $129.5 $135.0 Q1 2025 Q2 2025 Q3 2025 2025 Target Total Adjusted Net Debt (Compliance) Total Adjusted Cash (Compliance) $’s in USD Millions
+
+---
+
+![](sri-20251105xexx992earni015.jpg "slide15")
+
+stoneridge.com © 2025 Q3 2025 Results Q3 2025 Summary $3.6M / 200 bps Improvement in adjusted EBITDA / margin vs. Q2 2025 (ex. non-operating FX expense) Improvement in adjusted operating margin vs. Q2 2025 ~78% YTD MirrorEye revenue growth vs. Q3 YTD 2024 15 ~100 bps Updated 2025 Full-Year Guidance • Sales of $860 million - $870 million • Adjusted Gross Margin of 21.0% - 21.5% • Adjusted Operating Margin of 0.25% - 0.5% • Adjusted EBITDA of $30 million - $32 million (3.5% - 3.7% of sales) • Adjusted Free Cash Flow of $20 million - $25 million Maximizing shareholder value Review of strategic alternatives for Control Devices is in process – focused on sale of the business
+
+---
+
+![](sri-20251105xexx992earni016.jpg "slide16")
+
+stoneridge.com © 2025 Appendix Materials
+
+---
+
+![](sri-20251105xexx992earni017.jpg "slide17")
+
+stoneridge.com © 2025 Appendix 17 Balance Sheets December 31, 2024 September 30, 2025(in thousands) (Unaudited) ASSETS Current assets: $ 71,832$ 53,988Cash and cash equivalents 137,766153,072Accounts receivable, less reserves of $583 and $1,060, respectively 151,337145,449Inventories, net 26,57931,806Prepaid expenses and other current assets 387,514384,315Total current assets Long-term assets: 97,667100,477Property, plant and equipment, net 39,67740,741Intangible assets, net 33,08537,530Goodwill 10,05013,481Operating lease right-of-use asset 53,56355,535Investments and other long-term assets, net 234,042247,764Total long-term assets $ 621,556$ 632,079Total assets LIABILITIES AND SHAREHOLDERS' EQUITY Current liabilities: $ —$ 947Current portion of debt 83,478101,773Accounts payable 66,49477,292Accrued expenses and other current liabilities 149,972180,012Total current liabilities Long-term liabilities: 201,577170,194Revolving credit facility 5,3214,939Deferred income taxes 6,4849,514Operating lease long-term liability 12,94216,225Other long-term liabilities 226,324200,872Total long-term liabilities Shareholders' equity: —— Preferred Shares, without par value, 5,000 shares authorized, none issued —— Common Shares, without par value, 60,000 shares authorized, 28,966 and 28,966 shares issued and 28,018 and 27,695 shares outstanding at September 30, 2025 and December 31, 2024, respectively, with no stated value 225,712218,048Additional paid-in capital (38,424)(27,457) Common Shares held in treasury, 948 and 1,271 shares at September 30, 2025 and December 31, 2024, respectively, at cost 179,985154,059Retained earnings (122,013)(93,455)Accumulated other comprehensive loss 245,260251,195Total shareholders' equity $ 621,556$ 632,079Total liabilities and shareholders' equity
+
+---
+
+![](sri-20251105xexx992earni018.jpg "slide18")
+
+stoneridge.com © 2025 Appendix 18 Income Statement Nine months ended September 30, Three months ended September 30, 2024202520242025(in thousands, except per share data) $ 690,047$ 656,109$ 213,831$ 210,267Net sales Costs and expenses: 543,459518,105169,340167,498Cost of goods sold 88,83296,12526,53331,594Selling, general and administrative 53,70350,98417,64314,454Design and development 4,053(9,105)315(3,279)Operating (loss) income 11,03910,1023,6043,801Interest expense, net 1,081(124)752220Equity in loss (earnings) of investee (644)5,378(384)2,414Other expense (income), net (7,423)(24,461)(3,657)(9,714)Loss before income taxes 2,9871,4653,413(343)(Benefit) provision for income taxes $ (10,410)$ (25,926)$ (7,070)$ (9,371)Net loss Loss per share: $ (0.38)$ (0.93)$ (0.26)$ (0.34)Basic $ (0.38)$ (0.93)$ (0.26)$ (0.34)Diluted Weighted-average shares outstanding: 27,58627,77627,61827,859Basic 27,58627,77627,61827,859Diluted
+
+---
+
+![](sri-20251105xexx992earni019.jpg "slide19")
+
+stoneridge.com © 2025 Appendix 19 Statements of Cash Flows 20242025Nine months ended September 30, (in thousands) OPERATING ACTIVITIES: $ (10,410)$ (25,926)Net loss Adjustments to reconcile net loss to net cash provided by (used for) operating activities: 19,69517,968Depreciation 6,8127,121Amortization, including accretion of deferred financing costs (6,339)(6,560)Deferred income taxes 1,081(124)(Earnings) loss of equity method investee 25788Loss on sale of fixed assets 3,0923,659Share-based compensation expense 263469Excess tax deficiency related to share-based compensation expense Changes in operating assets and liabilities: 6,042(4,823)Accounts receivable, net 9,69417,751Inventories, net 4,9491,450Prepaid expenses and other assets (13,127)11,226Accounts payable 6,5082,893Accrued expenses and other liabilities 28,51725,192Net cash provided by operating activities INVESTING ACTIVITIES: (19,049)(15,653)Capital expenditures, including intangibles 312338Proceeds from sale of fixed assets (260)(272)Investment in venture capital fund, net (18,997)(15,587)Net cash used for investing activities FINANCING ACTIVITIES: 98,00036,000Revolving credit facility borrowings (91,000)(70,691)Revolving credit facility payments 24,27715,376Proceeds from issuance of debt (26,364)(14,985)Repayments of debt (780)(340)Repurchase of Common Shares to satisfy employee tax withholding 4,133(34,640)Net cash (used for) provided by financing activities (356)7,191Effect of exchange rate changes on cash and cash equivalents 13,297(17,844)Net change in cash and cash equivalents 40,84171,832Cash and cash equivalents at beginning of period $ 54,138$ 53,988Cash and cash equivalents at end of period Supplemental disclosure of cash flow information: $ 11,892$ 10,711Cash paid for interest, net $ 8,429$ 8,440Cash paid for income taxes, net $ 1,070$ 1,265Capital expenditures included in accounts payable
+
+---
+
+![](sri-20251105xexx992earni020.jpg "slide20")
+
+stoneridge.com © 2025 Appendix 20 Segment Reporting (A) Unallocated Corporate expenses include, among other items, accounting/finance, human resources, information technology and legal costs as well as share-based compensation. Nine months ended September 30, Three months ended September 30, 2024202520242025 Net Sales: $ 230,186$ 210,873$ 73,129$ 71,629Control Devices 2,9462,6421,160875Inter-segment sales 233,132213,51574,28972,504Control Devices net sales 422,777398,960127,483121,496Electronics 22,49219,1628,1846,542Inter-segment sales 445,269418,122135,667128,038Electronics net sales 37,08446,27613,21917,142Stoneridge Brazil 6102,2674111,720Inter-segment sales 37,69448,54313,63018,862Stoneridge Brazil net sales (26,048)(24,071)(9,755)(9,137)Eliminations $ 690,047$ 656,109$ 213,831$ 210,267Total net sales Cost of Goods Sold: $ 190,369$ 176,537$ 60,319$ 60,928Control Devices 331,074313,854101,29196,835Electronics 21,84027,6117,7029,387Stoneridge Brazil 17610328348Unallocated Corporate (A) $ 543,459$ 518,105$ 169,340$ 167,498Total cost of goods sold Design and Development: $ 14,998$ 11,928$ 5,047$ 3,930Control Devices 33,95734,23511,5488,788Electronics 2,4452,106857612Stoneridge Brazil 2,3032,7151911,124Unallocated Corporate (A) $ 53,703$ 50,984$ 17,643$ 14,454Total design and development Other Segment Costs: $ 16,797$ 17,480$ 5,632$ 5,573Control Devices 37,31236,75511,13010,001Electronics 11,92012,3213,9434,459Stoneridge Brazil 22,80329,5695,82811,561Unallocated Corporate (A) $ 88,832$ 96,125$ 26,533$ 31,594Total other segment costs
+
+---
+
+![](sri-20251105xexx992earni021.jpg "slide21")
+
+stoneridge.com © 2025 Appendix 21 Segment Reporting (A) Unallocated Corporate expenses include, among other items, accounting/finance, human resources, information technology and legal costs as well as share-based compensation. (B) These amounts represent depreciation and amortization on a property, plant and equipment and certain intangible assets. (C) Assets located at Corporate consist primarily of cash, intercompany loan receivables, fixed assets for the corporate headquarter building, leased assets, information technology assets, equity investments and investments in subsidiaries. Nine months ended September 30, Three months ended September 30, 2024202520242025 Operating (Loss) Income: $ 8,020$ 4,929$ 2,131$ 1,198Control Devices 20,43414,1153,5145,871Electronics 8804,2387172,684Stoneridge Brazil (25,281)(32,387)(6,047)(13,032)Unallocated Corporate (A) $ 4,053$ (9,105)$ 315$ (3,279)Total operating (loss) income Depreciation and Amortization: $ 8,821$ 7,414$ 3,152$ 2,962Control Devices 11,79412,5144,0305,002Electronics 3,6523,4341,1551,199Stoneridge Brazil 1,696987492339Unallocated Corporate $ 25,963$ 24,349$ 8,829$ 9,502Total depreciation and amortization (B) Interest Expense (Income), net: $ (10)$ (178)$ 9$ (4)Control Devices 1,387683283250Electronics (798)(662)(204)(295)Stoneridge Brazil 10,46010,2593,5163,850Unallocated Corporate $ 11,039$ 10,102$ 3,604$ 3,801Total interest expense, net Capital Expenditures: $ 6,018$ 3,618$ 2,914$ 1,459Control Devices 5,6526,5801,2981,660Electronics 2,2232,9394842,243Stoneridge Brazil 972833212552Corporate (C) $ 14,865$ 13,970$ 4,908$ 5,914Total capital expenditures
+
+---
+
+![](sri-20251105xexx992earni022.jpg "slide22")
+
+stoneridge.com © 2025 Reconciliations to US GAAP
+
+---
+
+![](sri-20251105xexx992earni023.jpg "slide23")
+
+stoneridge.com © 2025 US GAAP Reconciliations US GAAP Reconciliations 23 This document contains information about Stoneridge's financial results which is not presented in accordance with accounting principles generally accepted in the United States ("GAAP"). Such non-GAAP financial measures are reconciled to their closest GAAP financial measures in the appendix of this document. The provision of these non-GAAP financial measures is not intended to indicate that Stoneridge is explicitly or implicitly providing projections on those non- GAAP financial measures, and actual results for such measures are likely to vary from those presented. The reconciliations include all information reasonably available to the Company at the date of this document and the adjustments that management can reasonably predict.
+
+---
+
+![](sri-20251105xexx992earni024.jpg "slide24")
+
+stoneridge.com © 2025 US GAAP Reconciliations 24 US GAAP Reconciliations Reconciliation of Adjusted Gross Profit Q3 2025Q2 2025(USD in millions) $ 42.8$ 48.9Gross Profit 0.9—Add: Pre-Tax Business Realignment Costs $ 43.7$ 48.9Adjusted Gross Profit
+
+---
+
+![](sri-20251105xexx992earni025.jpg "slide25")
+
+stoneridge.com © 2025 US GAAP Reconciliations 25 US GAAP Reconciliations Reconciliation of Adjusted Operating Income (Loss) Q3 2025Q2 2025(USD in millions) $ (3.3)$ (2.6)Operating Loss 2.11.7Add: Pre-Tax Business Realignment Costs 3.71.0Add: Pre-Tax Strategic Review Costs —0.3Add: Pre-Tax Share-Based Compensation Accelerated Vesting $ 2.4$ 0.4Adjusted Operating Income
+
+---
+
+![](sri-20251105xexx992earni026.jpg "slide26")
+
+stoneridge.com © 2025 US GAAP Reconciliations 26 US GAAP Reconciliations Reconciliation of Adjusted EBITDA Q3 2025Q2 2025Q1 2025Q4 2024Q3 2024(USD in millions) $ (9.7)$ (9.1)$ (5.6)$ (6.2)$ (3.7)Income (Loss) Before Tax 3.83.13.23.43.6Interest expense, net 9.57.67.38.38.8Depreciation and amortization $ 3.6$ 1.6$ 4.8$ 5.5$ 8.8EBITDA 2.11.72.80.40.3Add: Pre-Tax Business Realignment Costs ————0.2Add: Pre-Tax Environmental Remediation Costs 3.71.0———Add: Pre-Tax Strategic Review Costs —0.3———Add: Pre-Tax Share-Based Compensation Accelerated Vesting $ 9.3$ 4.6$ 7.6$ 6.0$ 9.2Adjusted EBITDA
+
+---
+
+![](sri-20251105xexx992earni027.jpg "slide27")
+
+stoneridge.com © 2025 US GAAP Reconciliations 27 US GAAP Reconciliations Reconciliation of Q3 2025 Adjusted Tax Rate Tax RateQ3 2025(USD in millions) $ (9.7)Loss Before Tax 2.1Add: Pre-Tax Business Realignment Costs 3.7Add: Pre-Tax Strategic Review Costs $ (4.0)Adjusted Loss Before Tax 3.5 %$ (0.3)Income Tax Benefit 1.4Add: Tax Impact from Pre-Tax Adjustments (26.7)%$ 1.1Adjusted Income Tax Expense on Adjusted Loss Before Tax
+
+---
+
+![](sri-20251105xexx992earni028.jpg "slide28")
+
+stoneridge.com © 2025 US GAAP Reconciliations 28 US GAAP Reconciliations Reconciliation of Q3 2025 Adjusted Net Loss and EPS Q3 2025 EPSQ3 2025(USD in millions, except EPS) $ (0.34)$ (9.4)Net Loss 0.051.5Add: After-Tax Business Realignment Costs 0.102.8Add: After-Tax Strategic Review Costs $ (0.18)$ (5.1)Adjusted Net Loss
+
+---
+
+![](sri-20251105xexx992earni029.jpg "slide29")
+
+stoneridge.com © 2025 US GAAP Reconciliations 29 US GAAP Reconciliations Reconciliation of Control Devices Adjusted Operating Income Q3 2025Q2 2025(USD in millions) $ 1.2$ 2.6Control Devices Operating Income 0.30.3Add: Pre-Tax Business Realignment Costs $ 1.5$ 2.8Control Devices Adjusted Operating Income Reconciliation of Electronics Adjusted Operating Income Q3 2025Q2 2025(USD in millions) $ 5.9$ 2.7Electronics Operating Income 0.91.4Add: Pre-Tax Business Realignment Costs $ 6.7$ 4.2Electronics Adjusted Operating Income
+
+---
+
+![](sri-20251105xexx992earni030.jpg "slide30")
+
+stoneridge.com © 2025 US GAAP Reconciliations 30 US GAAP Reconciliations Reconciliation of Adjusted Free Cash Flow YTD Q3 2025YTD Q3 2024(USD in millions) $ 25.2$ 28.5Net Cash Provided by Operating Activities (15.7)(19.0)Capital Expenditures, including Intangibles 0.30.3Proceeds from Sale of Fixed Assets $ 9.9$ 9.8Free Cash Flow 5.62.2Add: Business Realignment Related Payments 0.70.0Add: Strategic Review Cost Related Payments $ 16.2$ 11.9Adjusted Free Cash Flow
+
+---
+
+![](sri-20251105xexx992earni031.jpg "slide31")
+
+stoneridge.com © 2025 US GAAP Reconciliations 31 US GAAP Reconciliations Reconciliation of Net Debt Q3 2025Q2 2025Q4 2024(USD in millions) $ 171.1$ 164.4$ 201.6Total Debt 54.049.871.8Less: Cash and Cash Equivalents $ 117.2$ 114.6$ 129.7Net Debt
+
+---
+
+![](sri-20251105xexx992earni032.jpg "slide32")
+
+stoneridge.com © 2025 US GAAP Reconciliations 32 US GAAP Reconciliations Reconciliation of Adjusted EBITDA for Compliance Calculation Q3 2025Q2 2025Q1 2025Q4 2024Q3 2024Q2 2024(USD in millions) $ (9.7)$ (9.1)$ (5.6)$ (6.2)$ (3.7)$ 1.9Income (Loss) Before Tax 3.83.13.23.43.63.8Interest Expense, net 9.57.67.38.38.88.5Depreciation and Amortization $ 3.6$ 1.6$ 4.8$ 5.5$ 8.8$ 14.2EBITDA Compliance adjustments: 0.10.1—0.4——Add: Non-Cash Impairment Charges and Write-offs or Write Downs 2.43.4(0.4)(1.8)(0.3)(2.4)Add: Adjustments from Foreign Currency Impact —————Add: Extraordinary, Non-recurring or Unusual Items 0.70.51.60.30.70.5Add: Cash Restructuring Charges 0.61.00.3———Add: Charges for Transactions, Amendments, and Refinances 0.2(0.1)(0.3)0.20.80.1Add: Adjustment to Autotech Fund II Investment 1.11.41.11.00.91.1Add: Share Based Compensation 6.55.68.26.41.37.1Add: Accrual-based Expenses (5.6)(4.5)(6.3)(2.8)(3.3)(3.7)Less: Cash Payments for Accrual-based Expenses $ 9.5$ 9.0$ 9.1$ 9.2$ 8.7$ 16.9Adjusted EBITDA (Compliance) $ 36.8$ 36.0$ 43.9Adjusted TTM EBITDA (Compliance)
+
+---
+
+![](sri-20251105xexx992earni033.jpg "slide33")
+
+stoneridge.com © 2025 US GAAP Reconciliations 33 US GAAP Reconciliations Reconciliation of Adjusted Cash for Compliance Calculation Q3 2025Q2 2025Q1 2025(USD in millions) $ 54.0$ 49.8$ 79.1Total Cash and Cash Equivalents (16.4)(13.4)(23.3)Less: 35% of Cash in Foreign Locations $ 37.6$ 36.4$ 55.8Total Adjusted Cash (Compliance) Reconciliation of Adjusted Debt for Compliance Calculation Q3 2025Q2 2025Q1 2025(USD in millions) $ 171.1$ 164.4$ 203.2Total Debt 1.51.51.6Outstanding Letters of Credit $ 172.6$ 165.9$ 204.8Total Adjusted Debt (Compliance) $ 135.0$ 129.5$ 149.0Adjusted Net Debt (Compliance) 3.67x3.60x3.39xCompliance Leverage Ratio (Net Debt / TTM EBITDA) 4.50x5.50x6.00xCompliance Leverage Ratio Maximum Requirement
+
+---
+
+![](sri-20251105xexx992earni034.jpg "slide34")
+
+stoneridge.com © 2025 Stoneridge @StoneridgeInc StoneridgeGlobal
+
+---

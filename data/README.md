@@ -1,78 +1,95 @@
-# Private Credit Covenant & Early-Warning Benchmark v1.0
+# Data layout
 
-Created for the **Private Credit Covenant & Early-Warning Agent** POC.
+The app reads authored inputs from `app/`. Expected answers and captured evaluation
+observations live in `evaluation/`. Generated databases, downloads, and reports have
+separate ignored locations. Tests may reuse the same authored inputs without making
+those inputs test-only fixtures.
 
-## Contents
+| Location | Purpose | Versioned? |
+| --- | --- | --- |
+| `app/synthetic/` | Synthetic borrowers, financial inputs, and covenant terms used by the working app and CLI | Yes |
+| `app/sec/public_sec_documents.csv` | Catalog of 29 public SEC sources used by document workflows | Yes |
+| `evaluation/` | Public and synthetic gold labels, 60 evaluation tasks, and controlled judge cases | Yes |
+| `evaluation/snapshots/sec/covenants.sqlite3` | Preserved extraction observations for explicit read-only quality measurement | Yes; evaluation evidence |
+| `training/synthetic/` | Generated synthetic histories, features, outcomes, training table, and manifest | Existing reviewed dataset retained |
+| `models/logistic_regression/v1/` | Optional synthetic-trained pipeline and compatibility manifest | Yes |
+| `cache/sec/` | Downloaded HTML, cleaned HTML, converted Markdown, and conversion markers | No |
+| `runtime/` | App/CLI databases and generated evaluation reports | No |
 
-- `public_sec_documents.csv` — 29 authoritative SEC source documents and URLs.
-- `public_sec_gold_cases.csv` — 42 public benchmark cases across 10 borrowers.
-- `synthetic_borrowers.csv` — 12 controlled borrower scenarios.
-- `synthetic_covenant_terms.csv` — covenant rules, amendments, caps, holidays, springing tests and conflict rules.
-- `synthetic_quarterly_financials.csv` — quarterly inputs for deterministic calculation tests.
-- `synthetic_gold_labels.csv` — 18 gold synthetic evaluations.
-- `evaluation_tasks.jsonl` — 60 ready-to-run evaluation tasks covering both public and synthetic cases.
-- `download_sec_documents.py` — guarded CLI sharing the service HTML cache.
-- `private_credit_benchmark_v1.xlsx` — human-review workbook containing the same benchmark tables.
+Controlled fixtures specific to tests stay in `tests/fixtures/`. The dated homework
+evaluation corpus stays with its runner under `homework/evaluation/`. The working
+assessment never reads gold labels. The separate **Benchmark portfolio (mock)** page
+intentionally loads pre-labeled examples from `evaluation/`; it is not an assessment
+or forecast. Financial notes and outcome labels stay out of agent/model inputs.
 
-## Public evidence grades
+## Run with bundled inputs
 
-- **A** — public source gives enough covenant inputs to independently recompute the metric.
-- **B** — public source discloses threshold plus actual/status/breach/waiver, but not every bespoke calculation input.
-- **C** — public source is primarily useful for threshold, amendment-precedence or waiver testing.
-- **EW** — temporal early-warning case with a later covenant-stress event.
+The Streamlit app initializes its own database. For a CLI assessment:
 
-## Recommended evaluation layers
+```bash
+uv run --locked python -m credit_monitoring.ingestion.loaders.financials \
+  --csv data/app/synthetic/synthetic_quarterly_financials.csv \
+  --db data/runtime/financials.sqlite3
+uv run --locked python scripts/run_assessment.py \
+  --borrower-id SYN002 --period-end 2025-09-30 --information-cutoff 2025-09-30
+```
 
-1. **Retrieval:** correct covenant/amendment/source clause.
-2. **Versioning:** active amendment or waiver on the test date.
-3. **Calculation:** exact numeric metric when inputs are available.
-4. **Compliance:** compliant / breach / waived / not-tested / abstain.
-5. **Headroom:** direction and exact amount where computable.
-6. **Early warning:** flag deterioration before a later breach/waiver event.
-7. **Verification:** reject unsupported conclusions and material data conflicts.
-
-## Important leakage rule
-
-For temporal early-warning backtests, do not give the agent documents dated after the information cutoff. Later documents may be used only as outcome labels.
-
-For public extraction cases, the filing itself may contain the answer; these cases measure retrieval, amendment interpretation and faithful extraction rather than independent forecasting.
-
-## Scoring suggestion
-
-- Threshold / operator accuracy: exact match.
-- Amendment precedence: exact active version.
-- Numeric ratios/headroom: tolerance <= 0.01x (or <= 0.1 for USD_m fields unless a stricter source value exists).
-- Status classification: exact categorical match.
-- Citation correctness: source document ID must be in the gold source set.
-- Early warning: precision/recall by borrower-quarter, plus lead time to subsequent event.
-- Abstention quality: conflict cases should not be forced into compliant/breach.
-
-## Public benchmark caveat
-
-Public-company filings are a strong benchmark for covenant extraction, amendments, waivers, disclosed ratios and outcome events. They are not a complete replica of private-credit lender packages, and bespoke covenant EBITDA is often not reconstructible from GAAP financial statements alone. The synthetic set therefore supplies controlled private-credit edge conditions.
+The [ML guide](../docs/guides/ml_early_warning.md) explains generation, training,
+optional dependencies, and artifact compatibility. The retained dataset uses seed 42
+and 50 borrowers for each of 12 scenarios. Retraining is optional for loading the
+bundled compatible model. Keep generated training/model manifests and their data
+consistent; changing generated bytes can invalidate recorded checksums.
 
 ## SEC source download
 
-Run from the repository root after the core environment is installed:
+From the repository root after installing the core environment:
 
 ```bash
 export SEC_USER_AGENT="Your Name your.email@example.com"
-uv run --locked python data/download_sec_documents.py
+uv run --locked python scripts/download_sec_documents.py --document-id DOC_FMC_AMD3_2025
 ```
 
-The CLI and document processing share `data/sec_documents/html/<document_id>.html`.
-Defaults are resolved from the script location, independent of the working directory.
-Select one or more documents with repeated `--document-id ID`; override the catalog and
-HTML directory with `--source-file PATH` and `--html-dir PATH`. `--help` and importing
-the utility perform no downloads or directory creation.
+Omit `--document-id` to download the catalog, or repeat it to select several documents.
+The downloader and processing services share `data/cache/sec/html/<document_id>.html`;
+converted Markdown lives in `data/cache/sec/markdown/`. Defaults resolve from the
+checkout, independent of the working directory. `--source-file PATH` and
+`--html-dir PATH` select alternative inputs/cache locations. Help and import perform
+no downloads or directory creation.
 
-Existing nonempty HTML is reused without credentials. Cache misses require an identifying
+Existing nonempty HTML is reused without credentials. Cache misses need an identifying
 `SEC_USER_AGENT`; downloads are serial and throttled. Successful files are published
-atomically. A failed or empty download leaves no reusable new file, other documents
-continue, and any failure produces a nonzero exit code. Current catalog sources are
-HTML. PDF URLs/content are unsupported by this HTML pipeline.
+atomically. Empty or failed downloads leave no reusable new file, other documents
+continue, and any failure returns a nonzero exit code. The HTML pipeline does not
+support PDF input. Conversion markers determine when Markdown must be refreshed.
 
-Markdown remains in `data/sec_documents/markdown/` with the existing conversion-version
-markers. Old flat `.htm`/`.pdf` files directly under `sec_documents/` are not the active
-cache. Leave them intact and run the command to populate the canonical HTML directory;
-this cleanup performs no automatic renaming or deletion.
+Existing ignored local files are preserved during restructuring. Flat legacy files
+under the migrated cache are not automatically renamed into the active HTML directory.
+
+## Evaluation and preservation
+
+The public benchmark contains 42 cases across 10 borrowers. Evidence grades mean:
+A supplies enough inputs to recompute the metric; B discloses a threshold and actual,
+status, breach, or waiver; C mainly supports threshold/amendment/waiver testing; EW
+is a temporal early-warning case. Public filings often lack the bespoke contractual
+EBITDA needed for independent private-credit reconstruction.
+
+For early-warning backtests, documents after the information cutoff are outcome
+labels only. Public extraction cases may contain the answer in the filing and measure
+faithful extraction rather than forecasting. Use exact threshold/operator/status
+checks, documented numeric tolerances, source IDs, and explicit abstentions for gaps.
+See the [evaluation guide](../docs/homework/evaluation.md) for the actual measurement
+contract and known unsupported targets.
+
+Use the preserved snapshot explicitly; it is never a runtime default:
+
+```bash
+uv run --locked python scripts/compare_public_sec_gold.py \
+  --database data/evaluation/snapshots/sec/covenants.sqlite3 \
+  --output data/runtime/sec-evaluations/review
+```
+
+The runner opens SQLite read-only and exports observations, hashes, coverage, and
+reports. Its strict source-coverage option also needs the corresponding local SEC
+Markdown. Historical observations are retained because rerunning extraction can
+cost money and produce different results. Local working financial/analytics databases
+are preserved as ignored runtime files and can be recreated from authored inputs.

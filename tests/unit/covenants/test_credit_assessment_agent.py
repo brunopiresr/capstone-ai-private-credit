@@ -51,7 +51,7 @@ from credit_monitoring.domain.agent import AgentAnswer
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
 
-DATA = Path(__file__).resolve().parents[3] / "data"
+DATA = Path(__file__).resolve().parents[3] / "data" / "app" / "synthetic"
 ASSESSMENT_DATES = {"period_end": "2025-09-30", "information_cutoff": "2025-09-30"}
 
 

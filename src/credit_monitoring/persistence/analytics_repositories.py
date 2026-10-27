@@ -41,7 +41,6 @@ class CovenantResultRepository:
 
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
-        initialize_analytics(self.database_path)
 
     def save_all(self, results: list[CovenantResult]) -> None:
         """Insert a calculation run atomically, rejecting duplicate identifiers."""
@@ -86,7 +85,6 @@ class RiskFeatureSnapshotRepository:
 
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
-        initialize_analytics(self.database_path)
 
     def save(self, snapshot: BorrowerFeatureSnapshot) -> None:
         """Validate referenced results and append a snapshot in the same transaction."""
@@ -150,7 +148,6 @@ class RiskPredictionRepository:
 
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
-        initialize_analytics(self.database_path)
 
     def save(self, prediction: RiskPrediction) -> None:
         """Reject mismatched borrower-period output before inserting a prediction."""

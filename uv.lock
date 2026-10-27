@@ -15,7 +15,6 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "gitsource" },
     { name = "httpx" },
-    { name = "jupyter" },
     { name = "logfire" },
     { name = "markitdown" },
     { name = "minsearch" },
@@ -37,9 +36,13 @@ ml = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "nbformat" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
+]
+notebooks = [
+    { name = "jupyter" },
 ]
 
 [package.metadata]
@@ -48,7 +51,6 @@ requires-dist = [
     { name = "gitsource", specifier = ">=0.0.5" },
     { name = "httpx", specifier = ">=0.28,<1" },
     { name = "joblib", marker = "extra == 'ml'", specifier = "==1.5.3" },
-    { name = "jupyter", specifier = ">=1.0.0" },
     { name = "logfire", specifier = ">=5.2,<6" },
     { name = "markitdown", specifier = ">=0.1.0" },
     { name = "minsearch", specifier = ">=0.0.5" },
@@ -66,10 +68,12 @@ provides-extras = ["ml"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "nbformat", specifier = ">=5.10.0" },
     { name = "pytest", specifier = ">=8.3.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0,<2" },
     { name = "ruff", specifier = ">=0.9.0" },
 ]
+notebooks = [{ name = "jupyter", specifier = ">=1.0.0" }]
 
 [[package]]
 name = "altair"

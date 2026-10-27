@@ -16,7 +16,7 @@ from credit_monitoring.evaluation.sec_gold import (
 )
 
 ROOT = Path(__file__).resolve().parents[3]
-GOLD_PATH = ROOT / "data/public_sec_gold_cases.csv"
+GOLD_PATH = ROOT / "data/evaluation/public_sec_gold_cases.csv"
 with GOLD_PATH.open(newline="", encoding="utf-8") as file:
     GOLD_CASES = list(csv.DictReader(file))
 

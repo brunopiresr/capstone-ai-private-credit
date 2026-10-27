@@ -7,7 +7,6 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from credit_monitoring.calculations.covenants import calculate_covenant
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
@@ -18,9 +17,8 @@ from credit_monitoring.features.model_features import (
     has_usable_current_inputs,
     model_feature_row,
 )
-from credit_monitoring.features.risk_feature_builder import RiskFeatureBuilder
+from credit_monitoring.features.risk_feature_builder import build_risk_features
 from credit_monitoring.financials.mappings import FINANCIAL_METRICS
-from credit_monitoring.persistence.analytics_repositories import CovenantResultRepository
 
 from .artifacts import file_hash, write_json
 
@@ -227,7 +225,6 @@ def _calculate_history(
     run_id: str,
     indexed_financials: dict[tuple[str, str], dict],
     covenant_reader: SyntheticCovenantReader,
-    repository: CovenantResultRepository,
 ) -> dict[date, list[CovenantResult]]:
     results_by_period = {}
     for period in QUARTERS:
@@ -258,7 +255,6 @@ def _calculate_history(
             result.result_id = f"{run_id}:{period}:{result.covenant_id}"
             result.created_at = datetime.combine(period, datetime.min.time(), tzinfo=UTC)
         results_by_period[period] = results
-        repository.save_all(results)
     return results_by_period
 
 
@@ -267,55 +263,56 @@ def _build_training_records(rows: SimulationRows, terms_path: Path, seed: int) -
     covenant_reader = SyntheticCovenantReader(terms_path)
     indexed_financials = {(row["borrower_id"], row["period_end"]): row for row in financials}
     feature_records, training_rows, outcome_records, calculation_records = [], [], [], []
-    with TemporaryDirectory(prefix="synthetic-analytics-") as temporary_directory:
-        repository = CovenantResultRepository(Path(temporary_directory) / "analytics.sqlite3")
-        feature_builder = RiskFeatureBuilder(repository)
-        for borrower in borrowers:
-            borrower_id = borrower["borrower_id"]
-            run_id = f"simulation:{GENERATOR_VERSION}:{seed}:{borrower_id}"
-            results_by_period = _calculate_history(
-                borrower_id, run_id, indexed_financials, covenant_reader, repository
+    for borrower in borrowers:
+        borrower_id = borrower["borrower_id"]
+        run_id = f"simulation:{GENERATOR_VERSION}:{seed}:{borrower_id}"
+        results_by_period = _calculate_history(
+            borrower_id, run_id, indexed_financials, covenant_reader
+        )
+        calculation_records.extend(
+            result.model_dump(mode="json")
+            for results in results_by_period.values()
+            for result in results
+        )
+        for quarter_index, period in enumerate(QUARTERS):
+            features = build_risk_features(
+                [result for values in results_by_period.values() for result in values],
+                borrower_id,
+                period,
+                period,
+                assessment_run_id=run_id,
             )
-            calculation_records.extend(
-                result.model_dump(mode="json")
-                for results in results_by_period.values()
-                for result in results
+            sample_id = f"{borrower_id}:{period}"
+            next_period = QUARTERS[quarter_index + 1] if quarter_index < 7 else None
+            label, reason = outcome_label(results_by_period.get(next_period, []))
+            split = evaluation_split(borrower["partition_role"], period, label)
+            if not has_usable_current_inputs(features):
+                split = "unused"
+            feature_records.append(
+                {"sample_id": sample_id, "features": features.model_dump(mode="json")}
             )
-            for quarter_index, period in enumerate(QUARTERS):
-                features = feature_builder.build(
-                    borrower_id, period, period, assessment_run_id=run_id
-                )
-                sample_id = f"{borrower_id}:{period}"
-                next_period = QUARTERS[quarter_index + 1] if quarter_index < 7 else None
-                label, reason = outcome_label(results_by_period.get(next_period, []))
-                split = evaluation_split(borrower["partition_role"], period, label)
-                if not has_usable_current_inputs(features):
-                    split = "unused"
-                feature_records.append(
-                    {"sample_id": sample_id, "features": features.model_dump(mode="json")}
-                )
-                training_rows.append(
-                    {
-                        "sample_id": sample_id,
-                        "borrower_id": borrower_id,
-                        "period_end": period.isoformat(),
-                        "split": split,
-                        "target": label,
-                        **model_feature_row(features),
-                    }
-                )
-                outcome_records.append(
-                    {
-                        "sample_id": sample_id,
-                        "target": label,
-                        "reason": reason,
-                        "current_inputs_usable": has_usable_current_inputs(features),
-                        "outcome_period_end": next_period.isoformat() if next_period else None,
-                        "source_result_ids": [
-                            result.result_id for result in results_by_period.get(next_period, [])
-                        ],
-                    }
-                )
+            training_rows.append(
+                {
+                    "sample_id": sample_id,
+                    "borrower_id": borrower_id,
+                    "period_end": period.isoformat(),
+                    "split": split,
+                    "target": label,
+                    **model_feature_row(features),
+                }
+            )
+            outcome_records.append(
+                {
+                    "sample_id": sample_id,
+                    "target": label,
+                    "reason": reason,
+                    "current_inputs_usable": has_usable_current_inputs(features),
+                    "outcome_period_end": next_period.isoformat() if next_period else None,
+                    "source_result_ids": [
+                        result.result_id for result in results_by_period.get(next_period, [])
+                    ],
+                }
+            )
     return TrainingRecords(feature_records, training_rows, outcome_records, calculation_records)
 
 
