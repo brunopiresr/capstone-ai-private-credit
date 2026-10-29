@@ -9,7 +9,7 @@ capabilities. Financial rules, document processing, assessment, and agents remai
 | [notebooks](notebooks/) | `01-setup.ipynb`, `02-rag.ipynb`, then `03-agents.ipynb`; use the project `.venv` kernel | Python 3.14, project environment |
 | [monitoring](monitoring/README.md) | Streamlit monitoring/chat exercise using shared agents and telemetry | Python 3.14, project environment |
 | [agent-tests](agent-tests/README.md) | Three scenario pairs, ordinary assertions, and structured judge checks | Python 3.14; live tests opt in |
-| [evaluation/2026-10-26](evaluation/2026-10-26/README.md) | Dated prepared cases, source corpus, and evaluation runner | Python 3.14; live execution opt in |
+| [evaluation](evaluation/README.md) | Human rating app plus dated prepared cases, source corpus, and evaluation runner | Python 3.14; app generates live answers |
 | [llm-judges](llm-judges/) | Optional Evidently package; [judge guide](../docs/homework/llm_judges.md) | Separate Python 3.13 environment |
 
 For notebook tools, install `uv sync --group notebooks --group dev --locked`;

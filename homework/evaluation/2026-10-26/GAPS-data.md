@@ -1,9 +1,8 @@
 # Data gaps
 
-1. **Two full exhibits are not acquired.** `SEC_USER_AGENT` is absent from the environment
-   and local `.env`. No identifying name/email was invented. Both official URLs were
-   inspected through web research; local HTML/Markdown files remain absent. Cases needing
-   these IDs must report blocked, not silently use the cataloged summaries:
+1. **The two full exhibits were acquired on 2026-10-29.** Both official exhibits now
+   have prepared HTML, Markdown, conversion markers and manifest hashes. E09 and P05
+   have anchored reference passages from the full exhibits and pass source preflight:
    - `EVAL_DOC_POLARIS_AMD9_FULL_2025` — [Polaris Amendment 9, full Exhibit 10.1](https://www.sec.gov/Archives/edgar/data/931015/000162828025033840/amendmentno9to4tharcredita.htm).
      Definitions and §6.25 distinguish net leverage from interest coverage and contain
      June 2025 limits absent from the existing summary.
@@ -22,7 +21,8 @@
    are retrospective unless independently verified availability supports a stricter
    cutoff. No unsupported `available_at` CSV column is introduced.
 
-4. **Existing source/gold issues remain open.** All 29 source copies are present, but
+4. **Existing source/gold issues remain open.** All 29 source copies and two full exhibits
+   are present, but
    the historical 37/42 failed comparison baseline is not cleared by data preparation.
    Business references must be grounded in source text. Current public grade B/C data
    cannot establish independent bespoke EBITDA calculations.

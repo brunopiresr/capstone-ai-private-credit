@@ -16,3 +16,4 @@ dist/
 
 # Evaluation outputs; keep code, cases and prepared inputs versioned.
 /homework/evaluation/*/runs/
+/homework/evaluation/*/data/html/*.cleaned.html

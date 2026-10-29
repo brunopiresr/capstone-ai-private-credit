@@ -18,7 +18,7 @@ test-offline:
 	uv run --locked pytest tests
 
 test-homework:
-	uv run --locked pytest homework/agent-tests homework/monitoring/tests homework/notebooks/tests homework/evaluation/2026-10-26/test_workbench.py
+	uv run --locked pytest homework/agent-tests homework/monitoring/tests homework/notebooks/tests homework/evaluation/2026-10-26/test_workbench.py homework/evaluation/tests
 
 test-all: test-offline test-homework
 

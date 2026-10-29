@@ -723,33 +723,48 @@
       "kind": "additional_official_sec_exhibit",
       "family": "PII",
       "source_url": "https://www.sec.gov/Archives/edgar/data/931015/000162828025033840/amendmentno9to4tharcredita.htm",
-      "availability": "blocked",
-      "files": {}
+      "availability": "ready",
+      "files": {
+        "html/EVAL_DOC_POLARIS_AMD9_FULL_2025.html": {
+          "sha256": "48f58055dffa02a8cb2d94603a9af8cc2ba960e0d31cc8b51fe03a890bccf028",
+          "bytes": 1551534
+        },
+        "markdown/EVAL_DOC_POLARIS_AMD9_FULL_2025.md": {
+          "sha256": "e2d529534c88afc94d97699d14d0c26714b540aba0a422a8d5a07c6170495f51",
+          "bytes": 608338
+        },
+        "markdown/.EVAL_DOC_POLARIS_AMD9_FULL_2025.conversion-version": {
+          "sha256": "ac9207f8d3558611c88fb2ae11de129c5571de11e2ec5f10ed324a2f5d4ecc7b",
+          "bytes": 22
+        }
+      }
     },
     {
       "document_id": "EVAL_DOC_AVD_AMD12_FULL_2025",
       "kind": "additional_official_sec_exhibit",
       "family": "AVD",
       "source_url": "https://www.sec.gov/Archives/edgar/data/5981/000119312525183463/d21123dex101.htm",
-      "availability": "blocked",
-      "files": {}
+      "availability": "ready",
+      "files": {
+        "html/EVAL_DOC_AVD_AMD12_FULL_2025.html": {
+          "sha256": "1e96c6bfd36f15d484e78403f8ce3eaf575ba31a709ed6da7b3d46c8adedc10d",
+          "bytes": 59177
+        },
+        "markdown/EVAL_DOC_AVD_AMD12_FULL_2025.md": {
+          "sha256": "458240f37759e9e16c64c9454102f0b5394cf637fbe62ddbbbbc6baeb39ab9df",
+          "bytes": 20670
+        },
+        "markdown/.EVAL_DOC_AVD_AMD12_FULL_2025.conversion-version": {
+          "sha256": "ac9207f8d3558611c88fb2ae11de129c5571de11e2ec5f10ed324a2f5d4ecc7b",
+          "bytes": 22
+        }
+      }
     }
   ],
-  "gaps": [
-    {
-      "document_id": "EVAL_DOC_POLARIS_AMD9_FULL_2025",
-      "code": "source_not_acquired",
-      "reason": "Official URL verified; local full exhibit absent. Run prepare --download with SEC_USER_AGENT."
-    },
-    {
-      "document_id": "EVAL_DOC_AVD_AMD12_FULL_2025",
-      "code": "source_not_acquired",
-      "reason": "Official URL verified; local full exhibit absent. Run prepare --download with SEC_USER_AGENT."
-    }
-  ],
+  "gaps": [],
   "additions": {
     "official_exhibits_requested": 2,
-    "official_exhibits_ready": 0,
+    "official_exhibits_ready": 2,
     "constructed_documents": 2,
     "synthetic_borrowers": 3,
     "financial_rows": 8,

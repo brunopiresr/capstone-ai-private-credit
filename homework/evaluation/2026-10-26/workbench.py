@@ -76,7 +76,7 @@ def csv_subset(source, target, field, values):
         writer.writerows(rows)
 
 
-def make_agent(case, folder, model):
+def make_agent(case, folder, model, *, tracing_enabled=False):
     """Use existing services; fresh databases, explicit scope, no production writes."""
     from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
     from credit_monitoring.application.bootstrap import (
@@ -102,7 +102,7 @@ def make_agent(case, folder, model):
             settings=AssessmentSettings(analytics_database=runtime / "analytics.sqlite3"),
         )
         return CreditAssessmentAgent(
-            assessment_service=assessment, model=model, tracing_enabled=False
+            assessment_service=assessment, model=model, tracing_enabled=tracing_enabled
         )
     csv_subset(
         data / "catalog.csv", runtime / "catalog.csv", "document_id", set(case["document_ids"])
@@ -126,7 +126,10 @@ def make_agent(case, folder, model):
         }
     )
     return CreditAssessmentAgent(
-        service=documents, model=model, tracing_enabled=False, document_tool_names=frozenset(tools)
+        service=documents,
+        model=model,
+        tracing_enabled=tracing_enabled,
+        document_tool_names=frozenset(tools),
     )
 
 

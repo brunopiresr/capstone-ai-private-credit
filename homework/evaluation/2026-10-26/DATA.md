@@ -7,15 +7,16 @@ remain separate from model inputs.
 | Material | Reused | Added | Available locally |
 | --- | ---: | ---: | ---: |
 | Original SEC documents | 29 | 0 | 29 |
-| Full SEC exhibits | 0 | 2 requested | 0 |
+| Full SEC exhibits | 0 | 2 | 2 |
 | Constructed attack documents | 0 | 2 | 2 |
 | Synthetic borrowers | 12 | 3 | 15 |
 | Synthetic financial rows | 22 | 8 | 30 |
 | Synthetic covenant term rows | 13 | 3 | 16 |
 
-The two new SEC exhibits are verified source candidates, not acquired files. See
-`GAPS-data.md`. Their catalog rows remain present so dependent cases can report a blocked
-source without substituting an existing summary.
+The two full SEC exhibits were downloaded from their cataloged official URLs on
+2026-10-29 and converted with the shared SEC pipeline. Their hashes are recorded in
+`data/manifest.json`; E09 and P05 now have source-anchored reference passages. Historical
+run snapshots retain the source availability and references from their original runs.
 
 ## New synthetic inputs
 

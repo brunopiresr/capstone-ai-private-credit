@@ -1,5 +1,9 @@
 # Evaluation exercise
 
+For the interactive rating app, see [Human evaluation app](../README.md).
+The two previously missing SEC exhibits were prepared on 2026-10-29; all 27 questions
+now pass source preflight. Historical run snapshots retain their original gaps and labels.
+
 Start with the prepared cases and commands below. New runs create ignored local
 outputs; a clean checkout does not include historical live responses or credentials.
 The historical baseline recorded **19 failed, 5 passed, 3 insufficient evidence**.
