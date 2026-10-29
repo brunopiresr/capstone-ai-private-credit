@@ -11,10 +11,12 @@ The stub returns unknown risk and null probabilities.
 
 ## Working Streamlit review
 
-Run `uv run streamlit run src/credit_monitoring/web/app.py`. The app imports the bundled synthetic
-financial CSV once per startup into `data/runtime/streamlit/financials.sqlite3` and stores
+Run `make run`. The app copies the Git-versioned synthetic financial database once per
+startup into `data/runtime/streamlit/financials.sqlite3` and stores
 assessment results in that directory's separate analytics database. These app files are ignored
-by Git. Restart the app after editing bundled CSV inputs.
+by Git. No financial import or model training is needed after cloning. After editing the
+bundled financial CSV, run `uv run --locked python scripts/prepare_demo_database.py`,
+commit the CSV and database together, and restart the app.
 
 Select a borrower, reporting date, and information cutoff, then **Run assessment**. The selected
 dates and returned run ID remain attached to the visible results; changing controls does not
@@ -23,7 +25,8 @@ aggregate WATCH rule. Period history comes from stored service results, includin
 and calculation bases. Input notes and gold labels are excluded from this page and its assistant.
 
 Prediction modes are **Off** (default), **Stub**, and **Logistic Regression**. The trained option
-uses `data/models/logistic_regression/v1/` and requires the optional `ml` dependencies. Missing
+uses `data/models/logistic_regression/v1/`; `make install` and `make run` include the
+`ml` dependencies. Missing
 dependencies or an incompatible artifact produce an explicit forecast failure while preserving
 deterministic results. Forecasts are shown separately from observed compliance, with their model,
 horizon, and synthetic-training limitations.
@@ -35,7 +38,7 @@ portfolio (mock)** page retains fixed benchmark examples and can prefill a worki
 
 ## Run with existing synthetic inputs
 
-Load the financial CSV with the existing loader, then run:
+The CLI defaults to the bundled financial database, so run directly:
 
 ```bash
 uv run python scripts/run_assessment.py \
@@ -60,7 +63,7 @@ from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
 
 service = create_assessment_service(
-    financial_repository=FinancialRepository(Path("data/runtime/financials.sqlite3")),
+    financial_repository=FinancialRepository(Path("data/app/synthetic/financials.sqlite3")),
     covenant_reader=SyntheticCovenantReader(Path("data/app/synthetic/synthetic_covenant_terms.csv")),
     settings=AssessmentSettings(analytics_database=Path("data/runtime/analytics.sqlite3")),
 )

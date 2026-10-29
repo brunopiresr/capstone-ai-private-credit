@@ -13,7 +13,7 @@ from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.observability import configure_observability
 from credit_monitoring.observability.logging import configure_logging
-from credit_monitoring.paths import APP_SYNTHETIC_DIR, ROOT, RUNTIME_DIR
+from credit_monitoring.paths import APP_SYNTHETIC_DIR, BUNDLED_FINANCIAL_DB, ROOT, RUNTIME_DIR
 
 
 def main() -> None:
@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument("--borrower-id", required=True)
     parser.add_argument("--period-end", type=date.fromisoformat, required=True)
     parser.add_argument("--information-cutoff", type=date.fromisoformat, required=True)
-    parser.add_argument("--financial-db", type=Path, default=RUNTIME_DIR / "financials.sqlite3")
+    parser.add_argument("--financial-db", type=Path, default=BUNDLED_FINANCIAL_DB)
     parser.add_argument("--analytics-db", type=Path, default=RUNTIME_DIR / "analytics.sqlite3")
     parser.add_argument(
         "--terms", type=Path, default=APP_SYNTHETIC_DIR / "synthetic_covenant_terms.csv"

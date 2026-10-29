@@ -31,6 +31,7 @@ def working_app(tmp_path, monkeypatch):
         "synthetic_borrowers.csv",
         "synthetic_quarterly_financials.csv",
         "synthetic_covenant_terms.csv",
+        "financials.sqlite3",
     ):
         shutil.copyfile(ROOT / "data/app/synthetic" / filename, synthetic / filename)
     # No gold file is available: accidental benchmark reads cannot satisfy these tests.
@@ -39,11 +40,11 @@ def working_app(tmp_path, monkeypatch):
     monkeypatch.setattr("dotenv.load_dotenv", lambda *args, **kwargs: False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("LLM_MODEL", raising=False)
-    loader = Mock(wraps=workspace_module.load_financials)
-    monkeypatch.setattr(workspace_module, "load_financials", loader)
+    database_copy = Mock(wraps=workspace_module.shutil.copyfile)
+    monkeypatch.setattr(workspace_module.shutil, "copyfile", database_copy)
     app = AppTest.from_file(str(APP), default_timeout=20).run()
     assert not app.exception
-    return app, tmp_path / "working", loader
+    return app, tmp_path / "working", database_copy
 
 
 def run_assessment(app, borrower="SYN001", period="2025-09-30", mode="Off"):
@@ -56,7 +57,7 @@ def run_assessment(app, borrower="SYN001", period="2025-09-30", mode="Off"):
 
 
 def test_initialization_is_once_and_assessment_requires_explicit_execution(working_app):
-    app, directory, loader = working_app
+    app, directory, database_copy = working_app
     assert app.radio(key="workspace_page").value == "Borrower assessment"
     assert (directory / "financials.sqlite3").is_file()
     assert not (directory / "analytics.sqlite3").exists()
@@ -83,7 +84,7 @@ def test_initialization_is_once_and_assessment_requires_explicit_execution(worki
     assert app.session_state["active_assessment"].assessment_run_id == assessment.assessment_run_id
     with sqlite3.connect(directory / "analytics.sqlite3") as connection:
         assert connection.execute("SELECT COUNT(*) FROM covenant_results").fetchone()[0] == before
-    loader.assert_called_once()
+    database_copy.assert_called_once()
     assert any("information_availability_unknown" in item.value for item in app.warning)
     assert any("Source:" in item.value and "Row:" in item.value for item in app.caption)
     assert any("Missing" in frame.value.to_string() for frame in app.dataframe)

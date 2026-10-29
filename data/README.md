@@ -8,6 +8,7 @@ those inputs test-only fixtures.
 | Location | Purpose | Versioned? |
 | --- | --- | --- |
 | `app/synthetic/` | Synthetic borrowers, financial inputs, and covenant terms used by the working app and CLI | Yes |
+| `app/synthetic/financials.sqlite3` | Ready-to-use financial database for the app and CLI | Yes |
 | `app/sec/public_sec_documents.csv` | Catalog of 29 public SEC sources used by document workflows | Yes |
 | `evaluation/` | Public and synthetic gold labels, 60 evaluation tasks, and controlled judge cases | Yes |
 | `evaluation/snapshots/sec/covenants.sqlite3` | Preserved extraction observations for explicit read-only quality measurement | Yes; evaluation evidence |
@@ -24,15 +25,22 @@ or forecast. Financial notes and outcome labels stay out of agent/model inputs.
 
 ## Run with bundled inputs
 
-The Streamlit app initializes its own database. For a CLI assessment:
+The Streamlit app copies the bundled financial database into its local workspace. The CLI
+reads the bundled database directly and writes results into ignored runtime storage:
 
 ```bash
-uv run --locked python -m credit_monitoring.ingestion.loaders.financials \
-  --csv data/app/synthetic/synthetic_quarterly_financials.csv \
-  --db data/runtime/financials.sqlite3
 uv run --locked python scripts/run_assessment.py \
   --borrower-id SYN002 --period-end 2025-09-30 --information-cutoff 2025-09-30
 ```
+
+No database import or training is required after cloning. To use the trained model from
+the CLI, add `--ml --model-type logistic_regression --model-artifact
+data/models/logistic_regression/v1` and run with `uv run --locked --extra ml`.
+
+After intentionally editing the bundled financial CSV, maintainers refresh its database
+with `uv run --locked python scripts/prepare_demo_database.py` and commit both files.
+Restart the app to load the updated snapshot. Custom CSVs can still be imported with
+`credit_monitoring.ingestion.loaders.financials` and selected using `--financial-db`.
 
 The [ML guide](../docs/guides/ml_early_warning.md) explains generation, training,
 optional dependencies, and artifact compatibility. The retained dataset uses seed 42

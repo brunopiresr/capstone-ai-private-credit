@@ -10,14 +10,15 @@ retains responsibility for decisions.
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
 
 ```bash
-uv sync --group dev --locked
+uv sync --group dev --extra ml --locked
 make run
 ```
 
 Choose a borrower, reporting period, and information cutoff, then **Run assessment**.
-The working page uses bundled synthetic inputs and creates its own ignored SQLite files;
-no credentials, downloads, or database preparation are needed. Restart the app after
-editing input CSVs. The separate **Benchmark portfolio (mock)** page shows fixed,
+The financial SQLite database and trained ML pipeline are included in Git. The working
+page copies the bundled database into ignored local storage; no credentials, downloads,
+database import, data generation, or model training are needed. Select **Logistic Regression**
+to use the bundled trained model. The separate **Benchmark portfolio (mock)** page shows fixed,
 pre-labeled examples.
 
 For analyst follow-ups, copy [.env.example](.env.example) to `.env` and set
@@ -25,7 +26,7 @@ For analyst follow-ups, copy [.env.example](.env.example) to `.env` and set
 `openai-responses:gpt-4o-mini`. Conversation memory belongs to each browser session
 and clears on a new assessment or **Clear conversation**.
 
-Prediction defaults to **Off**. Optional ML, SEC downloads, credit perspective reviews,
+Prediction defaults to **Off**. Model details, SEC downloads, credit perspective reviews,
 and Logfire setup are documented in the [usage guides](docs/README.md#usage-guides).
 Synthetic model results do not establish real-world forecasting performance.
 
