@@ -1,10 +1,13 @@
-.PHONY: install run lint format test test-offline test-homework test-all test-ml test-judges lint-judges check check-all
+.PHONY: install run preview lint format test test-offline test-homework test-all test-ml test-judges lint-judges check check-all
 
 install:
 	uv sync --group dev --extra ml --locked
 
 run:
 	uv run --locked --extra ml streamlit run src/credit_monitoring/web/app.py
+
+preview:
+	uv run --locked streamlit run src/credit_monitoring/web/preview.py
 
 lint:
 	uv run --locked ruff check .

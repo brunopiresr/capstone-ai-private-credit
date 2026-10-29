@@ -1,5 +1,7 @@
 """Explicit SQLite/service composition for CLI, notebook, UI, and test entry points."""
 
+import csv
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -17,9 +19,10 @@ from credit_monitoring.application.credit_review_service import (
     ReviewEventHandler,
 )
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
+from credit_monitoring.application.portfolio_service import PortfolioService
 from credit_monitoring.config.settings import AssessmentSettings, CreditReviewSettings
 from credit_monitoring.covenants.repositories import CovenantRepository
-from credit_monitoring.covenants.structured import CovenantReader
+from credit_monitoring.covenants.structured import CovenantReader, SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.chunking.sections import DEFAULT_MAX_CHARS
 from credit_monitoring.ml.base import RiskModel
@@ -29,8 +32,38 @@ from credit_monitoring.persistence.analytics_repositories import (
     RiskPredictionRepository,
     initialize_analytics,
 )
+from credit_monitoring.persistence.portfolio_repository import PortfolioRepository
 from credit_monitoring.public_context.retrieval import PublicNewsProvider
 from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
+
+
+def create_portfolio_service(
+    *, data_root: Path, working_dir: Path, model: Model | str = DEFAULT_MODEL
+) -> PortfolioService:
+    """Seed once, retain working inputs, and reuse the established calculation/agent flows."""
+    source = data_root / "app" / "synthetic"
+    working_dir.mkdir(parents=True, exist_ok=True)
+    financial_database = working_dir / "financials.sqlite3"
+    if not financial_database.exists():
+        shutil.copyfile(source / "financials.sqlite3", financial_database)
+    financial_repository = FinancialRepository(financial_database)
+    with (source / "synthetic_borrowers.csv").open(newline="", encoding="utf-8") as file:
+        borrowers = [
+            {key: row[key] for key in ("borrower_id", "borrower_name", "industry")}
+            for row in csv.DictReader(file)
+        ]
+    assessment = create_assessment_service(
+        financial_repository=financial_repository,
+        covenant_reader=SyntheticCovenantReader(source / "synthetic_covenant_terms.csv"),
+        settings=AssessmentSettings(analytics_database=working_dir / "analytics.sqlite3"),
+    )
+    return PortfolioService(
+        borrowers=borrowers,
+        financial_repository=financial_repository,
+        assessment_service=assessment,
+        review_service=create_credit_review_service(assessment_service=assessment, model=model),
+        repository=PortfolioRepository(working_dir / "portfolio.sqlite3"),
+    )
 
 
 def create_credit_review_service(

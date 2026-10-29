@@ -7,6 +7,26 @@ retains responsibility for decisions.
 
 ## Run the app
 
+To use the new Streamlit POC workspace, run:
+
+```bash
+make preview
+```
+
+**Portfolio** is connected to the calculation services and bullish, bearish and
+recommendation agents. Choose reporting dates, run one borrower or the whole portfolio,
+and inspect saved results. Enable **Include agent reviews** when requesting assessments
+to run all three agents for each newly assessed borrower. The option is off by default.
+Assessments use bundled synthetic inputs without model
+credentials. Agent reviews require `OPENAI_API_KEY` in `.env` or the environment;
+`LLM_MODEL` optionally selects the model. Results survive browser refresh in ignored
+`data/runtime/portfolio/` storage. Opening/filtering the page does not run assessments
+or agents.
+
+The remaining pages are still a UI preview with illustrative session-only data.
+**Reset sample screens** clears those samples while retaining connected portfolio
+results. See the [POC walkthrough](docs/guides/ui_preview.md).
+
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
 
 ```bash

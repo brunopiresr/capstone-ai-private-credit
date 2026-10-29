@@ -10,10 +10,12 @@ are grouped below; historical plans are preserved separately.
 - [Data sources](project/data_sources.md) and [data layout](../data/README.md): source provenance and file ownership.
 - [Credit review decisions](project/decisions/001-credit-review-agents.md) and [Logfire decisions](project/decisions/logfire_implementation_decisions.md).
 - [Borrower comparison proposal](project/borrower_comparison_implementation_plan.md): unimplemented feature proposal.
+- [Final application implementation plan](project/final_application_implementation_plan.md): extend the existing Streamlit POC with analyst/manager workflows, borrower directory, document/data operations and board report pages using SQLite.
 - [Deferred simplification plan](project/deferred-simplification-plan.md): larger changes identified in the cleanup review.
 
 ## Usage guides
 
+- [POC walkthrough: connected portfolio and remaining preview screens](guides/ui_preview.md).
 - [Document processing and agents](guides/document_processing.md).
 - [Quarterly assessment and optional ML](guides/ml_early_warning.md).
 - [Bullish, bearish, and recommendation reviews](guides/credit_review.md).
