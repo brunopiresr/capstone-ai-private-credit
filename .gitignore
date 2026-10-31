@@ -18,3 +18,4 @@ dist/
 /homework/evaluation/*/runs/
 /homework/evaluation/*/data/html/*.cleaned.html
 data/app/credit_monitoring_dataset_bundle_fixed.zip
+data/app/README_DATA_PACKAGE.md
