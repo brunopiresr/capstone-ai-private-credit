@@ -16,6 +16,7 @@ from credit_monitoring.web.assessment import (
     render_verification,
 )
 from credit_monitoring.web.cost_footer import render_cost_footer, request_cost_refresh
+from credit_monitoring.web.source_watch import watch_application_sources
 from credit_monitoring.web.style import render_style
 from credit_monitoring.web.workspace import (
     DEFAULT_DATA_ROOT,
@@ -108,6 +109,7 @@ def render_assistant(assessment: RiskAssessment, *, pending: bool) -> None:
     )
 
 
+watch_application_sources()
 st.set_page_config(page_title="Covenant Monitor", page_icon="◈", layout="wide")
 load_dotenv(DEFAULT_DATA_ROOT.parent / ".env")
 configure_observability()

@@ -7,7 +7,7 @@ run:
 	uv run --locked --extra ml streamlit run src/credit_monitoring/web/app.py
 
 preview:
-	uv run --locked streamlit run src/credit_monitoring/web/preview.py
+	uv run --locked --extra ml streamlit run src/credit_monitoring/web/preview.py
 
 lint:
 	uv run --locked ruff check .

@@ -19,6 +19,7 @@ from credit_monitoring.application.portfolio_service import (
 from credit_monitoring.domain.credit_review import CreditReviewResult, ExposureDecisionContext
 from credit_monitoring.paths import DATA_ROOT, RUNTIME_DIR
 from credit_monitoring.web.assessment import render_evidence, render_results, render_verification
+from credit_monitoring.web.user_guide import render_help, render_invitation
 
 DEFAULT_DATA_ROOT = DATA_ROOT
 DEFAULT_WORKING_DIR = RUNTIME_DIR / "portfolio"
@@ -87,6 +88,7 @@ def entry_row(entry: PortfolioEntry) -> dict:
         "Sector": entry.sector,
         "Period": entry.period_end.isoformat() if entry.period_end else "No financials",
         "Compliance": entry.compliance,
+        "Source review": "Needs reassessment" if entry.needs_review else "—",
         "Covenant": primary.covenant_type.replace("_", " ") if primary else "—",
         "Actual": metric_value(primary.actual_value, primary.unit) if primary else "—",
         "Threshold": (
@@ -120,6 +122,7 @@ def run_assessments(
                 f"{index}/{total} · {outcome.borrower_id} · "
                 + (outcome.error or "Assessment saved")
                 + (f" · {outcome.review_error}" if outcome.review_error else review_state)
+                + (f" · {outcome.follow_up_error}" if outcome.follow_up_error else "")
             )
             progress.progress(index / total)
 
@@ -143,6 +146,11 @@ def run_assessments(
         if review_context is not None:
             completed = sum(bool(o.review and o.review.status == "complete") for o in outcomes)
             summary += f" · {completed} reviews complete · {review_attention} need attention"
+            question_failures = sum(bool(o.follow_up_error) for o in outcomes)
+            if question_failures:
+                summary += (
+                    f" · {question_failures} question sets unavailable; retry in the assistant"
+                )
         status.update(
             label=summary,
             state="error" if failed or review_attention else "complete",
@@ -162,6 +170,8 @@ def run_assessments(
                 )
             ),
             "Review issue": outcome.review_error or "",
+            "Follow-up questions": outcome.follow_up_error
+            or ("Generated" if outcome.review and service.follow_up_service else "Not requested"),
         }
         for outcome in outcomes
     ]
@@ -262,59 +272,75 @@ def render_selected(
         with st.expander("Source financial inputs and applied terms"):
             render_evidence(assessment)
     with reviews:
-        st.caption(
-            "The bullish, bearish and recommendation agents read this exact saved assessment. "
-            "They do not recalculate it."
+        render_review_controls(entry, service, credentials_available)
+
+
+def render_review_controls(
+    entry: PortfolioEntry, service: PortfolioService, credentials_available: bool
+) -> None:
+    assessment = entry.assessment
+    render_help("Credit reviews and forecasts", "How credit reviews and forecasts work")
+    if assessment is None:
+        st.info("Run and save an assessment before requesting a credit review.")
+        return
+    st.caption(
+        "The bullish, bearish and recommendation agents read this exact saved assessment. "
+        "A follow-up agent then generates questions from the calculations and their analyses. "
+        "These model requests incur provider usage."
+    )
+    if not credentials_available:
+        st.info(
+            "Set OPENAI_API_KEY in .env or the environment to run agent reviews. "
+            "Saved reviews remain available."
         )
-        if not credentials_available:
-            st.info(
-                "Set OPENAI_API_KEY in .env or the environment to run agent reviews. "
-                "Saved reviews remain available."
-            )
-        if not assessment.verification.is_valid:
-            st.warning(
-                "Resolve the structured verification errors before requesting an agent review."
-            )
-        with st.form(f"portfolio_review_form_{assessment.assessment_run_id}"):
-            question = st.text_input("Credit review question", DEFAULT_REVIEW_QUESTION)
-            criteria = st.text_area("Credit criteria", DEFAULT_CRITERIA, height=130)
-            context = st.text_area(
-                "Additional context / constraints",
-                placeholder="Provide decision criteria or explicit assumptions; "
-                "sources are limited to the saved assessment.",
-            )
-            requested = st.form_submit_button(
-                "Run agent review",
-                type="primary",
-                disabled=not credentials_available or not assessment.verification.is_valid,
-            )
-            if requested:
-                if not question.strip() or not criteria.strip():
-                    st.warning("Supply a review question and at least one credit criterion.")
-                else:
-                    try:
-                        decision = ExposureDecisionContext(
-                            question=question.strip(),
-                            credit_criteria=tuple(
-                                line.strip() for line in criteria.splitlines() if line.strip()
-                            ),
-                            constraints=(context.strip(),) if context.strip() else (),
+    if not assessment.verification.is_valid:
+        st.warning("Resolve the structured verification errors before requesting an agent review.")
+    with st.form(f"portfolio_review_form_{assessment.assessment_run_id}"):
+        question = st.text_input("Credit review question", DEFAULT_REVIEW_QUESTION)
+        criteria = st.text_area("Credit criteria", DEFAULT_CRITERIA, height=130)
+        context = st.text_area(
+            "Additional context / constraints",
+            placeholder="Provide decision criteria or explicit assumptions; "
+            "sources are limited to the saved assessment.",
+        )
+        requested = st.form_submit_button(
+            "Run agent review",
+            type="primary",
+            disabled=not credentials_available or not assessment.verification.is_valid,
+        )
+        if requested:
+            if not question.strip() or not criteria.strip():
+                st.warning("Supply a review question and at least one credit criterion.")
+            else:
+                try:
+                    decision = ExposureDecisionContext(
+                        question=question.strip(),
+                        credit_criteria=tuple(
+                            line.strip() for line in criteria.splitlines() if line.strip()
+                        ),
+                        constraints=(context.strip(),) if context.strip() else (),
+                    )
+                    with st.status(
+                        "Running bullish, bearish and recommendation agents…", expanded=True
+                    ):
+                        review = service.review(
+                            assessment.assessment_run_id,
+                            decision,
+                            follow_up_progress=lambda: st.write("Generating follow-up questions…"),
                         )
-                        with st.status(
-                            "Running bullish, bearish and recommendation agents…", expanded=True
-                        ):
-                            review = service.review(assessment.assessment_run_id, decision)
-                            st.write(f"Review saved · {review.status}")
-                        st.rerun()
-                    except Exception as error:
-                        st.error(
-                            f"Agent review failed ({type(error).__name__}). "
-                            "The assessment and earlier reviews are retained."
-                        )
-        if entry.review:
-            render_agent_result(entry.review)
-        else:
-            st.info("No agent review is saved for this assessment version.")
+                        st.write(f"Review saved · {review.status}")
+                        if issue := service.follow_up_errors.get(review.review_id):
+                            st.warning(issue)
+                    st.rerun()
+                except Exception as error:
+                    st.error(
+                        f"Agent review failed ({type(error).__name__}). "
+                        "The assessment and earlier reviews are retained."
+                    )
+    if entry.review:
+        render_agent_result(entry.review)
+    else:
+        st.info("No agent review is saved for this assessment version.")
 
 
 def render_portfolio_page() -> None:
@@ -322,9 +348,11 @@ def render_portfolio_page() -> None:
         '<div class="preview-eyebrow">Credit analyst / Portfolio</div>', unsafe_allow_html=True
     )
     st.title("Your portfolio, at a glance")
+    render_invitation()
+    render_help("Portfolio and dates", "How to choose dates and run assessments")
     st.caption(
         "Calculated from the loaded borrower financials and covenant terms. "
-        "Synthetic inputs · Forecasting off."
+        "Synthetic inputs · Explicit assessment and review actions."
     )
     dotenv.load_dotenv(DEFAULT_DATA_ROOT.parent / ".env")
     try:
@@ -430,6 +458,13 @@ def render_portfolio_page() -> None:
         on_change=change_borrower,
     )
     selected = next(entry for entry in entries if entry.borrower_id == selected_id)
+    if st.button("Open borrower analysis", key="portfolio_open_analysis"):
+        st.session_state._analysis_open_borrower = selected_id
+        st.session_state.preview_selected_borrower = selected_id
+        st.session_state.pop("analysis_period", None)
+        st.session_state.pop("analysis_cutoff", None)
+        st.session_state._preview_next_page = "Borrower analysis"
+        st.rerun()
     credentials_available = bool(os.getenv("OPENAI_API_KEY", "").strip())
     if not credentials_available:
         st.session_state.portfolio_include_reviews = False
@@ -437,7 +472,7 @@ def render_portfolio_page() -> None:
         "Include agent reviews",
         key="portfolio_include_reviews",
         disabled=not credentials_available,
-        help="Run bullish, bearish and recommendation agents after each new assessment.",
+        help="Run bullish, bearish and recommendation agents, then generate follow-up questions.",
     )
     review_context = None
     review_settings_valid = True
@@ -446,6 +481,7 @@ def render_portfolio_page() -> None:
     if include_reviews:
         st.caption(
             "Each assessed borrower gets a bull, bear and recommendation review. "
+            "A further model call generates suggested questions. "
             "The settings below apply to every borrower in this request."
         )
         with st.expander("Agent review settings"):

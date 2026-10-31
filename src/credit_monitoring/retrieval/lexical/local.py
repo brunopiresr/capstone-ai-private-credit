@@ -15,6 +15,18 @@ class LocalEvidenceSearch:
         self._index = None
         self._chunk_count = 0
 
+    def clear(self) -> None:
+        self._key, self._index, self._chunk_count = None, None, 0
+
+    def rebuild(self, documents: list[dict[str, Any]]) -> int:
+        """Build a replacement first so an indexing error retains the prior index."""
+        replacement = type(self)()
+        replacement.search(documents, "covenant")
+        self._key = replacement._key
+        self._index = replacement._index
+        self._chunk_count = replacement._chunk_count
+        return self._chunk_count
+
     def search(
         self, documents: list[dict[str, Any]], query: str, ticker: str | None = None
     ) -> list[dict[str, Any]]:

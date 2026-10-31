@@ -27,6 +27,16 @@ class ExposureDecisionContext(ReviewModel):
     constraints: tuple[Nonblank, ...] = ()
 
 
+class AdditionalReviewContext(ReviewModel):
+    statement: Nonblank
+    source: str | None = None
+    available_at: date | None = None
+
+    @property
+    def basis(self) -> str:
+        return "supplied source, not independently verified" if self.source else "assumption"
+
+
 class EvidenceReference(ReviewModel):
     evidence_id: Nonblank
     kind: Literal[
@@ -38,6 +48,7 @@ class EvidenceReference(ReviewModel):
         "features",
         "prediction",
         "news",
+        "context",
     ]
     path: Nonblank = Field(description="JSON pointer into the shared prompt context.")
 
@@ -55,6 +66,8 @@ class ReviewSnapshot(ReviewModel):
     news: PublicNewsContext
     evidence: tuple[EvidenceReference, ...]
     limitations: tuple[str, ...] = ()
+    review_information_cutoff: date | None = None
+    additional_context_json: str = "[]"
 
     @property
     def assessment_data(self) -> dict:
@@ -71,6 +84,10 @@ class ReviewSnapshot(ReviewModel):
             "news": self.news.model_dump(mode="json"),
             "evidence": [item.model_dump(mode="json") for item in self.evidence],
             "limitations": list(self.limitations),
+            "review_information_cutoff": (
+                self.review_information_cutoff or self.information_cutoff
+            ).isoformat(),
+            "additional_context": json.loads(self.additional_context_json),
         }
 
 

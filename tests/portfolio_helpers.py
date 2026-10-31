@@ -7,6 +7,7 @@ from pathlib import Path
 from model_helpers import ScriptedModel, model_response
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 
+from credit_monitoring.agents.follow_up_questions import FollowUpQuestion, FollowUpQuestions
 from credit_monitoring.domain.credit_review import (
     ArgumentJudgment,
     CreditRecommendation,
@@ -24,9 +25,19 @@ def portfolio_inputs(tmp_path: Path) -> Path:
     for filename in (
         "synthetic_borrowers.csv",
         "synthetic_covenant_terms.csv",
+        "synthetic_quarterly_financials.csv",
         "financials.sqlite3",
     ):
         shutil.copyfile(ROOT / "data" / "app" / "synthetic" / filename, target / filename)
+    shutil.copytree(
+        ROOT / "data" / "models" / "logistic_regression" / "v1",
+        data_root / "models" / "logistic_regression" / "v1",
+    )
+    sec = data_root / "app" / "sec"
+    sec.mkdir()
+    shutil.copyfile(
+        ROOT / "data/app/sec/public_sec_documents.csv", sec / "public_sec_documents.csv"
+    )
     return data_root
 
 
@@ -43,7 +54,24 @@ def review_model() -> ScriptedModel:
                 if isinstance(part, UserPromptPart)
             )
         )
-        if "perspectives" in payload:
+        if "assessment" in payload:
+            review = payload["review"]
+            output = FollowUpQuestions(
+                assessment_run_id=payload["assessment"]["assessment_run_id"],
+                review_id=review["review_id"] if review else None,
+                questions=[
+                    FollowUpQuestion(
+                        question="How do the recorded evidence gaps affect the review decision?",
+                        reason="The saved review qualifies its arguments because of evidence gaps."
+                        if review
+                        else "The assessment preserves data limitations.",
+                        references=["/review/recommendation/rationale"]
+                        if review
+                        else ["/assessment/verification"],
+                    )
+                ],
+            )
+        elif "perspectives" in payload:
             output = CreditRecommendation(
                 action="review" if "review" in payload["allowed_actions"] else "defer",
                 rationale="The supplied arguments support an evidence-limited review.",

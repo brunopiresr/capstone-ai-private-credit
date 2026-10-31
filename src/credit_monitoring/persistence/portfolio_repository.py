@@ -112,6 +112,22 @@ class PortfolioRepository:
             raise ValueError("Choose a saved assessment before running a credit review.")
         return RiskAssessment.model_validate_json(row["result_json"])
 
+    def assessment_created_at(self, run_id: str) -> str:
+        with open_database(self.database_path) as connection:
+            row = connection.execute(
+                "SELECT created_at FROM portfolio_assessments WHERE run_id = ?", (run_id,)
+            ).fetchone()
+        if row is None:
+            raise ValueError("Choose a saved assessment.")
+        return row["created_at"]
+
+    def all_assessments(self) -> list[RiskAssessment]:
+        with open_database(self.database_path) as connection:
+            rows = connection.execute(
+                "SELECT result_json FROM portfolio_assessments ORDER BY rowid"
+            ).fetchall()
+        return [RiskAssessment.model_validate_json(row["result_json"]) for row in rows]
+
     def save_review(self, review: CreditReviewResult) -> None:
         assessment = self.get_assessment(review.snapshot.assessment_run_id)
         if (
@@ -143,3 +159,31 @@ class PortfolioRepository:
                 (run_id,),
             ).fetchone()
         return CreditReviewResult.model_validate_json(row["result_json"]) if row else None
+
+    def get_review(self, review_id: str) -> CreditReviewResult:
+        with open_database(self.database_path) as connection:
+            row = connection.execute(
+                "SELECT result_json FROM portfolio_reviews WHERE review_id = ?", (review_id,)
+            ).fetchone()
+        if row is None:
+            raise ValueError("Choose a saved credit review.")
+        return CreditReviewResult.model_validate_json(row["result_json"])
+
+    def assessment_history(self, borrower_id: str) -> list[tuple[RiskAssessment, str]]:
+        with open_database(self.database_path) as connection:
+            rows = connection.execute(
+                "SELECT result_json, created_at FROM portfolio_assessments "
+                "WHERE borrower_id = ? ORDER BY rowid DESC",
+                (borrower_id,),
+            ).fetchall()
+        return [
+            (RiskAssessment.model_validate_json(r["result_json"]), r["created_at"]) for r in rows
+        ]
+
+    def review_history(self, run_id: str) -> list[CreditReviewResult]:
+        with open_database(self.database_path) as connection:
+            rows = connection.execute(
+                "SELECT result_json FROM portfolio_reviews WHERE run_id = ? ORDER BY rowid DESC",
+                (run_id,),
+            ).fetchall()
+        return [CreditReviewResult.model_validate_json(row["result_json"]) for row in rows]

@@ -17,6 +17,7 @@ from credit_monitoring.application.review_evidence import build_review_snapshot
 from credit_monitoring.domain.analytics_base import new_identifier
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.domain.credit_review import (
+    AdditionalReviewContext,
     CreditRecommendation,
     CreditReviewEvent,
     CreditReviewResult,
@@ -137,10 +138,20 @@ class CreditReviewService:
         self.event_handler = event_handler
 
     def review_assessment(
-        self, assessment: RiskAssessment, *, decision_context: ExposureDecisionContext | None = None
+        self,
+        assessment: RiskAssessment,
+        *,
+        decision_context: ExposureDecisionContext | None = None,
+        additional_context: tuple[AdditionalReviewContext, ...] = (),
+        review_cutoff: date | None = None,
     ) -> CreditReviewResult:
         return _sync(
-            lambda: self.review_assessment_async(assessment, decision_context=decision_context)
+            lambda: self.review_assessment_async(
+                assessment,
+                decision_context=decision_context,
+                additional_context=additional_context,
+                review_cutoff=review_cutoff,
+            )
         )
 
     def review(
@@ -186,20 +197,36 @@ class CreditReviewService:
             )
 
     async def review_assessment_async(
-        self, assessment: RiskAssessment, *, decision_context: ExposureDecisionContext | None = None
+        self,
+        assessment: RiskAssessment,
+        *,
+        decision_context: ExposureDecisionContext | None = None,
+        additional_context: tuple[AdditionalReviewContext, ...] = (),
+        review_cutoff: date | None = None,
     ) -> CreditReviewResult:
         with session_scope(), span("credit.review", borrower_id=assessment.borrower_id):
             return await self._review_assessment_async(
-                assessment, decision_context=decision_context
+                assessment,
+                decision_context=decision_context,
+                additional_context=additional_context,
+                review_cutoff=review_cutoff,
             )
 
     async def _review_assessment_async(
-        self, assessment: RiskAssessment, *, decision_context: ExposureDecisionContext | None = None
+        self,
+        assessment: RiskAssessment,
+        *,
+        decision_context: ExposureDecisionContext | None = None,
+        additional_context: tuple[AdditionalReviewContext, ...] = (),
+        review_cutoff: date | None = None,
     ) -> CreditReviewResult:
         # Capture caller-owned mutable objects before any awaits or parallel work.
         assessment = RiskAssessment.model_validate(assessment.model_dump())
         if decision_context is not None:
             decision_context = ExposureDecisionContext.model_validate(decision_context.model_dump())
+        additional_context = tuple(
+            AdditionalReviewContext.model_validate(item.model_dump()) for item in additional_context
+        )
         progress = _ReviewProgress(
             new_identifier(), assessment.assessment_run_id, self.event_handler
         )
@@ -209,7 +236,12 @@ class CreditReviewService:
             status="unavailable",
             issues=("News retrieval was not performed.",),
         )
-        snapshot, verification_errors = build_review_snapshot(assessment, unavailable)
+        snapshot, verification_errors = build_review_snapshot(
+            assessment,
+            unavailable,
+            additional_context=additional_context,
+            review_cutoff=review_cutoff,
+        )
         bullish = PerspectiveResult(
             perspective="bullish", execution=self.bullish_agent.skipped("verification_failed")
         )
@@ -221,8 +253,10 @@ class CreditReviewService:
             progress.issues.extend(verification_errors)
             status, recommendation = "blocked", _defer(progress.issues)
         else:
-            news = await self._news(assessment, progress)
-            snapshot, _ = build_review_snapshot(assessment, news)
+            news = await self._news(assessment, progress, cutoff=review_cutoff)
+            snapshot, _ = build_review_snapshot(
+                assessment, news, additional_context=additional_context, review_cutoff=review_cutoff
+            )
             bullish, bearish = await asyncio.gather(
                 self._perspective(self.bullish_agent, snapshot, decision_context, progress),
                 self._perspective(self.bearish_agent, snapshot, decision_context, progress),
@@ -257,23 +291,23 @@ class CreditReviewService:
         )
 
     async def _news(
-        self, assessment: RiskAssessment, progress: _ReviewProgress
+        self, assessment: RiskAssessment, progress: _ReviewProgress, *, cutoff: date | None = None
     ) -> PublicNewsContext:
         await progress.emit("stage_start", "news")
         try:
             async with asyncio.timeout(self.recommendation_agent.settings.timeout_seconds):
                 news = filter_news(
                     await self.news_provider.get_context(
-                        assessment.borrower_id, assessment.information_cutoff
+                        assessment.borrower_id, cutoff or assessment.information_cutoff
                     ),
                     assessment.borrower_id,
-                    assessment.information_cutoff,
+                    cutoff or assessment.information_cutoff,
                 )
         except Exception as error:
             logger.error("Public news retrieval failed", extra={"error_type": type(error).__name__})
             news = PublicNewsContext(
                 borrower_id=assessment.borrower_id,
-                information_cutoff=assessment.information_cutoff,
+                information_cutoff=cutoff or assessment.information_cutoff,
                 status="failed",
                 issues=(f"Public news retrieval failed: {type(error).__name__}.",),
             )

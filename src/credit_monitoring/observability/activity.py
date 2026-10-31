@@ -12,6 +12,7 @@ ACTIVITY_LABELS = {
     "bullish_review": "Bullish review",
     "bearish_review": "Bearish review",
     "recommendation": "Recommendation",
+    "follow_up_questions": "Follow-up questions",
     "narrative": "Narrative",
     "document_extraction": "Document extraction",
     "other": "Other",

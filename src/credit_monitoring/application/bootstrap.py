@@ -12,6 +12,7 @@ from credit_monitoring.agents.credit_review import (
     BullishCreditAgent,
     CreditRecommendationAgent,
 )
+from credit_monitoring.agents.follow_up_questions import FollowUpQuestionAgent
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.credit_review_service import (
@@ -19,8 +20,13 @@ from credit_monitoring.application.credit_review_service import (
     ReviewEventHandler,
 )
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
+from credit_monitoring.application.follow_up_question_service import FollowUpQuestionService
 from credit_monitoring.application.portfolio_service import PortfolioService
-from credit_monitoring.config.settings import AssessmentSettings, CreditReviewSettings
+from credit_monitoring.config.settings import (
+    AssessmentSettings,
+    CreditReviewSettings,
+    RiskModelConfig,
+)
 from credit_monitoring.covenants.repositories import CovenantRepository
 from credit_monitoring.covenants.structured import CovenantReader, SyntheticCovenantReader
 from credit_monitoring.financials.repositories import FinancialRepository
@@ -33,6 +39,7 @@ from credit_monitoring.persistence.analytics_repositories import (
     initialize_analytics,
 )
 from credit_monitoring.persistence.portfolio_repository import PortfolioRepository
+from credit_monitoring.persistence.workflow_repository import WorkflowRepository
 from credit_monitoring.public_context.retrieval import PublicNewsProvider
 from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
 
@@ -55,7 +62,14 @@ def create_portfolio_service(
     assessment = create_assessment_service(
         financial_repository=financial_repository,
         covenant_reader=SyntheticCovenantReader(source / "synthetic_covenant_terms.csv"),
-        settings=AssessmentSettings(analytics_database=working_dir / "analytics.sqlite3"),
+        settings=AssessmentSettings(
+            analytics_database=working_dir / "analytics.sqlite3",
+            ml_enabled=True,
+            risk_model=RiskModelConfig(
+                type="logistic_regression",
+                artifact_path=data_root / "models" / "logistic_regression" / "v1",
+            ),
+        ),
     )
     return PortfolioService(
         borrowers=borrowers,
@@ -63,6 +77,8 @@ def create_portfolio_service(
         assessment_service=assessment,
         review_service=create_credit_review_service(assessment_service=assessment, model=model),
         repository=PortfolioRepository(working_dir / "portfolio.sqlite3"),
+        workflow_repository=WorkflowRepository(working_dir / "workflow.sqlite3"),
+        follow_up_service=FollowUpQuestionService(working_dir, FollowUpQuestionAgent(model)),
     )
 
 

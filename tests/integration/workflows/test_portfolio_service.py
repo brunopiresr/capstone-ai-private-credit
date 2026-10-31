@@ -48,6 +48,20 @@ def test_initial_snapshot_has_all_borrowers_without_running_or_loading_labels(po
         assert connection.execute("SELECT COUNT(*) FROM covenant_results").fetchone()[0] == 0
 
 
+def test_portfolio_defaults_to_a_real_model_forecast_in_review_evidence(portfolio):
+    service, _, _ = portfolio
+    outcome = service.assess(["SYN001"], period_end=PERIOD, cutoff=CUTOFF, review_context=CONTEXT)[
+        0
+    ]
+    assert outcome.assessment.ml_status == "complete"
+    assert outcome.assessment.prediction.model_name == "logistic_regression"
+    assert 0 <= outcome.assessment.prediction.breach_probability <= 1
+    assert outcome.review.snapshot.assessment_data["ml_status"] == "complete"
+    assert not any(
+        "no usable model forecast" in item for item in outcome.review.snapshot.limitations
+    )
+
+
 def test_batch_matches_real_rules_preserves_gaps_and_survives_reinitialization(portfolio, tmp_path):
     service, data_root, model = portfolio
     progress = []
@@ -137,7 +151,7 @@ def test_review_uses_exact_persisted_assessment_and_new_run_does_not_inherit_it(
         review.snapshot.assessment_data["results"][0]["actual_value"]
         == assessment.results[0].actual_value
     )
-    assert model.respond.call_count == 3
+    assert model.respond.call_count == 4
     assert service.repository.latest_review(assessment.assessment_run_id) == review
     assert "expected_metric" not in review.model_dump_json()
     monkeypatch.setattr(service.assessment_service, "assess", original)
@@ -178,10 +192,10 @@ def test_optional_reviews_use_each_new_assessment_once(portfolio, monkeypatch):
         stage_progress=lambda i, total, bid, stage: stages.append((bid, stage)),
     )
     assert assess.call_count == 2
-    assert model.respond.call_count == 6
-    assert len(stages) == 4
-    assert stages[0][0] == stages[1][0] == "SYN001"
-    assert stages[2][0] == stages[3][0] == "SYN002"
+    assert model.respond.call_count == 8
+    assert len(stages) == 6
+    assert stages[0][0] == stages[1][0] == stages[2][0] == "SYN001"
+    assert stages[3][0] == stages[4][0] == stages[5][0] == "SYN002"
     for outcome in outcomes:
         assert outcome.review.status == "complete"
         assert outcome.review.snapshot.assessment_run_id == outcome.assessment.assessment_run_id
@@ -203,12 +217,12 @@ def test_batch_continues_after_calculation_and_review_failures(portfolio, monkey
             raise RuntimeError("Calculation failed")
         return original_assess(borrower_id, *args)
 
-    def review(run_id, context):
+    def review(run_id, context, **kwargs):
         assessment = service.repository.get_assessment(run_id)
         review_ids.append(assessment.borrower_id)
         if assessment.borrower_id == "SYN002":
             raise RuntimeError("Sensitive provider detail")
-        return original_review(run_id, context)
+        return original_review(run_id, context, **kwargs)
 
     monkeypatch.setattr(service.assessment_service, "assess", assess)
     monkeypatch.setattr(service, "review", review)
@@ -227,7 +241,7 @@ def test_batch_continues_after_calculation_and_review_failures(portfolio, monkey
         "SYN002",
         "SYN004",
     ]  # No review of an older run after a failed calculation.
-    assert model.respond.call_count == 3
+    assert model.respond.call_count == 4
 
 
 def test_invalid_batch_review_criteria_reject_request_before_calculations(portfolio, monkeypatch):

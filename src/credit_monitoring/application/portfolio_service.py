@@ -6,10 +6,12 @@ from datetime import date
 
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.credit_review_service import CreditReviewService
+from credit_monitoring.application.follow_up_question_service import FollowUpQuestionService
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.domain.credit_review import CreditReviewResult, ExposureDecisionContext
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.persistence.portfolio_repository import PortfolioRepository
+from credit_monitoring.persistence.workflow_repository import WorkflowRepository
 
 STATUS_LABELS = {
     "compliant": "Compliant",
@@ -33,6 +35,7 @@ class PortfolioEntry:
     created_at: str | None = None
     review: CreditReviewResult | None = None
     last_error: str | None = None
+    needs_review: bool = False
 
     @property
     def statuses(self) -> set[str]:
@@ -70,6 +73,7 @@ class PortfolioOutcome:
     error: str | None = None
     review: CreditReviewResult | None = None
     review_error: str | None = None
+    follow_up_error: str | None = None
 
 
 class PortfolioService:
@@ -81,12 +85,17 @@ class PortfolioService:
         assessment_service: AssessmentService,
         review_service: CreditReviewService,
         repository: PortfolioRepository,
+        workflow_repository: WorkflowRepository,
+        follow_up_service: FollowUpQuestionService | None = None,
     ):
         self.borrowers = sorted(borrowers, key=lambda borrower: borrower["borrower_name"])
         self.financial_repository = financial_repository
         self.assessment_service = assessment_service
         self.review_service = review_service
         self.repository = repository
+        self.workflow_repository = workflow_repository
+        self.follow_up_service = follow_up_service
+        self.follow_up_errors: dict[str, str] = {}
 
     def periods(self) -> list[date]:
         return sorted(
@@ -121,6 +130,11 @@ class PortfolioService:
                     period_end=target,
                     assessment=assessment,
                     created_at=created_at,
+                    needs_review=self.workflow_repository.sources_changed_since(
+                        borrower_id, created_at
+                    )
+                    if created_at
+                    else False,
                     review=self.repository.latest_review(assessment.assessment_run_id)
                     if assessment
                     else None,
@@ -181,8 +195,22 @@ class PortfolioService:
                         index, len(selected), borrower_id, "Running credit review agents"
                     )
                 try:
-                    review = self.review(outcome.assessment.assessment_run_id, review_context)
-                    outcome = replace(outcome, review=review)
+                    review = self.review(
+                        outcome.assessment.assessment_run_id,
+                        review_context,
+                        follow_up_progress=(
+                            lambda: stage_progress(
+                                index, len(selected), borrower_id, "Generating follow-up questions"
+                            )
+                        )
+                        if stage_progress
+                        else None,
+                    )
+                    outcome = replace(
+                        outcome,
+                        review=review,
+                        follow_up_error=self.follow_up_errors.get(review.review_id),
+                    )
                 except Exception as error:
                     outcome = replace(
                         outcome,
@@ -194,10 +222,32 @@ class PortfolioService:
                 progress(index, len(selected), outcome)
         return outcomes
 
-    def review(self, run_id: str, context: ExposureDecisionContext) -> CreditReviewResult:
+    def review(
+        self,
+        run_id: str,
+        context: ExposureDecisionContext,
+        *,
+        follow_up_progress: Callable[[], None] | None = None,
+    ) -> CreditReviewResult:
         if not context.credit_criteria:
             raise ValueError("Supply at least one credit criterion for the agent review.")
         assessment = self.repository.get_assessment(run_id)
         review = self.review_service.review_assessment(assessment, decision_context=context)
         self.repository.save_review(review)
+        if follow_up_progress:
+            follow_up_progress()
+        self.generate_follow_ups(assessment, review)
         return review
+
+    def generate_follow_ups(self, assessment: RiskAssessment, review: CreditReviewResult) -> None:
+        """A question-generation failure never discards an already saved review."""
+        if self.follow_up_service is None:
+            return
+        try:
+            self.follow_up_service.generate(assessment, review)
+            self.follow_up_errors.pop(review.review_id, None)
+        except Exception as error:
+            self.follow_up_errors[review.review_id] = (
+                f"Follow-up questions unavailable ({type(error).__name__}). "
+                "The analysis is saved. Retry from the assistant."
+            )

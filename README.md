@@ -23,9 +23,29 @@ credentials. Agent reviews require `OPENAI_API_KEY` in `.env` or the environment
 `data/runtime/portfolio/` storage. Opening/filtering the page does not run assessments
 or agents.
 
-The remaining pages are still a UI preview with illustrative session-only data.
-**Reset sample screens** clears those samples while retaining connected portfolio
-results. See the [POC walkthrough](docs/guides/ui_preview.md).
+**Borrower analysis** shares those saved results and supports calculation evidence,
+prediction controls, version history, real assistant conversations, validation,
+flags and analyst report submission. **Documents & data** now supports a persistent
+working catalog, explicit borrower links, HTML fetch/extraction, cache retries,
+source inspection and backed-up database/index rebuilds. Downloads need
+`SEC_USER_AGENT`; extraction also needs `OPENAI_API_KEY`. **Risk review** now saves
+manager observations, recommendations, reviewed decisions and flag resolutions against
+exact submitted versions. Further-analysis requests support context-only agent reruns
+or analyst recalculation, validation and resubmission. **Board report** saves draft
+and final snapshots containing open flags, older cases, untriaged breaches and explicit
+pending items. Saved reports can be opened using `?report_id=...`. **Reset navigation**
+retains all saved records.
+See the [POC walkthrough](docs/guides/ui_preview.md).
+
+Open **User guide** in the sidebar for the first-assessment walkthrough, task help
+and troubleshooting. Collapsed **How to…** sections explain controls beside the work.
+After each credit review, an additional read-only agent generates up to three
+follow-up questions from the saved calculations and bullish, bearish and recommendation
+analyses. In **Borrower analysis → Credit assistant**, expand **Suggested follow-up questions**,
+select a question and edit the
+**Question draft**, then **Send question**. Existing saved analyses offer **Generate
+follow-up questions**. Generation uses model credentials and incurs provider usage;
+saved questions are reused when browsing. Answers receive the matching saved risk analysis.
 
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
 
@@ -46,7 +66,10 @@ For analyst follow-ups, copy [.env.example](.env.example) to `.env` and set
 `openai-responses:gpt-4o-mini`. Conversation memory belongs to each browser session
 and clears on a new assessment or **Clear conversation**.
 
-Prediction defaults to **Off**. Model details, SEC downloads, credit perspective reviews,
+The connected `make preview` app enables the bundled **Logistic Regression** forecast
+by default. Existing assessments saved with ML off can be updated using **Run
+assessment with ML**, followed by **Run agent review** for the new version. The
+original `make run` app still defaults to **Off**. Model details, SEC downloads, credit perspective reviews,
 and Logfire setup are documented in the [usage guides](docs/README.md#usage-guides).
 Synthetic model results do not establish real-world forecasting performance.
 

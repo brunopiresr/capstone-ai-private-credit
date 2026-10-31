@@ -95,13 +95,15 @@ def test_all_assessments_cover_every_borrower_and_table_click_selects_real_detai
     assert model.respond.call_count == 0
 
 
-def test_agent_review_executes_three_agents_and_keeps_snapshot_linkage(connected, monkeypatch):
+def test_review_executes_risk_and_question_agents_and_keeps_snapshot_linkage(
+    connected, monkeypatch
+):
     app, working, model = connected
     monkeypatch.setenv("OPENAI_API_KEY", "offline-test-not-a-real-key")
     app.selectbox(key="portfolio_period").select("2025-09-30").run()
     click(app, "Run selected assessment")
     click(app, "Run agent review")
-    assert model.respond.call_count == 3
+    assert model.respond.call_count == 4
     assert row(app, "SYN002")["Agent review"] == "Complete"
     assert {"Bullish agent", "Bearish agent", "Recommendation agent"} <= {
         h.value for h in app.subheader
@@ -111,10 +113,10 @@ def test_agent_review_executes_three_agents_and_keeps_snapshot_linkage(connected
         assert connection.execute("SELECT run_id FROM portfolio_reviews").fetchone()[0] == saved_id
         assert connection.execute("SELECT COUNT(*) FROM portfolio_assessments").fetchone()[0] == 1
     app.run()
-    assert model.respond.call_count == 3
+    assert model.respond.call_count == 4
     click(app, "Run selected assessment")
     assert row(app, "SYN002")["Agent review"] == "Not run"
-    assert model.respond.call_count == 3
+    assert model.respond.call_count == 4
     with sqlite3.connect(working / "portfolio.sqlite3") as connection:
         assert connection.execute("SELECT COUNT(*) FROM portfolio_reviews").fetchone()[0] == 1
 
@@ -162,7 +164,7 @@ def test_assessment_can_include_agent_reviews_for_selected_or_all_borrowers(
         for item in app.session_state.portfolio_outcomes
     )
     if expected == 1:
-        assert model.respond.call_count == 3
+        assert model.respond.call_count == 4
         assert row(app, "SYN002")["Agent review"] == "Complete"
     calls = model.respond.call_count
     app.run()
@@ -225,7 +227,7 @@ def test_service_upgrade_between_reruns_does_not_keep_legacy_assess_signature(
     app.checkbox(key="portfolio_include_reviews").check().run()
     click(app, "Run selected assessment")
     assert len(created) >= 3  # New service code is picked up on each rerun.
-    assert model.respond.call_count == 3
+    assert model.respond.call_count == 4
     assert row(app, "SYN002")["Agent review"] == "Complete"
     with sqlite3.connect(working / "portfolio.sqlite3") as connection:
         assert connection.execute("SELECT COUNT(*) FROM portfolio_assessments").fetchone()[0] == 1

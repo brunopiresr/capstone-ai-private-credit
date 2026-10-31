@@ -59,6 +59,9 @@ class AssessmentService:
         information_cutoff: date,
         *,
         ml_enabled: bool | None = None,
+        financial_overrides: dict[str, float | None] | None = None,
+        revision_reason: str = "",
+        financial_snapshot: FinancialPeriod | None = None,
     ) -> RiskAssessment:
         """Assess existing inputs and backfill available history in a new immutable run.
 
@@ -69,6 +72,19 @@ class AssessmentService:
             raise ValueError(
                 "A borrower and a cutoff on or after the reporting period are required."
             )
+        if financial_overrides is not None:
+            if not financial_overrides or not revision_reason.strip():
+                raise ValueError("Revised financial inputs require changes and a reason.")
+            FinancialPeriod(
+                borrower_id=borrower_id, period_end=period_end, metrics=financial_overrides
+            )
+        if financial_snapshot is not None:
+            financial_snapshot = FinancialPeriod.model_validate(financial_snapshot.model_dump())
+            if (financial_snapshot.borrower_id, financial_snapshot.period_end) != (
+                borrower_id,
+                period_end,
+            ):
+                raise ValueError("Saved financial inputs must match the requested borrower-period.")
         run_id = new_identifier()
         with (
             session_scope(),
@@ -91,6 +107,22 @@ class AssessmentService:
             periods.setdefault(
                 period_end, FinancialPeriod(borrower_id=borrower_id, period_end=period_end)
             )
+            if financial_snapshot is not None:
+                periods[period_end] = financial_snapshot
+            if financial_overrides is not None:
+                original = periods[period_end]
+                if original.available_at and original.available_at > information_cutoff:
+                    raise ValueError("Cannot revise financials unavailable at the selected cutoff.")
+                periods[period_end] = FinancialPeriod.model_validate(
+                    {
+                        **original.model_dump(),
+                        "metrics": {**original.metrics, **financial_overrides},
+                        "source_file": f"Analyst revision: {revision_reason.strip()}",
+                        "source_row": None,
+                        "loaded_at": None,
+                        "available_at": None,
+                    }
+                )
             results = []
             input_issues = []
             for reporting_date in sorted(periods):

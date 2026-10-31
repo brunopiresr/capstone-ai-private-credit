@@ -1,6 +1,6 @@
 """Versioned mandates for independent perspectives and neutral credit synthesis."""
 
-CREDIT_REVIEW_PROMPT_VERSION = "credit-review-v1"
+CREDIT_REVIEW_PROMPT_VERSION = "credit-review-v2"
 
 SHARED_INSTRUCTIONS = """
 Assess only the single borrower and dates in the supplied evidence snapshot.
@@ -19,6 +19,9 @@ assumptions, counterevidence, and credit implications. Confidence measures evide
 support, not credit risk or probability. Material gaps must affect your confidence.
 Do not manufacture favorable or unfavorable arguments to satisfy your assigned view.
 Recommendations are advisory for an existing exposure; the analyst decides.
+Additional context may have a later review_information_cutoff than the saved
+assessment. Preserve both dates. A supplied source is not independent verification;
+unsourced additional context remains an assumption, even when it has an availability date.
 """
 
 BULLISH_INSTRUCTIONS = (

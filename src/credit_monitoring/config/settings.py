@@ -7,6 +7,8 @@ from pydantic import Field
 from credit_monitoring.domain.analytics_base import AssessmentModel
 from credit_monitoring.paths import RUNTIME_DIR
 
+DEFAULT_APP_PREDICTION_MODE = "Logistic Regression"
+
 
 class RiskModelConfig(AssessmentModel):
     """Select a registered model without exposing its implementation to the workflow."""

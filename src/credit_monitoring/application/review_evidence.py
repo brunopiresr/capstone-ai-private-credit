@@ -1,9 +1,14 @@
 """Project completed assessments into isolated evidence; never execute financial work."""
 
 import json
+from datetime import date
 
 from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
-from credit_monitoring.domain.credit_review import EvidenceReference, ReviewSnapshot
+from credit_monitoring.domain.credit_review import (
+    AdditionalReviewContext,
+    EvidenceReference,
+    ReviewSnapshot,
+)
 from credit_monitoring.domain.financials import FINANCIAL_METRICS
 from credit_monitoring.public_context.events import PublicNewsContext
 
@@ -130,10 +135,21 @@ def _identity_errors(assessment: RiskAssessment) -> list[str]:
 
 
 def build_review_snapshot(
-    assessment: RiskAssessment, news: PublicNewsContext
+    assessment: RiskAssessment,
+    news: PublicNewsContext,
+    *,
+    additional_context: tuple[AdditionalReviewContext, ...] = (),
+    review_cutoff: date | None = None,
 ) -> tuple[ReviewSnapshot, tuple[str, ...]]:
     """Own provenance and caveats; canonical strings keep nested inputs immutable."""
     errors = _identity_errors(assessment)
+    cutoff = review_cutoff or assessment.information_cutoff
+    if cutoff < assessment.information_cutoff or any(
+        item.available_at and item.available_at > cutoff for item in additional_context
+    ):
+        raise ValueError(
+            "Review cutoff must cover the saved assessment and additional information."
+        )
     data = _sanitize(assessment)
     references = [
         EvidenceReference(evidence_id="assessment", kind="assessment", path="/assessment")
@@ -187,6 +203,18 @@ def build_review_snapshot(
         for index in range(len(news.items))
     )
     limitations = [*assessment.issues, *news.issues]
+    context_data = []
+    for index, item in enumerate(additional_context):
+        context_data.append({**item.model_dump(mode="json"), "basis": item.basis})
+        references.append(
+            EvidenceReference(
+                evidence_id=f"context:{index}", kind="context", path=f"/additional_context/{index}"
+            )
+        )
+    if additional_context:
+        limitations.append(
+            "Additional context is supplied information; its claims are not independently verified."
+        )
     limitations.extend(issue.message for issue in assessment.verification.issues)
     if not assessment.results:
         limitations.append("No current covenant results are available.")
@@ -211,4 +239,6 @@ def build_review_snapshot(
         news=news,
         evidence=tuple(references),
         limitations=tuple(dict.fromkeys(limitations)),
+        review_information_cutoff=review_cutoff,
+        additional_context_json=json.dumps(context_data, sort_keys=True, allow_nan=False),
     ), tuple(errors)

@@ -1,8 +1,10 @@
 # Final application implementation plan — Streamlit POC
 
-Status: Portfolio connected to calculation services and credit review agents, with
-local SQLite snapshots. Other workflows remain a UI preview; their service integration
-and persistent workflow storage are planned. See the [POC walkthrough](../guides/ui_preview.md).
+Status: All five pages are connected. Assessments, agent reviews, analyst decisions,
+document operations, manager comments/recommendations, analysis requests and draft/final
+board reports persist locally. Manager decisions bind exact submission/review versions;
+final board reports freeze their source snapshots. See the
+[POC walkthrough](../guides/ui_preview.md).
 Updated: 29 October 2026.
 
 ## 1. Goal and approach
@@ -16,11 +18,63 @@ This is a POC. Use one Python application, existing application services, SQLite
 and local files. Keep the current `make run` entry point. Analyst and manager
 workflows are available directly through page navigation, without login or permission checks.
 
-The `make preview` entry point now combines a connected Portfolio page with sample
-screens for the remaining workflows. Portfolio reads actual source dates, saves
-complete assessments, and runs bullish/bearish/recommendation reviews on demand.
-Those records persist under `data/runtime/portfolio/`. The existing `make run` app
-is unchanged. Subsequent steps will connect the borrower, manager and board workflows.
+The `make preview` entry point connects Portfolio, Borrower analysis, Documents & data,
+Risk review and Board report. The analyst and manager pages share
+complete assessment and bullish/bearish/recommendation review versions under
+`data/runtime/portfolio/`. Borrower analysis adds prediction controls, revised-input
+recalculation, version-scoped chat with expansion, validation, flags and report handoff.
+The existing `make run` app is unchanged.
+
+Implemented analyst storage uses `portfolio.sqlite3` for existing assessment/review
+snapshots and separate `workflow.sqlite3` for append-only analyst events (run lineage,
+validation and report drafts), borrower flags and frozen analyst submissions. A new
+assessment requires fresh validation; a new credit review also requires revalidation.
+Submitting a breach requires a flag for that assessment version or an explained
+triage decision. Missing-data cases require explicit validation exceptions. Submissions
+freeze the exact assessment, review, validation, flags and analyst text. Chat reads
+saved inputs/results by default; explicitly enabled recalculation uses the same
+workflow save path and selects the new assessment. Chat memory remains session-only.
+Portfolio and Borrower analysis now enable the bundled Logistic Regression forecast
+by default. Older ML-disabled assessments can be rerun with their saved inputs;
+credit reviews must be rerun on the new version to include its forecast. Missing
+numeric inputs still produce an explicit unavailable forecast.
+
+Documents & data retains catalog metadata, borrower links, source-change markers
+and operation history in `workflow.sqlite3`. Its generated working catalog, extraction
+cache and recovery archive live under `data/runtime/portfolio/documents/`; HTML and
+Markdown reuse `data/cache/sec/`. Public catalog issuers start unlinked. Processing
+uses existing conversion, full-source extraction and per-section retry caches.
+New linked sources invalidate prior assessment validation until explicit reassessment;
+frozen reports remain unchanged. Extraction supplies evidence and does not guess
+borrower identity, financial metrics or contractual calculation bindings.
+
+Database recreation backs up the working file, builds and validates a replacement,
+then publishes it atomically. Financials reload the known source CSV, extraction
+restores the retained document/section archive, and analytics restores saved assessment
+snapshots. Workflow and report storage is separate. Operations run synchronously
+under one process-local lock; unfinished records become interrupted after restart.
+
+Risk review reads saved assessments and frozen analyst submissions. Manager comments,
+recommendations, reviewed decisions, selected flag resolutions and further-analysis
+requests persist in `workflow.sqlite3`. New submissions, recalculations, review versions
+and source changes require fresh decisions. Resolution changes a flag's workflow state;
+deterministic compliance remains unchanged.
+
+Context-only requests run the existing independent bullish/bearish/recommendation
+agents against the exact saved assessment. Supplementary context, provenance and its
+review cutoff are frozen in the shared evidence snapshot; unsourced claims remain
+assumptions. Later context requires a later review cutoff without rewriting the
+assessment cutoff. Incomplete reviews are retained and requests stay open for explicit
+retry. Corrections require a new assessment, analyst validation and a new submission.
+Responses must be accepted before completing manager review; obsolete requests can be
+cancelled with a recorded reason. Borrower analysis shows saved feedback and requests.
+
+Board drafts contain every open flag in the selected period scope, older unresolved
+cases and untriaged breaches, plus a pending-submission register and count-based
+portfolio metrics. Edits save new draft versions. If case sources change, finalization
+requires an explicit source refresh and inspection. Finalization freezes all source
+snapshots, observations, recommendations and outstanding requests. Missing analysis or
+decisions remain pending. Saved reports reopen through the selector or `?report_id=...`.
 
 The previous proposal for React, FastAPI, PostgreSQL and a separate worker is
 superseded. Build the requested workflows using the current stack and native
@@ -254,6 +308,11 @@ under `persistence/`. Streamlit calls Python services directly.
 
 First milestone: list all borrowers and save a real assessment visible in both
 views. Then complete one breach case end to end before adding further polish.
+
+Steps 1–5 are connected. Controlled service/UI regressions cover analyst handoff,
+manager context reruns and correction requests, response acceptance, flag resolution,
+board source refresh and stable finalized reports. Live model quality and production
+deployment remain outside those controlled checks.
 
 ## 6. Verification and scope
 

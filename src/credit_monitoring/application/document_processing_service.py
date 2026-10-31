@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -180,12 +181,20 @@ class DocumentProcessingService:
             if ticker is None or record.get("ticker") == ticker
         ]
 
-    def process_document(self, document_id: str, force: bool = False) -> DocumentExtraction:
+    def process_document(
+        self,
+        document_id: str,
+        force: bool = False,
+        *,
+        progress: Callable[[str, int, int], None] | None = None,
+    ) -> DocumentExtraction:
         with (
             session_scope(),
             log_step(logger, "Process document", document_id=document_id, force=force),
         ):
             record = self.catalog_record(document_id)
+            if progress:
+                progress("Loading and converting source", 0, 0)
             with log_step(logger, "Load Markdown", document_id=document_id):
                 text = load_markdown(
                     record,
@@ -199,6 +208,12 @@ class DocumentProcessingService:
                 key = self._key(document)
                 existing = self.get_document_extraction(document_id)
             if not force and existing.status == "complete" and existing.cache_key == key:
+                if progress:
+                    progress(
+                        "Reusing completed extraction",
+                        existing.total_sections,
+                        existing.total_sections,
+                    )
                 logger.info("Extraction cache hit document_id=%s", document_id)
                 return existing
             logger.info(
@@ -236,14 +251,16 @@ class DocumentProcessingService:
             parts = []
             try:
                 for index, section in enumerate(sections):
-                    progress = f"{index + 1}/{len(sections)}"
+                    section_progress = f"{index + 1}/{len(sections)}"
+                    if progress:
+                        progress("Extracting section", index, len(sections))
                     result = saved.get(index)
                     if result is None:
                         with log_step(
                             logger,
                             "Extract section",
                             document_id=document_id,
-                            section=progress,
+                            section=section_progress,
                             model=model_identity(self.model),
                             chars=section.end
                             - section.start
@@ -255,14 +272,21 @@ class DocumentProcessingService:
                                 model=self.model,
                             )
                         with log_step(
-                            logger, "Save section", document_id=document_id, section=progress
+                            logger,
+                            "Save section",
+                            document_id=document_id,
+                            section=section_progress,
                         ):
                             self.repository.save_section(document_id, key, index, result)
                     else:
                         logger.info(
-                            "Section cache hit document_id=%s section=%s", document_id, progress
+                            "Section cache hit document_id=%s section=%s",
+                            document_id,
+                            section_progress,
                         )
                     parts.append(result.extraction)
+                    if progress:
+                        progress("Section saved", index + 1, len(sections))
                 with log_step(logger, "Combine extractions", document_id=document_id):
                     result = ExtractionResult(
                         prompt_version=EXTRACTION_PROMPT_VERSION,
