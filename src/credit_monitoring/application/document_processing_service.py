@@ -1,17 +1,25 @@
 """Direct full-document extraction, persistent reuse, and independent evidence search."""
 
+import asyncio
+import copy
 import hashlib
 import json
 import logging
+import sys
 from collections.abc import Callable
 from pathlib import Path
-from time import perf_counter
 from typing import Any
+from urllib.parse import urlparse
 
 from pydantic_ai.models import Model
 
-from credit_monitoring.agents.models import DEFAULT_MODEL, model_identity
+from credit_monitoring.agents.models import DEFAULT_MODEL, model_identity, resolve_model
 from credit_monitoring.agents.prompts.extraction import EXTRACTION_PROMPT_VERSION
+from credit_monitoring.application.document_batch import (
+    DocumentBatchProgress,
+    run_document_batch,
+    validate_workers,
+)
 from credit_monitoring.covenants.assembly import combine_extractions
 from credit_monitoring.covenants.extraction import extract_covenants
 from credit_monitoring.covenants.repositories import CovenantRepository
@@ -31,6 +39,7 @@ from credit_monitoring.ingestion.loaders.sec import (
 )
 from credit_monitoring.observability import session_scope
 from credit_monitoring.observability.logging import log_step
+from credit_monitoring.persistence.locking import resource_lock
 from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
 
 logger = logging.getLogger(__name__)
@@ -49,7 +58,7 @@ def _hash(value: Any) -> str:
 
 
 class DocumentProcessingService:
-    """The application invokes processing directly and waits; no queue or worker."""
+    """Synchronous single-document and bounded parallel batch extraction."""
 
     def __init__(
         self,
@@ -63,6 +72,8 @@ class DocumentProcessingService:
         user_agent: str = "",
         converter: Any = None,
         max_chars: int = DEFAULT_MAX_CHARS,
+        model_factory: Callable[[], Model] | None = None,
+        converter_factory: Callable[[], Any] | None = None,
     ) -> None:
         if max_chars <= 0:
             raise ValueError("max_chars must be positive.")
@@ -75,9 +86,14 @@ class DocumentProcessingService:
         self.max_chars = max_chars
         self.repository = repository
         self.evidence_search = evidence_search
+        self.model_factory = model_factory
+        self.converter_factory = converter_factory
+        self._configuration_snapshot = None
 
     @property
     def configuration(self) -> dict:
+        if self._configuration_snapshot is not None:
+            return self._configuration_snapshot
         return {
             "model": model_identity(self.model),
             "schema_version": RESULT_SCHEMA_VERSION,
@@ -120,13 +136,28 @@ class DocumentProcessingService:
         return (self.markdown_dir / f"{record['document_id']}.md").read_text(encoding="utf-8")
 
     def _key(self, document: dict) -> str:
-        return _hash({"document": document, "configuration": self.configuration})
+        # Adding optional catalog columns must not invalidate unchanged legacy
+        # extractions merely because the new fields are empty on old sources.
+        optional_metadata = {
+            "accession_number",
+            "filing_index_url",
+            "html_identified_via",
+            "link_verified_as_of",
+            "selection_note",
+            "reference_ticker",
+        }
+        identity = {k: v for k, v in document.items() if k not in optional_metadata or v}
+        return _hash({"document": identity, "configuration": self.configuration})
 
     def get_document_extraction(
         self, document_id: str, *, include_result: bool = True
     ) -> DocumentExtraction:
         """Inspect local source and cache without converting, downloading, or calling a model."""
         record = self.catalog_record(document_id)
+        return self._get_document_extraction(record, include_result=include_result)
+
+    def _get_document_extraction(self, record, *, include_result=True) -> DocumentExtraction:
+        document_id = record["document_id"]
         outcome = DocumentExtraction(
             document_id=document_id,
             citation=filing_citation(record),
@@ -176,7 +207,7 @@ class DocumentProcessingService:
     ) -> list[DocumentExtraction]:
         """Include unprocessed catalog documents, not just completed database rows."""
         return [
-            self.get_document_extraction(document_id, include_result=include_results)
+            self._get_document_extraction(record, include_result=include_results)
             for document_id, record in self._catalog().items()
             if ticker is None or record.get("ticker") == ticker
         ]
@@ -188,11 +219,23 @@ class DocumentProcessingService:
         *,
         progress: Callable[[str, int, int], None] | None = None,
     ) -> DocumentExtraction:
+        return self._process_document_record(self.catalog_record(document_id), force, progress)
+
+    def _process_document_record(self, record, force=False, progress=None):
+        with resource_lock("document", str(self.markdown_dir), record["document_id"]):
+            return self._process_unlocked_record(record, force, progress)
+
+    def _process_unlocked_record(self, record, force=False, progress=None):
+        document_id = record["document_id"]
+        suffix = Path(urlparse(record["source_url"]).path).suffix.lower()
+        if suffix in {".pdf", ".docx", ".doc", ".xlsx", ".csv", ".pptx", ".zip", ".png", ".jpg"}:
+            raise ValueError(
+                f"Unsupported {suffix[1:].upper()} source; the pipeline processes HTML."
+            )
         with (
             session_scope(),
             log_step(logger, "Process document", document_id=document_id, force=force),
         ):
-            record = self.catalog_record(document_id)
             if progress:
                 progress("Loading and converting source", 0, 0)
             with log_step(logger, "Load Markdown", document_id=document_id):
@@ -206,7 +249,7 @@ class DocumentProcessingService:
             with log_step(logger, "Check extraction cache", document_id=document_id):
                 document = full_document_record(record, text, markdown_dir=self.markdown_dir)
                 key = self._key(document)
-                existing = self.get_document_extraction(document_id)
+                existing = self._get_document_extraction(record)
             if not force and existing.status == "complete" and existing.cache_key == key:
                 if progress:
                     progress(
@@ -298,72 +341,98 @@ class DocumentProcessingService:
                 with log_step(logger, "Save document failure", document_id=document_id):
                     self.repository.fail(document_id, key, f"{type(exc).__name__}: {exc}")
                 raise
-            return self.get_document_extraction(document_id).model_copy(update={"cache_hit": False})
+            return self._get_document_extraction(record).model_copy(update={"cache_hit": False})
 
     def process_all_documents(
-        self, ticker: str | None = None, *, force: bool = False
+        self, ticker: str | None = None, *, force: bool = False, max_workers: int = 4
     ) -> list[DocumentExtraction]:
-        """Process catalog documents sequentially, retaining per-document failures.
-
-        Complete current results are reused unless force=True. A ticker limits
-        processing to that issuer. Catalog validation errors propagate before
-        any document is processed; individual errors return failed outcomes so
-        subsequent documents are still attempted.
-        """
+        """Validate once, then process files concurrently with stable catalog order."""
+        validate_workers(max_workers)
         with session_scope(), log_step(logger, "Process all documents", ticker=ticker, force=force):
             with log_step(logger, "Load and validate catalog"):
                 catalog = self._catalog()
-            selected = [
-                (document_id, record)
-                for document_id, record in catalog.items()
-                if ticker is None or record.get("ticker") == ticker
-            ]
-            total = len(selected)
-            logger.info("Batch ready total_documents=%d ticker=%s force=%s", total, ticker, force)
-            outcomes = []
-            for index, (document_id, record) in enumerate(selected, start=1):
-                started = perf_counter()
-                logger.info(
-                    "Batch document started document=%d/%d document_id=%s ticker=%s",
-                    index,
-                    total,
-                    document_id,
-                    record.get("ticker"),
+            records = [r for r in catalog.values() if ticker is None or r.get("ticker") == ticker]
+            return self._process_batch(records, force, max_workers, None)
+
+    def process_documents(
+        self,
+        document_ids: list[str],
+        *,
+        force: bool = False,
+        max_workers: int = 4,
+        progress: Callable[[DocumentBatchProgress], None] | None = None,
+    ) -> list[DocumentExtraction]:
+        """Process explicit selections; workers never call application/UI callbacks."""
+        validate_workers(max_workers)
+        with session_scope(), log_step(logger, "Process selected documents", force=force):
+            catalog = self._catalog()
+            selected = list(dict.fromkeys(document_ids))
+            if unknown := set(selected) - catalog.keys():
+                raise ValueError(f"Unknown catalog documents: {sorted(unknown)}")
+            return self._process_batch([catalog[k] for k in selected], force, max_workers, progress)
+
+    def _process_batch(self, records, force, max_workers, progress):
+        parallel = max_workers > 1 and len(records) > 1
+        if parallel:
+            if not isinstance(self.model, str) and self.model_factory is None:
+                raise ValueError(
+                    "Parallel injected models require model_factory; or use max_workers=1."
                 )
+            if self.converter is not None and self.converter_factory is None:
+                raise ValueError(
+                    "Parallel injected converters require converter_factory; or use max_workers=1."
+                )
+        isolated = parallel or self.model_factory is not None or self.converter_factory is not None
+
+        def process(record, report):
+            if isolated:
+                return self._isolated_document(record, force, report)
+            return self._process_document_record(record, force, report)
+
+        return run_document_batch(records, process, max_workers=max_workers, progress=progress)
+
+    def _isolated_document(self, record, force, progress):
+        # A cache hit requires neither credentials nor constructing provider clients.
+        with resource_lock("document", str(self.markdown_dir), record["document_id"]):
+            if not force and self._get_document_extraction(record).cache_hit:
+                return self._process_unlocked_record(record, force, progress)
+            worker = copy.copy(self)
+            worker._configuration_snapshot = self.configuration.copy()
+            if self.model_factory is None and not isinstance(self.model, str):
+                # Sequential callers may supply only a converter factory. Their
+                # shared model keeps its caller-owned client and event loop.
+                worker.converter = self.converter_factory()
                 try:
-                    outcome = self.process_document(document_id, force=force)
-                except Exception as exc:
-                    logger.error(
-                        "Batch document failed",
-                        extra={"document_id": document_id, "error_type": type(exc).__name__},
-                    )
-                    outcome = DocumentExtraction(
-                        document_id=document_id,
-                        citation=filing_citation(record),
-                        ticker=record.get("ticker") or None,
-                        status="failed",
-                        error=f"{type(exc).__name__}: {exc}",
-                    )
-                outcomes.append(outcome)
-                logger.log(
-                    logging.ERROR if outcome.status == "failed" else logging.INFO,
-                    "Batch document finished document=%d/%d document_id=%s status=%s "
-                    "cache_hit=%s elapsed_s=%.2f",
-                    index,
-                    total,
-                    document_id,
-                    outcome.status,
-                    outcome.cache_hit,
-                    perf_counter() - started,
+                    return worker._process_unlocked_record(record, force, progress)
+                finally:
+                    if callable(getattr(worker.converter, "close", None)):
+                        worker.converter.close()
+            with asyncio.Runner() as runner:
+                asyncio.set_event_loop(runner.get_loop())
+                worker.model = (
+                    self.model_factory() if self.model_factory else resolve_model(self.model)
                 )
-            logger.info(
-                "Batch summary total_documents=%d completed=%d failed=%d cache_hits=%d",
-                total,
-                sum(item.status == "complete" for item in outcomes),
-                sum(item.status == "failed" for item in outcomes),
-                sum(item.cache_hit for item in outcomes),
-            )
-            return outcomes
+                worker.converter = None
+                try:
+                    runner.run(worker.model.__aenter__())
+                    try:
+                        if not isinstance(self.model, str) and model_identity(
+                            worker.model
+                        ) != model_identity(self.model):
+                            raise ValueError(
+                                "model_factory must preserve the configured model identity."
+                            )
+                        worker.converter = (
+                            self.converter_factory() if self.converter_factory else None
+                        )
+                        return worker._process_unlocked_record(record, force, progress)
+                    finally:
+                        runner.run(worker.model.__aexit__(*sys.exc_info()))
+                finally:
+                    if worker.converter is not None and callable(
+                        getattr(worker.converter, "close", None)
+                    ):
+                        worker.converter.close()
 
     def search_evidence(self, query: str, ticker: str | None = None) -> list[dict]:
         """Search complete local Markdown chunks; return passages, not a generated answer."""

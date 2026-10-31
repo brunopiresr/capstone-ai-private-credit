@@ -29,8 +29,8 @@ def write_csv(path: Path, rows: list[list[str]], header: list[str] | None = None
 def test_load_real_dataset_and_query_facts(tmp_path: Path) -> None:
     database = tmp_path / "nested" / "financials.sqlite3"
     result = load_financials(SOURCE, database)
-    assert result.rows_loaded == 22
-    assert result.borrowers_loaded == 12
+    assert result.rows_loaded == 172
+    assert result.borrowers_loaded == 37
     assert result.database_path == database
     repository = FinancialRepository(database)
     quarter = repository.get_quarter("SYN007", "2025-09-30")
@@ -53,8 +53,8 @@ def test_load_real_dataset_and_query_facts(tmp_path: Path) -> None:
     assert percentage[0]["value"] == 40
     assert percentage[0]["unit"] == "percent"
     with sqlite3.connect(database) as connection:
-        assert connection.execute("SELECT COUNT(*) FROM quarterly_financials").fetchone()[0] == 22
-        assert connection.execute("SELECT COUNT(*) FROM financial_facts").fetchone()[0] == 308
+        assert connection.execute("SELECT COUNT(*) FROM quarterly_financials").fetchone()[0] == 172
+        assert connection.execute("SELECT COUNT(*) FROM financial_facts").fetchone()[0] == 2924
 
 
 def test_reload_updates_snapshot_and_preserves_other_quarters(tmp_path: Path) -> None:
@@ -71,7 +71,7 @@ def test_reload_updates_snapshot_and_preserves_other_quarters(tmp_path: Path) ->
     assert updated["source_file"] == str(source)
     assert len(repository.get_history("SYN001")) == 3
     with sqlite3.connect(database) as connection:
-        assert connection.execute("SELECT COUNT(*) FROM quarterly_financials").fetchone()[0] == 22
+        assert connection.execute("SELECT COUNT(*) FROM quarterly_financials").fetchone()[0] == 172
 
 
 @pytest.mark.parametrize(

@@ -44,7 +44,11 @@ def test_existing_synthetic_cases(assessment_service, gold):
     assert assessment.verification.is_valid
     assert assessment.ml_status == "disabled"
     assert assessment.prediction is None
-    result = assessment.results[0]
+    result = next(
+        r
+        for r in assessment.results
+        if r.covenant_id == f"synthetic:{gold['borrower_id']}:{gold['covenant_id']}"
+    )
     if gold["borrower_id"] == "SYN010":
         assert result.compliance_status == (
             "not_tested" if period == date(2025, 6, 30) else "incomplete"

@@ -81,14 +81,14 @@ def multi_document_service(document_service_factory, generation_response):
 
 def test_process_all_documents_preserves_order_cache_and_force(multi_document_service):
     service = multi_document_service
-    first = service.process_all_documents()
+    first = service.process_all_documents(max_workers=1)
     assert [outcome.document_id for outcome in first] == ["SYN", "SECOND", "THIRD"]
     assert all(outcome.status == "complete" and not outcome.cache_hit for outcome in first)
     assert service.model.respond.call_count == 3
-    cached = service.process_all_documents()
+    cached = service.process_all_documents(max_workers=1)
     assert all(outcome.cache_hit and outcome.result is not None for outcome in cached)
     assert service.model.respond.call_count == 3
-    forced = service.process_all_documents(force=True)
+    forced = service.process_all_documents(force=True, max_workers=1)
     assert all(outcome.status == "complete" and not outcome.cache_hit for outcome in forced)
     assert service.model.respond.call_count == 6
 
@@ -105,7 +105,7 @@ def test_batch_logs_live_progress_timings_and_cache_reuse(
         return generation_response(CovenantExtraction())
 
     service.model.respond.side_effect = respond
-    service.process_all_documents(ticker="SYN")
+    service.process_all_documents(ticker="SYN", max_workers=1)
     messages = [record.getMessage() for record in caplog.records]
     assert any("document=1/2 document_id=SYN" in message for message in messages)
     assert any("document=2/2 document_id=THIRD" in message for message in messages)
@@ -131,7 +131,7 @@ def test_batch_logs_live_progress_timings_and_cache_reuse(
     assert "retrieved_records" not in caplog.text
 
     caplog.clear()
-    service.process_all_documents(ticker="SYN")
+    service.process_all_documents(ticker="SYN", max_workers=1)
     assert "Extraction cache hit document_id=SYN" in caplog.text
     assert "Extract section started" not in caplog.text
     assert "Batch summary total_documents=2 completed=2 failed=0 cache_hits=2" in caplog.text
@@ -140,11 +140,11 @@ def test_batch_logs_live_progress_timings_and_cache_reuse(
 
 def test_process_all_documents_filters_ticker(multi_document_service):
     service = multi_document_service
-    outcomes = service.process_all_documents(ticker="SYN")
+    outcomes = service.process_all_documents(ticker="SYN", max_workers=1)
     assert [outcome.document_id for outcome in outcomes] == ["SYN", "THIRD"]
     assert service.get_document_extraction("SECOND").status == "missing"
     assert service.model.respond.call_count == 2
-    assert service.process_all_documents(ticker="UNKNOWN") == []
+    assert service.process_all_documents(ticker="UNKNOWN", max_workers=1) == []
     assert service.model.respond.call_count == 2
 
 
@@ -171,7 +171,7 @@ def test_process_all_documents_continues_after_failure(
             generation_response(status="incomplete"),
             generation_response(CovenantExtraction()),
         ]
-    outcomes = service.process_all_documents()
+    outcomes = service.process_all_documents(max_workers=1)
     assert [outcome.status for outcome in outcomes] == ["complete", "failed", "complete"]
     failed = outcomes[1]
     assert failed.document_id == "SECOND" and failed.ticker == "OTHER"
@@ -197,11 +197,11 @@ def test_process_all_documents_empty_catalog_and_invalid_catalog(multi_document_
     caplog.set_level(logging.INFO, logger="credit_monitoring")
     header = service.source_file.read_text().splitlines()[0]
     service.source_file.write_text(header + "\n")
-    assert service.process_all_documents() == []
+    assert service.process_all_documents(max_workers=1) == []
     assert "Batch summary total_documents=0 completed=0 failed=0 cache_hits=0" in caplog.text
     service.source_file.write_text("document_id,company\nSYN,Synthetic\n")
     with pytest.raises(ValueError, match="Catalog rows require"):
-        service.process_all_documents()
+        service.process_all_documents(max_workers=1)
     assert "Load and validate catalog failed" in caplog.text
     service.model.respond.assert_not_called()
 
@@ -321,6 +321,38 @@ def test_changed_inputs_invalidate_cache(
     second = service.process_document("SYN")
     assert second.cache_key != first.cache_key and not second.cache_hit
     assert service.model.respond.call_count == 2
+
+
+def test_empty_new_catalog_metadata_preserves_legacy_cache(
+    document_service_factory, generation_response
+):
+    service = document_service_factory()
+    service.model.respond.return_value = generation_response(CovenantExtraction())
+    first = service.process_document("SYN")
+    record = service.catalog_record("SYN")
+    for name in (
+        "accession_number",
+        "filing_index_url",
+        "html_identified_via",
+        "link_verified_as_of",
+        "selection_note",
+        "reference_ticker",
+    ):
+        record[name] = ""
+
+    def save():
+        with service.source_file.open("w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=list(record))
+            writer.writeheader()
+            writer.writerow(record)
+
+    save()
+    reused = service.process_document("SYN")
+    assert reused.cache_hit and reused.cache_key == first.cache_key
+    assert service.model.respond.call_count == 1
+    record["accession_number"] = "new-accession"
+    save()
+    assert service.get_document_extraction("SYN").status == "stale"
 
 
 def test_failed_sections_resume_without_publishing_partial_facts(

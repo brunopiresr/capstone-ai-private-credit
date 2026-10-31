@@ -37,6 +37,13 @@ pending items. Saved reports can be opened using `?report_id=...`. **Reset navig
 retains all saved records.
 See the [POC walkthrough](docs/guides/ui_preview.md).
 
+The bundled app includes **37 fictional borrowers**, **172 quarterly financial records**,
+and **69 SEC catalog sources**. New borrowers SYN013–SYN037 cover six quarters through
+June 2026, including mixed covenant outcomes, capped adjustments, waivers and data gaps.
+Existing workspaces receive backed-up additive financial updates. Bulk document processing
+uses four document workers by default; **Documents processed at once** adjusts concurrency.
+See the [dataset integration notes](docs/project/dataset_expansion_plan.md).
+
 Open **User guide** in the sidebar for the first-assessment walkthrough, task help
 and troubleshooting. Collapsed **How to…** sections explain controls beside the work.
 After each credit review, an additional read-only agent generates up to three

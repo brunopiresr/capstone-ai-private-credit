@@ -180,6 +180,9 @@ def _simulate_population(
     borrowers, financials, terms = [], [], []
     for template in sources[INPUT_FILES[0]]:
         template_id = template["borrower_id"]
+        # Runtime expansion is not a change to the reviewed training population.
+        if template_id not in {f"SYN{index:03d}" for index in range(1, 13)}:
+            continue
         base = next(row for row in sources[INPUT_FILES[2]] if row["borrower_id"] == template_id)
         roles = ["train"] * int(borrowers_per_scenario * 0.7) + ["validation"] * max(
             1, int(borrowers_per_scenario * 0.14)

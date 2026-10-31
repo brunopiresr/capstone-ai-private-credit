@@ -11,8 +11,9 @@ The stub returns unknown risk and null probabilities.
 
 ## Working Streamlit review
 
-Run `make run`. The app copies the Git-versioned synthetic financial database once per
-startup into `data/runtime/streamlit/financials.sqlite3` and stores
+Run `make run`. The app copies the Git-versioned financial database into a fresh workspace,
+then applies backed-up additive updates to existing `data/runtime/streamlit/financials.sqlite3`
+without replacing existing financial rows. It stores
 assessment results in that directory's separate analytics database. These app files are ignored
 by Git. No financial import or model training is needed after cloning. After editing the
 bundled financial CSV, run `uv run --locked python scripts/prepare_demo_database.py`,
@@ -209,6 +210,11 @@ borrowers and 4,800 observations from 2025 Q1 through 2026 Q4. Use `--seed`,
 other generation settings. Existing source fixtures remain unchanged. Generated numeric defaults
 and completed FCCR inputs belong only to the simulated borrowers; they do not repair the original
 SYN010 case. Contractual caps, amendment dates, the covenant holiday and springing condition remain.
+
+The runtime expansion to SYN013–SYN037 does not expand this training population.
+Generation explicitly retains the original twelve templates; the bundled training dataset,
+model pipeline and `logistic-v1` feature schema remain unchanged. New runtime calculations
+use the same formula families, with versioned economic definitions and explicit gaps.
 
 The output directory `data/training/synthetic/` contains:
 

@@ -13,7 +13,7 @@ def _status_chip(status: str) -> str:
 
 
 def _fmt(value: float | None, unit: str = "x") -> str:
-    return "Unavailable" if value is None else f"{value:.2f}{unit}"
+    return "Unavailable" if value is None else f"{value:.6f}{unit}"
 
 
 def render_portfolio(
@@ -25,12 +25,20 @@ def render_portfolio(
     period = None if period_filter == "Latest available" else period_filter
     items = build_portfolio_snapshot(period)
     status_filters = {
-        "All borrowers": {"COMPLIANT", "WATCH", "BREACH", "INCOMPLETE"},
-        "Needs attention": {"WATCH", "BREACH", "INCOMPLETE"},
+        "All borrowers": {
+            "COMPLIANT",
+            "WATCH",
+            "BREACH",
+            "INCOMPLETE",
+            "UNRESOLVED",
+            "WAIVED",
+            "NOT_TESTED",
+        },
+        "Needs attention": {"WATCH", "BREACH", "INCOMPLETE", "UNRESOLVED", "WAIVED"},
         "Watch & breach": {"WATCH", "BREACH"},
         "Breach": {"BREACH"},
         "Watch": {"WATCH"},
-        "Incomplete": {"INCOMPLETE"},
+        "Incomplete": {"INCOMPLETE", "UNRESOLVED"},
         "Compliant": {"COMPLIANT"},
     }
     items = [
@@ -44,9 +52,21 @@ def render_portfolio(
             or search_text.casefold() in item.industry.casefold()
         )
     ]
-    attention_count = sum(item.assessment.status != "COMPLIANT" for item in items)
-    breach_count = sum(item.assessment.status == "BREACH" for item in items)
-    incomplete_count = sum(item.assessment.status == "INCOMPLETE" for item in items)
+    attention_count = len(
+        {
+            i.assessment.borrower_id
+            for i in items
+            if i.assessment.status not in {"COMPLIANT", "NOT_TESTED"}
+        }
+    )
+    breach_count = len({i.assessment.borrower_id for i in items if i.assessment.status == "BREACH"})
+    incomplete_count = len(
+        {
+            i.assessment.borrower_id
+            for i in items
+            if i.assessment.status in {"INCOMPLETE", "UNRESOLVED"}
+        }
+    )
 
     st.markdown(
         """
@@ -66,13 +86,16 @@ def render_portfolio(
         st.caption(f"Showing benchmark cases for period ending {period}.")
 
     metric_columns = st.columns(4)
-    metric_columns[0].metric("Borrowers in view", len(items))
+    metric_columns[0].metric("Borrowers in view", len({i.assessment.borrower_id for i in items}))
     metric_columns[1].metric("Need attention", attention_count)
     metric_columns[2].metric("Breach", breach_count)
     metric_columns[3].metric("Incomplete", incomplete_count)
 
     st.markdown("### Monitoring watchlist")
     st.caption("Rows are prioritized by breach, watch, incomplete data, then compliant status.")
+    st.caption(
+        "Each row is one covenant. Waived-case figures show the hypothetical underlying test."
+    )
     if not items:
         st.info("No benchmark cases match these filters.")
         return
@@ -115,6 +138,7 @@ def render_portfolio(
                 "borrower_id": item.assessment.borrower_id,
                 "borrower_name": item.assessment.borrower_name,
                 "period_end": item.assessment.period_end,
+                "covenant_id": item.assessment.covenant_id,
             }
             st.rerun()
     with focus_columns[1]:

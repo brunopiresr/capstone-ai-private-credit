@@ -2,6 +2,8 @@
 
 import logging
 from datetime import date
+from decimal import Decimal
+from math import isfinite
 
 from credit_monitoring.domain.assessment import (
     CovenantResolution,
@@ -57,13 +59,15 @@ def _debt(financials: FinancialPeriod) -> float:
         inputs=dict(zip(("total_debt", "financials_debt", "compliance_certificate_debt"), figures)),
         outputs={"conflict": len(set(provided)) > 1},
     )
-    if len(set(provided)) > 1:
+    if len(set(provided)) > 1 or financials.debt_source_status == "CONFLICTING":
         raise CalculationInputError("DEBT_SOURCE_CONFLICT: debt sources disagree.")
     return _metric(financials, "total_debt")
 
 
 def calculate_actual(covenant: ResolvedCovenant, financials: FinancialPeriod) -> float:
     """Dispatch only typed, allowlisted formulas; never interpret formula text."""
+    if covenant.calculation_contract == "bundle_v1":
+        return _bundle_actual(covenant, financials)
     reported_ebitda = _metric(financials, "reported_ebitda")
     if covenant.formula == "pro_forma_leverage":
         if covenant.synergy_cap_fraction is None:
@@ -103,6 +107,44 @@ def calculate_actual(covenant: ResolvedCovenant, financials: FinancialPeriod) ->
             )
         case _:
             raise CalculationInputError("Unsupported contractual calculation formula.")
+
+
+def _bundle_divide(numerator: float, denominator: float) -> float:
+    if denominator <= 0:
+        raise CalculationInputError("The ratio denominator must be positive.")
+    ratio = float(Decimal(str(numerator)) / Decimal(str(denominator)))
+    if not isfinite(ratio):
+        raise CalculationInputError("The calculated ratio must be finite.")
+    return ratio
+
+
+def _bundle_actual(covenant: ResolvedCovenant, financials: FinancialPeriod) -> float:
+    base = _metric(financials, "reported_ebitda")
+    addbacks = _metric(financials, "eligible_addbacks")
+    synergies = _metric(financials, "synergy_addback")
+    acquired = _metric(financials, "acquired_ebitda")
+    if covenant.addback_cap_fraction is not None:
+        addbacks = min(addbacks, max(base, 0) * covenant.addback_cap_fraction)
+    if covenant.synergy_cap_fraction is not None:
+        synergies = min(synergies, max(base, 0) * covenant.synergy_cap_fraction)
+    ebitda = base + addbacks + acquired + synergies
+    match covenant.formula:
+        case "total_leverage":
+            return _bundle_divide(_debt(financials), ebitda)
+        case "net_leverage":
+            debt, cash = _debt(financials), _metric(financials, "cash")
+            eligible = (
+                cash if covenant.cash_netting_cap is None else min(cash, covenant.cash_netting_cap)
+            )
+            return _bundle_divide(max(0, debt - eligible), ebitda)
+        case "interest_coverage":
+            return _bundle_divide(ebitda, _metric(financials, "interest_expense"))
+        case "fixed_charge_coverage":
+            return _bundle_divide(
+                _metric(financials, "fixed_charge_numerator"), _metric(financials, "fixed_charges")
+            )
+        case _:
+            raise CalculationInputError("Unsupported bundle calculation formula.")
 
 
 def calculate_covenant(
@@ -174,6 +216,8 @@ def _calculate_covenant(
             "Resolved terms and financial inputs must identify the same borrower-period."
         )
     result.agreement_id = covenant.agreement_id
+    if covenant.calculation_contract == "bundle_v1":
+        result.calculation_version = "bundle_v1"
     result.covenant_version = covenant.covenant_version
     result.threshold, result.operator, result.unit = (
         covenant.threshold,
@@ -184,6 +228,8 @@ def _calculate_covenant(
     result.compliance_status = "incomplete"
     if covenant.testing_status == "unresolved":
         result.compliance_status = "unresolved"
+        if covenant.calculation_contract == "bundle_v1":
+            result.issues.append("UNKNOWN_TRIGGER: springing availability is missing.")
         log_event(
             logger,
             "covenant_testing",
@@ -208,6 +254,8 @@ def _calculate_covenant(
                 "reason": "Compliance comparison and headroom are skipped for this test.",
             },
         )
+        if covenant.calculation_contract == "bundle_v1" and inactive_status == "not_tested":
+            return result
     try:
         if covenant.formula is None:
             if covenant.reported_actual is None:
@@ -221,6 +269,12 @@ def _calculate_covenant(
             result.financial_inputs["result_basis"] = "calculated"
     except CalculationInputError as error:
         result.issues.append(str(error))
+        if covenant.calculation_contract == "bundle_v1" and inactive_status == "waived":
+            result.financial_inputs["underlying_calculation"] = {
+                "compliance_status": "incomplete",
+                "actual_value": None,
+                "headroom": None,
+            }
         return result
     if not inactive_status:
         result.compliance_status = (
@@ -233,4 +287,14 @@ def _calculate_covenant(
             covenant.threshold,
             covenant.operator,
         )
+    elif covenant.calculation_contract == "bundle_v1" and inactive_status == "waived":
+        result.financial_inputs["underlying_calculation"] = {
+            "compliance_status": "compliant"
+            if compare_threshold(result.actual_value, covenant.threshold, covenant.operator)
+            else "breach",
+            "actual_value": result.actual_value,
+            "headroom": calculate_headroom(
+                result.actual_value, covenant.threshold, covenant.operator
+            ),
+        }
     return CovenantResult.model_validate(result.model_dump())

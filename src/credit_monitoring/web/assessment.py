@@ -3,12 +3,13 @@
 import pandas as pd
 import streamlit as st
 
+from credit_monitoring.calculations.definitions import describe_formula
 from credit_monitoring.domain.agent import AgentAnswer
 from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
 
 
-def _fmt(value: float | None, unit: str | None) -> str:
-    return "Unavailable" if value is None else f"{value:.2f}{unit or ''}"
+def _fmt(value: float | None, unit: str | None, digits: int = 2) -> str:
+    return "Unavailable" if value is None else f"{value:.{digits}f}{unit or ''}"
 
 
 def render_results(assessment: RiskAssessment) -> None:
@@ -21,15 +22,24 @@ def render_results(assessment: RiskAssessment) -> None:
         st.info("No mapped covenant results are available for this borrower and period.")
     for result in assessment.results:
         covenant = result.resolved_covenant
+        digits = 6 if result.calculation_version == "bundle_v1" else 2
         st.subheader(covenant.covenant_name if covenant else result.covenant_id)
         st.markdown(f"**Status: {result.compliance_status.replace('_', ' ')}**")
         actual, threshold, headroom = st.columns(3)
-        actual.metric("Actual", _fmt(result.actual_value, result.unit))
+        actual.metric("Actual", _fmt(result.actual_value, result.unit, digits))
         threshold.metric(
             "Threshold",
-            f"{result.operator or ''} {_fmt(result.threshold, result.unit)}".strip(),
+            f"{result.operator or ''} {_fmt(result.threshold, result.unit, digits)}".strip(),
         )
-        headroom.metric("Headroom", _fmt(result.headroom, result.unit))
+        headroom.metric("Headroom", _fmt(result.headroom, result.unit, digits))
+        if covenant and covenant.calculation_contract == "bundle_v1":
+            st.code(describe_formula(covenant), language=None)
+        underlying = result.financial_inputs.get("underlying_calculation")
+        if underlying:
+            st.caption(
+                f"Hypothetical underlying test while waived: {underlying['compliance_status']} · "
+                f"headroom {_fmt(underlying['headroom'], result.unit, digits)}"
+            )
         st.caption(
             f"Basis: {result.financial_inputs.get('result_basis', 'unavailable')} · "
             f"Covenant: {result.covenant_id} · Result: {result.result_id}"

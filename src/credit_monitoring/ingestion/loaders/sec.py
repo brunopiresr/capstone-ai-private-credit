@@ -7,6 +7,7 @@ import time
 from collections.abc import Mapping
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from threading import Lock
 from typing import Any
 from urllib.parse import urlparse
 
@@ -16,6 +17,7 @@ from credit_monitoring.ingestion.chunking.evidence import select_relevant_eviden
 from credit_monitoring.observability.logging import log_step
 
 logger = logging.getLogger(__name__)
+_DOWNLOAD_LOCK = Lock()
 
 
 def validate_document_id(document_id: str) -> None:
@@ -37,10 +39,11 @@ def load_sec_html(record: Mapping[str, Any], *, html_dir: Path, user_agent: str)
     if not user_agent.strip():
         raise ValueError("Set SEC_USER_AGENT to your organization/name and contact email.")
     with log_step(logger, "Download SEC HTML", document_id=document_id):
-        try:
-            content = download_sec_filing(record["source_url"], user_agent=user_agent)
-        finally:
-            throttle_download()
+        with _DOWNLOAD_LOCK:
+            try:
+                content = download_sec_filing(record["source_url"], user_agent=user_agent)
+            finally:
+                throttle_download()
         if not content.strip() or content.lstrip().startswith("%PDF-"):
             raise ValueError("SEC download returned empty or unsupported PDF content.")
         target.parent.mkdir(parents=True, exist_ok=True)

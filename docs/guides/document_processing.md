@@ -2,7 +2,8 @@
 
 The application invokes a synchronous service. It reads complete filing Markdown,
 extracts supported facts with the existing LLM, stores them in SQLite, and returns
-the result. No queue or worker is needed. Analyst questions can independently use
+the result. Batch calls use a bounded thread pool, with four document workers by default.
+Sections within each document remain sequential. Analyst questions can independently use
 the RAG agent's tools to read facts and retrieve source passages.
 
 ```mermaid
@@ -49,12 +50,19 @@ facts = document.result.extraction
 print(document.cache_hit, facts.model_dump())
 
 # Process every catalog document, reusing complete/current extractions.
-outcomes = service.process_all_documents()
+outcomes = service.process_all_documents(max_workers=4)
 failures = [(item.document_id, item.error) for item in outcomes if item.status == "failed"]
+
+# Or process selected files, in the supplied order, with caller-thread progress events.
+selected = service.process_documents(
+    ["DOC_FMC_AMD3_2025", "DOC_FMC_Q1_2025"], max_workers=4,
+    progress=lambda event: print(event.document_id, event.stage, event.total_fraction),
+)
 
 # Optional issuer filter or explicit reprocessing.
 # outcomes = service.process_all_documents(ticker="FMC")
 # outcomes = service.process_all_documents(force=True)
+# outcomes = service.process_all_documents(max_workers=1)  # Sequential execution.
 
 # State inspection and evidence search do not invoke the model or download files.
 documents = service.list_document_extractions(ticker="FMC")
@@ -75,6 +83,33 @@ or fails. During a model request, the latest `Extract section started` entry
 identifies the active request; its duration appears when that request returns.
 Failed steps log the exception type; detailed errors remain in returned outcomes.
 Document text, prompts, model outputs, and credentials are not included in progress logs.
+
+Batch outcomes preserve catalog/selection order even when workers finish out of order.
+Individual failures do not stop other files. Catalog validation and concurrency configuration
+errors are raised before processing. Completed results and saved sections are reused; forcing
+reprocessing still reruns every section. Batches remain synchronous to the caller.
+
+Each parallel task owns its model/provider, event loop and converter. For injected `Model`
+or converter objects, supply `model_factory=` / `converter_factory=` to
+`create_document_service()` to create fresh instances with matching model identity, or use
+`max_workers=1`. Factories return owned resources; the worker closes them after processing.
+Complete cache hits do not construct provider clients or require model credentials.
+SQLite writes are short and serialized, document cache writers are locked per document,
+and SEC downloads retain their shared request/delay pacing. Extraction can overlap downloads.
+
+The **Documents & data** Process actions use the same runner. **Documents processed at once**
+defaults to four; select one for sequential processing. Progress and workflow updates run on
+the calling thread, and the extraction archive is saved after the batch finishes.
+
+To measure worker throughput without credentials or network requests:
+
+```bash
+uv run --locked python scripts/benchmark_document_processing.py \
+  --output data/runtime/document-processing-benchmark.json
+```
+
+This uses real extraction/storage with simulated model I/O. It measures throughput plumbing,
+not provider performance or extraction quality.
 
 `configure_logging()` enables INFO console output for `credit_monitoring` only
 and can be called repeatedly without duplicate handlers. Applications with existing

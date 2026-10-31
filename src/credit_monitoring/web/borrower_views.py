@@ -7,20 +7,10 @@ import streamlit as st
 
 from credit_monitoring.application.borrower_workflow import BorrowerWorkflow, SavedFinancials
 from credit_monitoring.application.portfolio_service import STATUS_LABELS
+from credit_monitoring.calculations.definitions import FORMULAS, describe_formula
 from credit_monitoring.domain.assessment import CovenantResult, RiskAssessment
 from credit_monitoring.web.assessment import render_prediction, render_verification
 from credit_monitoring.web.portfolio import formatted_time
-
-FORMULAS = {
-    "total_leverage": "Total leverage = contractual debt / covenant EBITDA",
-    "net_leverage": "Net leverage = (contractual debt − eligible cash) / covenant EBITDA",
-    "pro_forma_leverage": "Pro forma leverage = contractual debt / pro forma covenant EBITDA",
-    "interest_coverage": "Interest coverage = covenant EBITDA / cash interest",
-    "fixed_charge_coverage": (
-        "Fixed-charge coverage = (covenant EBITDA − capex − cash taxes) / "
-        "(cash interest + scheduled principal + rent)"
-    ),
-}
 
 
 def name(result: CovenantResult) -> str:
@@ -29,14 +19,15 @@ def name(result: CovenantResult) -> str:
     )
 
 
-def number(value: float | None, unit: str | None = "x") -> str:
-    return "Unavailable" if value is None else f"{value:.2f}{unit or ''}"
+def number(value: float | None, unit: str | None = "x", digits: int = 2) -> str:
+    return "Unavailable" if value is None else f"{value:.{digits}f}{unit or ''}"
 
 
 def render_covenant_table(assessment: RiskAssessment, *, key: str) -> None:
     if not assessment.results:
         st.info("No mapped covenant results are available for this borrower and period.")
         return
+    digits = 6 if any(r.calculation_version == "bundle_v1" for r in assessment.results) else 2
     st.dataframe(
         pd.DataFrame(
             [
@@ -44,7 +35,8 @@ def render_covenant_table(assessment: RiskAssessment, *, key: str) -> None:
                     "Covenant": name(result),
                     "Actual": result.actual_value,
                     "Threshold": (
-                        f"{result.operator or ''} {number(result.threshold, result.unit)}".strip()
+                        f"{result.operator or ''} "
+                        f"{number(result.threshold, result.unit, digits)}".strip()
                     ),
                     "Headroom": result.headroom,
                     "Unit": result.unit,
@@ -58,8 +50,8 @@ def render_covenant_table(assessment: RiskAssessment, *, key: str) -> None:
         width="stretch",
         row_height=43,
         column_config={
-            "Actual": st.column_config.NumberColumn(format="%.2f"),
-            "Headroom": st.column_config.NumberColumn(format="%.2f"),
+            "Actual": st.column_config.NumberColumn(format=f"%.{digits}f"),
+            "Headroom": st.column_config.NumberColumn(format=f"%.{digits}f"),
         },
     )
 
@@ -221,7 +213,14 @@ def render_calculation_tables(assessment: RiskAssessment) -> None:
         for result in assessment.results:
             covenant = result.resolved_covenant
             if covenant and covenant.formula in FORMULAS:
-                st.code(FORMULAS[covenant.formula], language=None)
+                st.code(describe_formula(covenant), language=None)
+                underlying = result.financial_inputs.get("underlying_calculation")
+                if underlying:
+                    st.caption(
+                        "Hypothetical underlying test while waived: "
+                        f"{underlying['compliance_status']} · headroom "
+                        f"{number(underlying['headroom'], digits=6)}"
+                    )
                 st.caption(f"{name(result)} · {covenant.measurement_basis or 'Basis unspecified'}")
                 adjustments = {
                     "Cash netting cap": covenant.cash_netting_cap,

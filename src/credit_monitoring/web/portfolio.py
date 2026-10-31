@@ -72,8 +72,8 @@ def formatted_time(value: str | None) -> str:
     )
 
 
-def metric_value(value: float | None, unit: str | None) -> str:
-    return "—" if value is None else f"{value:.2f}{unit or ''}"
+def metric_value(value: float | None, unit: str | None, digits: int = 2) -> str:
+    return "—" if value is None else f"{value:.{digits}f}{unit or ''}"
 
 
 def entry_row(entry: PortfolioEntry) -> dict:
@@ -82,6 +82,7 @@ def entry_row(entry: PortfolioEntry) -> dict:
     # The displayed metric always names its covenant; other results remain in the detail view.
     primary = next((result for result in results if result.compliance_status == "breach"), None)
     primary = primary or (results[0] if results else None)
+    digits = 6 if primary and primary.calculation_version == "bundle_v1" else 2
     return {
         "Borrower": entry.name,
         "ID": entry.borrower_id,
@@ -90,13 +91,14 @@ def entry_row(entry: PortfolioEntry) -> dict:
         "Compliance": entry.compliance,
         "Source review": "Needs reassessment" if entry.needs_review else "—",
         "Covenant": primary.covenant_type.replace("_", " ") if primary else "—",
-        "Actual": metric_value(primary.actual_value, primary.unit) if primary else "—",
+        "Actual": metric_value(primary.actual_value, primary.unit, digits) if primary else "—",
         "Threshold": (
-            f"{primary.operator or ''} {metric_value(primary.threshold, primary.unit)}".strip()
+            f"{primary.operator or ''} "
+            f"{metric_value(primary.threshold, primary.unit, digits)}".strip()
         )
         if primary
         else "—",
-        "Headroom": metric_value(primary.headroom, primary.unit) if primary else "—",
+        "Headroom": metric_value(primary.headroom, primary.unit, digits) if primary else "—",
         "Agent review": entry.review.status.title() if entry.review else "Not run",
         "Last assessment (Lisbon)": formatted_time(entry.created_at),
         "Last attempt": ("Failed — saved result retained" if entry.assessment else "Failed")

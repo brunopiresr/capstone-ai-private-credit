@@ -1,7 +1,7 @@
 """Explicit SQLite/service composition for CLI, notebook, UI, and test entry points."""
 
 import csv
-import shutil
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +20,7 @@ from credit_monitoring.application.credit_review_service import (
     ReviewEventHandler,
 )
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
+from credit_monitoring.application.financial_workspace import initialize_working_financials
 from credit_monitoring.application.follow_up_question_service import FollowUpQuestionService
 from credit_monitoring.application.portfolio_service import PortfolioService
 from credit_monitoring.config.settings import (
@@ -50,9 +51,9 @@ def create_portfolio_service(
     """Seed once, retain working inputs, and reuse the established calculation/agent flows."""
     source = data_root / "app" / "synthetic"
     working_dir.mkdir(parents=True, exist_ok=True)
-    financial_database = working_dir / "financials.sqlite3"
-    if not financial_database.exists():
-        shutil.copyfile(source / "financials.sqlite3", financial_database)
+    financial_database = initialize_working_financials(
+        source / "financials.sqlite3", working_dir / "financials.sqlite3"
+    )
     financial_repository = FinancialRepository(financial_database)
     with (source / "synthetic_borrowers.csv").open(newline="", encoding="utf-8") as file:
         borrowers = [
@@ -140,6 +141,8 @@ def create_document_service(
     user_agent: str = "",
     converter: Any = None,
     max_chars: int = DEFAULT_MAX_CHARS,
+    model_factory: Callable[[], Model] | None = None,
+    converter_factory: Callable[[], Any] | None = None,
 ) -> DocumentProcessingService:
     if max_chars <= 0:
         raise ValueError("max_chars must be positive.")
@@ -153,4 +156,6 @@ def create_document_service(
         user_agent=user_agent,
         converter=converter,
         max_chars=max_chars,
+        model_factory=model_factory,
+        converter_factory=converter_factory,
     )

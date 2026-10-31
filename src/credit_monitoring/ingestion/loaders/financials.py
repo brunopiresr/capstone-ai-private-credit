@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from credit_monitoring.domain.financials import FINANCIAL_METADATA
 from credit_monitoring.financials.mappings import FINANCIAL_METRICS
 from credit_monitoring.persistence.database import open_database
 from credit_monitoring.persistence.schema import initialize_financial_schema
@@ -35,7 +36,7 @@ def _read_financials(csv_path: Path) -> list[dict[str, str | float | int | None]
         if len(headers) != len(set(headers)):
             raise ValueError("Financial CSV contains duplicate column names")
         required = {"borrower_id", "period_end"}
-        allowed = required | set(FINANCIAL_METRICS) | {"notes"}
+        allowed = required | set(FINANCIAL_METRICS) | set(FINANCIAL_METADATA) | {"notes"}
         if missing := required - set(headers):
             raise ValueError(f"Missing required CSV columns: {sorted(missing)}")
         if unknown := set(headers) - allowed:
@@ -70,6 +71,10 @@ def _read_financials(csv_path: Path) -> list[dict[str, str | float | int | None]
                 "source_file": str(csv_path),
                 "source_row": line,
             }
+            for name in FINANCIAL_METADATA:
+                record[name] = row.get(name, "").strip() or None
+            if record["debt_source_status"] not in (None, "CONFLICTING", "RECONCILED"):
+                raise ValueError(f"CSV line {line}: invalid debt_source_status")
             for metric in FINANCIAL_METRICS:
                 value = row.get(metric, "").strip()
                 if not value:
@@ -111,6 +116,7 @@ def load_financials(csv_path: str | Path, database_path: str | Path) -> Financia
         "borrower_id",
         "period_end",
         *FINANCIAL_METRICS,
+        *FINANCIAL_METADATA,
         "notes",
         "source_file",
         "source_row",

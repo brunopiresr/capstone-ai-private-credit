@@ -12,6 +12,7 @@ from streamlit.testing.v1 import AppTest
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.application import assessment_service as assessment_module
+from credit_monitoring.application import financial_workspace as financial_workspace_module
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.risk_prediction import RiskPrediction
 from credit_monitoring.web import workspace as workspace_module
@@ -40,8 +41,8 @@ def working_app(tmp_path, monkeypatch):
     monkeypatch.setattr("dotenv.load_dotenv", lambda *args, **kwargs: False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("LLM_MODEL", raising=False)
-    database_copy = Mock(wraps=workspace_module.shutil.copyfile)
-    monkeypatch.setattr(workspace_module.shutil, "copyfile", database_copy)
+    database_copy = Mock(wraps=financial_workspace_module.shutil.copyfile)
+    monkeypatch.setattr(financial_workspace_module.shutil, "copyfile", database_copy)
     app = AppTest.from_file(str(APP), default_timeout=20).run()
     assert not app.exception
     return app, tmp_path / "working", database_copy
@@ -312,3 +313,36 @@ def test_failed_run_preserves_previous_identity_and_disables_followups(working_a
     assert app.session_state["active_assessment"] == assessment
     assert any("Input unavailable" in item.value for item in app.error)
     assert app.chat_input[0].disabled
+
+
+def test_new_borrower_shows_both_covenants_and_six_decimal_results(working_app):
+    app, _, _ = working_app
+    assessment = run_assessment(app, "SYN018", "2026-06-30")
+    assert len(assessment.results) == 2
+    assert {r.compliance_status for r in assessment.results} == {"compliant", "breach"}
+    displayed = {m.value for m in app.metric if m.label == "Actual"}
+    assert displayed == {f"{r.actual_value:.6f}x" for r in assessment.results}
+    assert len(app.selectbox(key="period_select").options) == 6
+
+
+def test_expanded_mock_benchmark_lists_each_covenant(working_app, monkeypatch):
+    from credit_monitoring.application import demo_assessment_service as demo
+
+    app, _, _ = working_app
+    evaluation = workspace_module.DEFAULT_DATA_ROOT / "evaluation"
+    evaluation.mkdir()
+    for name in ("synthetic_gold_labels.csv", "synthetic_bundle_gold_cases.csv"):
+        shutil.copyfile(ROOT / "data/evaluation" / name, evaluation / name)
+    monkeypatch.setattr(
+        demo, "APP_SYNTHETIC_DIR", workspace_module.DEFAULT_DATA_ROOT / "app/synthetic"
+    )
+    monkeypatch.setattr(demo, "EVALUATION_DIR", evaluation)
+    app.radio(key="workspace_page").set_value("Benchmark portfolio (mock)").run()
+    next(c for c in app.selectbox if c.label == "Attention view").select("All borrowers").run()
+    next(c for c in app.selectbox if c.label == "Reporting period").select("2025-06-30").run()
+    assert not app.exception
+    table = app.dataframe[0].value
+    selected = table[table["ID"] == "SYN018"]
+    assert set(selected["Covenant"]) == {"LEV", "ICR"}
+    assert set(selected["Status"]) == {"COMPLIANT", "BREACH"}
+    assert next(m for m in app.metric if m.label == "Borrowers in view").value == "28"

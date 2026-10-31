@@ -12,6 +12,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from urllib.parse import urlparse
 
+from credit_monitoring.application.document_batch import DocumentBatchProgress
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.application.portfolio_service import PortfolioService
 from credit_monitoring.domain.analytics_base import new_identifier
@@ -26,7 +27,7 @@ from credit_monitoring.persistence.workflow_repository import WorkflowRepository
 
 PROCESS_ID = new_identifier()
 MAINTENANCE_LOCK = threading.Lock()
-type Progress = Callable[[str, int, int, str, int, int], None]
+type Progress = Callable[[DocumentBatchProgress], None]
 CATALOG_FIELDS = (
     "document_id",
     "company",
@@ -39,6 +40,12 @@ CATALOG_FIELDS = (
     "role",
     "notes",
     "cik",
+    "accession_number",
+    "filing_index_url",
+    "html_identified_via",
+    "link_verified_as_of",
+    "selection_note",
+    "reference_ticker",
 )
 
 
@@ -218,6 +225,13 @@ class DocumentWorkspace:
                 )
                 self.repository.finish(operation_id, state, outcomes)
 
+    def _source_stamp(self, document_id: str) -> list:
+        paths = [
+            self.processor.html_dir / f"{document_id}.html",
+            self.processor.markdown_dir / f"{document_id}.md",
+        ]
+        return [(p.stat().st_mtime_ns, p.stat().st_size) if p.is_file() else None for p in paths]
+
     def run_documents(
         self,
         kind: str,
@@ -225,6 +239,7 @@ class DocumentWorkspace:
         *,
         force: bool = False,
         progress: Progress | None = None,
+        max_workers: int = 4,
     ) -> list[dict]:
         if kind not in {"Fetch", "Process"}:
             raise ValueError("Choose Fetch or Process.")
@@ -234,30 +249,65 @@ class DocumentWorkspace:
         records = [self._record(document_id) for document_id in selected]
         with self.operation(f"{'Reprocess' if force else kind} documents", selected) as outcomes:
             operation_id = self.repository.operations()[0]["operation_id"]
-            for index, record in enumerate(records, 1):
+            before = {r["document_id"]: self._source_stamp(r["document_id"]) for r in records}
+            completed = {}
+
+            def retain(record, result):
                 document_id = record["document_id"]
-                source_paths = [
-                    self.processor.html_dir / f"{document_id}.html",
-                    self.processor.markdown_dir / f"{document_id}.md",
-                ]
+                completed[document_id] = result
+                outcomes[:] = [completed[did] for did in selected if did in completed]
+                if result["status"] != "failed" and not result.get("cache_hit"):
+                    reason = f"{kind} completed."
+                elif before[document_id] != self._source_stamp(document_id):
+                    reason = "Source updated; extraction needs retry."
+                else:
+                    reason = None
+                if reason:
+                    for borrower in record["borrower_ids"]:
+                        self.workflow.source_changed(borrower, document_id, reason)
+                self.repository.progress(operation_id, outcomes)
 
-                def source_stamp():
-                    return [
-                        (path.stat().st_mtime_ns, path.stat().st_size) if path.is_file() else None
-                        for path in source_paths
-                    ]
+            if kind == "Process":
+                by_id = {r["document_id"]: r for r in records}
 
-                before = source_stamp()
-
-                def report(stage, done=0, total=0):
+                def report(event):
+                    if event.outcome is not None:
+                        item = event.outcome
+                        result = {
+                            "document_id": item.document_id,
+                            "status": item.status,
+                            "cache_hit": item.cache_hit,
+                            "sections": item.completed_sections,
+                        }
+                        if item.error:
+                            result["error"] = item.error
+                        retain(by_id[item.document_id], result)
                     if progress:
-                        progress(document_id, index, len(records), stage, done, total)
+                        progress(event)
 
-                report("Fetching source" if kind == "Fetch" else "Processing source")
-                try:
-                    if issue := self.format_issue(record):
-                        raise ValueError(issue)
-                    if kind == "Fetch":
+                self.processor.process_documents(
+                    selected, force=force, max_workers=max_workers, progress=report
+                )
+                self.save_extraction_archive()
+            else:
+                for index, record in enumerate(records, 1):
+                    document_id = record["document_id"]
+                    if progress:
+                        progress(
+                            DocumentBatchProgress(
+                                document_id,
+                                index,
+                                len(records),
+                                "Fetching source",
+                                0,
+                                0,
+                                index - 1,
+                                (index - 1) / len(records),
+                            )
+                        )
+                    try:
+                        if issue := self.format_issue(record):
+                            raise ValueError(issue)
                         path = self.processor.html_dir / f"{document_id}.html"
                         cache_hit = path.is_file() and bool(path.read_text().strip())
                         load_sec_html(
@@ -270,37 +320,27 @@ class DocumentWorkspace:
                             "status": "fetched",
                             "cache_hit": cache_hit,
                         }
-                    else:
-                        extraction = self.processor.process_document(
-                            document_id, force=force, progress=report
-                        )
+                    except Exception as error:
                         result = {
                             "document_id": document_id,
-                            "status": extraction.status,
-                            "cache_hit": extraction.cache_hit,
-                            "sections": extraction.completed_sections,
+                            "status": "failed",
+                            "error": f"{type(error).__name__}: {error}",
                         }
-                    if not result["cache_hit"]:
-                        for borrower in record["borrower_ids"]:
-                            self.workflow.source_changed(
-                                borrower, document_id, f"{kind} completed."
+                    retain(record, result)
+                    if progress:
+                        stage = "Failed" if result["status"] == "failed" else "Finished"
+                        progress(
+                            DocumentBatchProgress(
+                                document_id,
+                                index,
+                                len(records),
+                                stage,
+                                1,
+                                1,
+                                index,
+                                index / len(records),
                             )
-                except Exception as error:
-                    result = {
-                        "document_id": document_id,
-                        "status": "failed",
-                        "error": f"{type(error).__name__}: {error}",
-                    }
-                    if before != source_stamp():
-                        for borrower in record["borrower_ids"]:
-                            self.workflow.source_changed(
-                                borrower, document_id, "Source updated; extraction needs retry."
-                            )
-                outcomes.append(result)
-                self.repository.progress(operation_id, outcomes)
-                report("Failed" if result["status"] == "failed" else "Finished", 1, 1)
-            if kind == "Process":
-                self.save_extraction_archive()
+                        )
         return outcomes
 
     def save_extraction_archive(self) -> None:

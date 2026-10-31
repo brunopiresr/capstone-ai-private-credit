@@ -55,13 +55,24 @@ def execute_documents(workspace: DocumentWorkspace, kind: str, ids: list[str], *
                 st.empty(),
             )
 
-            def progress(document_id, index, total, stage, done, sections):
-                current.write(f"{index}/{total} · {document_id} · {stage}")
-                fraction = done / sections if sections else 0
-                total_progress.progress(min(1.0, (index - 1 + fraction) / total))
+            def progress(event):
+                current.write(
+                    f"{event.completed_documents}/{event.total_documents} completed · "
+                    f"{event.document_id} · {event.stage}"
+                )
+                fraction = (
+                    event.completed_sections / event.total_sections if event.total_sections else 0
+                )
+                total_progress.progress(event.total_fraction)
                 section_progress.progress(fraction)
 
-            outcomes = workspace.run_documents(kind, ids, force=force, progress=progress)
+            outcomes = workspace.run_documents(
+                kind,
+                ids,
+                force=force,
+                progress=progress,
+                max_workers=int(st.session_state.get("documents_workers", 4)),
+            )
             failed = sum(item["status"] == "failed" for item in outcomes)
             total_progress.progress(1.0)
             status.update(
@@ -135,6 +146,14 @@ def render_inventory(workspace: DocumentWorkspace, borrower_id: str) -> None:
         key="documents_user_agent",
     )
     workspace.processor.user_agent = user_agent
+    st.number_input(
+        "Documents processed at once",
+        min_value=1,
+        max_value=16,
+        value=4,
+        key="documents_workers",
+        disabled=workspace.busy,
+    )
     credentials = bool(os.getenv("OPENAI_API_KEY", "").strip())
     if not credentials:
         st.caption(

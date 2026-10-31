@@ -22,7 +22,12 @@ FINANCIAL_METRICS = (
     "synergy_addback",
     "financials_debt",
     "compliance_certificate_debt",
+    "interest_expense",
+    "fixed_charge_numerator",
+    "fixed_charges",
 )
+
+FINANCIAL_METADATA = ("currency", "scale", "debt_source_status")
 
 
 class FinancialMetricDefinition(ExtractionModel):

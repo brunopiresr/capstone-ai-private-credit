@@ -125,6 +125,8 @@ The financial inputs are synthetic; the original app's separate benchmark page i
 - **Documents & data:** register/link source URLs, fetch/process selected documents,
 inspect extraction status and sources, and search indexed evidence. These actions run only
 when requested. Processing can use model calls; SEC downloads need operator configuration.
+**Documents processed at once** defaults to four. Reduce it to one for sequential processing;
+completed files and saved sections are reused on retry.
 Source changes can mark assessments as needing review. Inspect before reassessing.
 - **Risk review:** inspect submitted versions, compare risk-agent analyses, save comments
 and recommendations, resolve selected flags, and request another analysis. Context-only

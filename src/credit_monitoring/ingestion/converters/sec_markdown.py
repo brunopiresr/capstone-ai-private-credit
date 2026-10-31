@@ -3,6 +3,7 @@
 import logging
 from collections.abc import Mapping
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 
 from credit_monitoring.ingestion.cleaners.sec_html import clean_html
@@ -11,6 +12,18 @@ from credit_monitoring.observability.logging import log_step
 
 CONVERSION_VERSION = "beautifulsoup-clean-v2"
 logger = logging.getLogger(__name__)
+
+
+def _atomic_text(path: Path, content: str) -> None:
+    temporary = None
+    try:
+        with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as file:
+            temporary = Path(file.name)
+            file.write(content)
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def load_markdown(
@@ -39,9 +52,7 @@ def load_markdown(
     html_path = load_sec_html(record, html_dir=html_dir, user_agent=user_agent)
     cleaned_html_path = html_dir / f"{document_id}.cleaned.html"
     with log_step(logger, "Clean SEC HTML", document_id=document_id):
-        cleaned_html_path.write_text(
-            clean_html(html_path.read_text(encoding="utf-8")), encoding="utf-8"
-        )
+        _atomic_text(cleaned_html_path, clean_html(html_path.read_text(encoding="utf-8")))
     with log_step(logger, "Convert HTML to Markdown", document_id=document_id):
         if converter is None:
             from markitdown import MarkItDown
@@ -53,6 +64,6 @@ def load_markdown(
                 f"MarkItDown returned empty text for {document_id}: {record['source_url']}"
             )
     with log_step(logger, "Save Markdown cache", document_id=document_id):
-        markdown_path.write_text(markdown, encoding="utf-8")
-        marker_path.write_text(CONVERSION_VERSION, encoding="utf-8")
+        _atomic_text(markdown_path, markdown)
+        _atomic_text(marker_path, CONVERSION_VERSION)
     return markdown

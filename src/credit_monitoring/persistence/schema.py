@@ -2,6 +2,7 @@
 
 import sqlite3
 
+from credit_monitoring.domain.financials import FINANCIAL_METADATA
 from credit_monitoring.financials.mappings import FINANCIAL_METRICS, METRIC_UNITS
 
 
@@ -20,10 +21,20 @@ def initialize_financial_schema(connection: sqlite3.Connection) -> None:
             PRIMARY KEY (borrower_id, period_end)
         ) STRICT
     """)
+    existing = {row[1] for row in connection.execute("PRAGMA table_info(quarterly_financials)")}
+    for name in (*FINANCIAL_METRICS, *FINANCIAL_METADATA):
+        if name not in existing:
+            kind = "REAL" if name in FINANCIAL_METRICS else "TEXT"
+            connection.execute(f"ALTER TABLE quarterly_financials ADD COLUMN {name} {kind}")
     # Identifiers and units come only from the fixed metric mapping above.
     selects = []
     for metric in FINANCIAL_METRICS:
         unit = "NULL" if METRIC_UNITS[metric] is None else f"'{METRIC_UNITS[metric]}'"
+        if metric != "revolver_availability_pct":
+            unit = (
+                "CASE WHEN scale IS NULL THEN NULL ELSE "
+                "trim(coalesce(currency, '') || ' ' || scale) END"
+            )
         selects.append(f"""
             SELECT borrower_id, period_end, '{metric}' AS metric_name,
                    {metric} AS value, {unit} AS unit, source_file, source_row,
@@ -31,6 +42,5 @@ def initialize_financial_schema(connection: sqlite3.Connection) -> None:
                        AS data_quality_status
             FROM quarterly_financials
         """)
-    connection.execute(
-        "CREATE VIEW IF NOT EXISTS financial_facts AS " + " UNION ALL ".join(selects)
-    )
+    connection.execute("DROP VIEW IF EXISTS financial_facts")
+    connection.execute("CREATE VIEW financial_facts AS " + " UNION ALL ".join(selects))

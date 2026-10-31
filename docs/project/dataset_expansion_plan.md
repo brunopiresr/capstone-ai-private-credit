@@ -1,87 +1,100 @@
-# Expand the borrower and SEC use-case collection
+# Dataset expansion and parallel document processing
 
-Status: Proposed; implementation has not started.
+Status: Implemented, October 31, 2026.
 
-## Summary
+## Included data
 
-Add **25 fictional borrowers and 40 authentic SEC documents**, bringing the checked-in
-totals to **37 synthetic borrowers and 69 SEC sources**.
+The normalized delivery adds SYN013–SYN037: 25 fictional borrowers, 150 financial
+records, 30 covenant identities and 180 independent expected results. SYN018–SYN022
+have two covenants. The six periods run from March 2025 through June 2026. Combined
+totals are **37 borrowers, 172 financial records and 198 synthetic expected results**.
 
-Each new borrower will have six quarterly financial records, covering March 2025 through
-June 2026, covenant terms, and independently calculated expected results. Public-company
-evidence will remain separate from fictional financial data.
+Forty SEC references add ten issuers, each with one annual and three quarterly filings,
+bringing the catalog to **69 sources**. Filing dates and fiscal period ends are distinct.
+Accession numbers, filing-index URLs, selection exceptions and delivery verification
+metadata remain in the catalog. These are supplied references, not freshly verified
+sources. Catalog seeding does not link authentic issuers to fictional borrowers.
+Downloads, live extraction and new public-company gold cases are separate explicit work.
 
-## Synthetic borrowers and scenarios
+## Import and economic definitions
 
-Assign IDs `SYN013`–`SYN037` and add distinct fictional names and industries.
+Run `uv run --locked python scripts/import_credit_monitoring_bundle.py` to validate the
+local delivery ZIP without changing authored inputs. Add `--apply` to publish staged,
+validated normalized CSVs, gold cases, provenance and the ready-to-use financial database.
+A repeated identical import is a no-op; conflicting authored keys fail before publication.
+The ZIP and supplied README remain ignored. A fresh checkout uses the committed normalized
+assets and database without the ZIP, imports, model credentials or training.
 
-| Borrowers | Five scenarios |
-| --- | --- |
-| SYN013–017 | Recovery after breach; debt repayment improving headroom; seasonal deterioration and recovery; debt-funded expansion causing breach; tightening thresholds causing breach despite stable financials |
-| SYN018–022 | Leverage passes while coverage fails; leverage fails while coverage passes; two breaches followed by recovery; total versus net leverage differences; leverage passes while FCCR inputs are incomplete |
-| SYN023–027 | Addback cap becomes binding; capped addbacks prevent false compliance; cash exceeds the netting cap; acquired EBITDA restores headroom; synergy cap prevents false compliance |
-| SYN028–032 | Springing test activates into breach; exact 25% availability boundary; inactive test with missing calculation inputs; waiver followed by breach and recovery; waiver followed by testing under a tighter threshold |
-| SYN033–037 | Missing EBITDA later supplied; zero/negative EBITDA followed by recovery; missing interest later supplied; missing springing trigger later resolved; conflicting debt sources later reconciled |
+Gold cases remain in `data/evaluation/synthetic_bundle_gold_cases.csv`; runtime calculations
+never read them. The mock benchmark explicitly combines them with the 18 legacy examples,
+shows one row per borrower/covenant, and retains covenant-specific histories. Missing early
+warning labels remain unknown. Financial notes and scenario descriptions are excluded from
+assessment/model inputs.
 
-- Append **150 financial records** to the existing CSV and rebuild the bundled SQLite
-  database using the existing preparation script.
-- Give SYN018–022 two covenants each; give the remaining additions one covenant each.
-- Add **180 synthetic gold cases**, covering every new borrower, quarter, and covenant.
-- Use existing formula strings, caps, testing conditions, and waiver rules. Encode
-  threshold changes through effective date ranges.
-- Retain existing scenario-family identifiers for compatibility with the training
-  generator; describe each new variation in borrower descriptions.
-- Preserve blanks as missing values and distinguish them from explicit zeros. Keep
-  expected outcomes out of runtime financial inputs.
+New terms select `bundle_v1`; old terms and saved records default to `legacy_v1`.
+The bundle contract includes acquired EBITDA and synergies, applies adjustment caps against
+nonnegative base EBITDA, floors net debt at zero, and uses the supplied TTM interest expense
+and direct fixed-charge numerator/charges. Financial inputs retain USD/millions metadata;
+ratios use `x`. Missing values stay null and explicit zeros remain zero.
 
-## SEC documents and evaluation evidence
+Springing tests activate strictly below 25%; missing availability is unresolved and inactive
+tests do not request calculation inputs. Waived tests retain hypothetical status, actual and
+headroom under `financial_inputs.underlying_calculation`, while reported headroom stays null.
+SYN037 retains a conflict flag and absent canonical debt, without fabricated competing values.
+Comparison precedes display rounding. Calculation replay checks the waived underlying result.
+Contract versioning prevents comparisons across different economic definitions.
 
-- Add four distinct SEC HTML documents for each of ten additional issuers: Wolverine
-  World Wide, Interface, Select Medical, Cracker Barrel, Designer Brands, Victoria’s
-  Secret, Conduent, Pitney Bowes, Bristow, and Children’s Place.
-- For each issuer, select its latest annual report and three latest quarterly reports
-  with period ends between January 2025 and June 2026, published by October 29, 2026.
-  Preserve actual fiscal dates.
-- Record verified issuer names, tickers, CIKs, document dates, reporting periods, and
-  SEC archive URLs. These sources include suitable starting points such as
-  [Wolverine’s quarterly filing](https://www.sec.gov/Archives/edgar/data/110471/000011047125000125/www-20250628.htm)
-  and [Interface’s annual filing](https://www.sec.gov/Archives/edgar/data/715787/000071578726000006/tile-20251228.htm).
-- Download all 40 documents and convert them through the existing HTML/Markdown
-  pipeline, using the configured SEC identity.
-- Keep full downloads in the existing ignored cache. Check in concise supporting
-  excerpts and provenance for portable regression tests.
-- Add at least one evidence-supported public gold case per document. Populate actual
-  ratios, compliance conclusions, and headroom only when the source supports them;
-  retain explicit gaps otherwise.
-- Extend the evaluation task collection alongside both gold datasets. Preserve
-  historical extraction snapshots and reports.
+## Workspace upgrades and ML
 
-## Integration and interface changes
+Both app entry points share backed-up, additive financial initialization. Existing rows,
+analyst edits and saved workflows remain intact. Schema changes, missing-record insertion
+and the import receipt commit transactionally. Backups live under the workspace's `backups/`;
+repeated startup with the same dataset version does not recopy or back up again. Failed
+migrations can be retried. The explicit database rebuild remains available.
 
-- Keep existing CSV schemas and calculation APIs.
-- Make synthetic regression tests select results by covenant ID instead of assuming
-  the first result.
-- Add covenant selection to the mock benchmark for borrowers with multiple covenants;
-  ensure displayed terms and history belong to that selection.
-- Update dataset-size assertions, documentation counts, and scenario descriptions.
-- Preserve existing borrowers and cases, retained training/model artifacts, and
-  unrelated application work. No new covenant formulas or model retraining are included.
+The bundled training dataset, model artifact and feature schema are retained. Training
+continues to use the original SYN001–SYN012 templates; runtime expansion does not silently
+change the reviewed training population. No retraining is part of this integration.
 
-## Validation and acceptance
+## Parallel document processing
 
-- Verify 37 synthetic borrowers, 172 total financial records, 69 catalog documents,
-  unique identifiers, and valid cross-references.
-- Confirm every new borrower appears in the working portfolio and all six periods
-  are assessable.
-- Compare all new synthetic results against independent expectations, including
-  headroom, mixed outcomes, threshold changes, missing inputs, and trigger boundaries.
-- Verify the bundled database matches its authored CSV and legacy cases retain
-  their results.
-- Confirm future financial records and evaluation labels cannot enter earlier
-  assessments.
-- Verify all 40 SEC files download and convert successfully; test their retained
-  excerpts offline without network or model credentials.
-- Run `make lint`, `make test-all`, and `make test-ml`. ML checks may generate temporary
-  test artifacts; bundled training data and model files remain unchanged.
-- Report download/conversion coverage separately from extraction accuracy; controlled
-  regression results do not establish live model quality.
+`process_all_documents(ticker=None, *, force=False, max_workers=4)` and
+`process_documents(document_ids, *, force=False, max_workers=4, progress=None)` share a
+bounded thread-pool runner. The app's Process actions call the selected-document API;
+**Documents processed at once** controls concurrency. Setting one runs sequentially.
+
+Each document task owns its model/provider client, event loop and converter; its sections
+remain sequential. Injected resources require factories for parallel processing, with
+matching model identity. Complete cache hits do not construct clients. Workers inherit a
+separate copied execution context, preserving session/tracing attribution. Progress events
+are drained on the caller, aggregate progress is monotonic, and outcomes preserve input order.
+Individual failures retain their outcomes and do not prevent other files from finishing.
+
+Catalog validation occurs before workers start. Short SQLite writes and same-document cache
+writers are locked. SEC requests retain a process-wide request/delay lock. Atomic cache writes
+avoid partial published files. Workflow notifications run on the coordinator; the extraction
+archive is published after workers finish, under the existing maintenance-operation lock.
+
+## Validation
+
+The independent suite covers all 180 new outcomes, multi-covenant selection, null/zero inputs,
+waivers, trigger boundaries, debt conflicts, legacy compatibility, source cutoff isolation,
+additive upgrades and migration recovery. Portable importer tests reconstruct a delivery from
+versioned inputs, so CI does not depend on the ignored ZIP.
+
+Concurrency tests use barriers/events for overlap, bounds, result order, worker-resource
+cleanup, context propagation, caller-thread progress, cache reuse, and same-document locking.
+The Streamlit checks exercise multi-file Process and the expanded borrower/benchmark views.
+
+Run `make lint`, `make test-all` and `make test-ml`. The offline throughput command is:
+
+```bash
+uv run --locked python scripts/benchmark_document_processing.py \
+  --output data/runtime/document-processing-benchmark.json
+```
+
+An eight-document run with 150 ms simulated model I/O per document measured 1.508 s with
+one worker, 0.730 s with two and 0.434 s with four: **3.47×** faster with four workers and
+exactly eight model calls in every run. This measures orchestration with real local storage
+and mocked model I/O, not live-provider throughput or extraction accuracy. Timing is reported
+rather than asserted in CI.

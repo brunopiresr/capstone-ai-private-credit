@@ -1,0 +1,20 @@
+{
+  "archive_sha256": "f698e688db9dcddf14faac3167d3370f7eb17f07f5c6912bd153d22c799a83dc",
+  "counts": {
+    "borrowers": 25,
+    "covenants": 30,
+    "financials": 150,
+    "gold_cases": 180,
+    "sec_sources": 40
+  },
+  "member_sha256": {
+    "sec_filing_manifest_40.csv": "7990fb28a5a343110f590c136315a03ff7b29d34ea91956c58c3a647dc970799",
+    "sec_filing_manifest_40.json": "2b1d8f8874ee8cb1a8427cf2b39cf4abaceee3d73f56698bfcbf564cbc548bff",
+    "synthetic_borrowers_SYN013_SYN037.csv": "e65227bbdb5f2910a298af4c4325748ec1624130f20ffe5dbf7339c0765b43c2",
+    "synthetic_covenants.csv": "bbef0e8e40f0449333afc6864551ee352967bf0af34efb0ec66ae1f735c35903",
+    "synthetic_financials_2025Q1_2026Q2.csv": "c0204a60223c95678194f4750445b8f2519fdfb90613cbd8790eb36a8107e799",
+    "synthetic_gold_cases_180.csv": "fbf8607a2cabccea2fe718d90975a75ab828e720c2b97edc29ed8046228ab2b2",
+    "synthetic_manifest.json": "6a53bb7e19789784e3c03eeb86e55139bc6ac05b837c9f40c5789adce1499f42"
+  },
+  "version": "credit-monitoring-bundle-v1"
+}

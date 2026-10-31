@@ -15,6 +15,16 @@ items. **Documents & data** connects the working source catalog, extraction pipe
 and data maintenance. The original single-borrower app remains available through
 `make run`. Reading pages never launches assessments or agents.
 
+The catalog includes 37 synthetic borrowers and 69 SEC source references. New borrowers
+SYN013–SYN037 have six reporting periods through June 2026; five have two covenants.
+Borrower analysis retains separate covenant outcomes and shows waived calculations as
+hypothetical. Existing financial workspaces upgrade additively with a backup.
+
+In **Documents & data**, **Documents processed at once** defaults to four. Process selected
+or missing documents to use parallel file processing; choose one for sequential processing.
+Total progress aggregates active files, per-file failures remain visible, and completed
+documents/sections are reused on retry. SEC downloads keep their shared pacing.
+
 If a server was running during an update and reports an import error such as
 `cannot import name 'AdditionalReviewContext'`, stop it with **Ctrl+C** and run
 `make preview` again. Refreshing the browser does not clear Python's module cache.

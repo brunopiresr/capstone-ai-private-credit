@@ -108,7 +108,7 @@ def test_processing_reuses_caches_reports_progress_and_forces_explicitly(workspa
     progress = []
     first = ws.run_documents("Process", ["DOC_ONE"], progress=lambda *args: progress.append(args))
     assert first[0]["status"] == "complete" and not first[0]["cache_hit"]
-    assert any(p[3] == "Extracting section" for p in progress)
+    assert any(p[0].stage == "Extracting section" for p in progress)
     assert model.respond.call_count == 1
     ws.run_documents("Process", ["DOC_ONE"])
     assert model.respond.call_count == 1

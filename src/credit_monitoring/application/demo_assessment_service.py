@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 
+from credit_monitoring.evaluation.synthetic_gold import load_synthetic_gold
 from credit_monitoring.paths import APP_SYNTHETIC_DIR, EVALUATION_DIR
 
 
@@ -25,7 +26,7 @@ class DemoAssessment:
     metric: float | None
     headroom: float | None
     status: str
-    early_warning: bool
+    early_warning: bool | None
     rationale: str
     financial_facts: dict[str, str]
     history: tuple[tuple[str, float], ...]
@@ -45,7 +46,9 @@ class PortfolioItem:
 
 def _read_csv(filename: str) -> list[dict[str, str]]:
     # Only this explicitly mocked benchmark reads expected answers.
-    directory = EVALUATION_DIR if filename == "synthetic_gold_labels.csv" else APP_SYNTHETIC_DIR
+    if filename == "synthetic_gold_labels.csv":
+        return load_synthetic_gold(EVALUATION_DIR)
+    directory = APP_SYNTHETIC_DIR
     with (directory / filename).open(newline="", encoding="utf-8") as file:
         return list(csv.DictReader(file))
 
@@ -90,51 +93,76 @@ def build_portfolio_snapshot(period_end: str | None = None) -> list[PortfolioIte
         if not available_periods:
             continue
         selected_period = available_periods[-1]
-        assessment = build_demo_assessment(borrower_id, selected_period)
-        history = assessment.history
-        if len(history) < 2:
-            trend = "New"
-        else:
-            delta = history[-1][1] - history[-2][1]
-            worsening = delta > 0 if assessment.operator == "<=" else delta < 0
-            trend = "Worsening" if worsening else "Improving" if delta else "Flat"
+        for covenant_id in sorted(
+            {
+                row["covenant_id"]
+                for row in cases
+                if row["borrower_id"] == borrower_id and row["period_end"] == selected_period
+            }
+        ):
+            assessment = build_demo_assessment(borrower_id, selected_period, covenant_id)
+            portfolio.append(_portfolio_item(assessment, borrower["industry"]))
 
-        action = {
-            "BREACH": "Review now",
-            "WATCH": "Review trend",
-            "INCOMPLETE": "Resolve data",
-            "COMPLIANT": "Routine",
-        }[assessment.status]
-        portfolio.append(
-            PortfolioItem(
-                assessment=assessment,
-                industry=borrower["industry"],
-                trend=trend,
-                action=action,
-            )
-        )
-
-    priority = {"BREACH": 0, "WATCH": 1, "INCOMPLETE": 2, "COMPLIANT": 3}
+    priority = {
+        "BREACH": 0,
+        "WATCH": 1,
+        "INCOMPLETE": 2,
+        "UNRESOLVED": 2,
+        "WAIVED": 3,
+        "NOT_TESTED": 3,
+        "COMPLIANT": 4,
+    }
     return sorted(
         portfolio,
         key=lambda item: (
             priority[item.assessment.status],
             item.assessment.borrower_name,
+            item.assessment.covenant_id,
         ),
     )
 
 
-def build_demo_assessment(borrower_id: str, period_end: str) -> DemoAssessment:
+def _portfolio_item(assessment: DemoAssessment, industry: str) -> PortfolioItem:
+    history = assessment.history
+    if len(history) < 2:
+        trend = "New"
+    else:
+        delta = history[-1][1] - history[-2][1]
+        worsening = delta > 0 if assessment.operator == "<=" else delta < 0
+        trend = "Worsening" if worsening else "Improving" if delta else "Flat"
+
+    action = {
+        "BREACH": "Review now",
+        "WATCH": "Review trend",
+        "INCOMPLETE": "Resolve data",
+        "COMPLIANT": "Routine",
+        "UNRESOLVED": "Resolve trigger",
+        "WAIVED": "Monitor waiver",
+        "NOT_TESTED": "Monitor trigger",
+    }[assessment.status]
+    return PortfolioItem(assessment=assessment, industry=industry, trend=trend, action=action)
+
+
+def build_demo_assessment(
+    borrower_id: str, period_end: str, covenant_id: str | None = None
+) -> DemoAssessment:
     """Assemble one fixed benchmark case without calling an agent or external service."""
     borrower = next(
         row for row in _read_csv("synthetic_borrowers.csv") if row["borrower_id"] == borrower_id
     )
     case_rows = _read_csv("synthetic_gold_labels.csv")
-    case = next(
+    matches = [
         row
         for row in case_rows
-        if row["borrower_id"] == borrower_id and row["period_end"] == period_end
-    )
+        if row["borrower_id"] == borrower_id
+        and row["period_end"] == period_end
+        and (covenant_id is None or row["covenant_id"] == covenant_id)
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            "Choose an explicit covenant with a unique borrower-period benchmark case."
+        )
+    case = matches[0]
     covenant = next(
         row
         for row in _read_csv("synthetic_covenant_terms.csv")
@@ -154,8 +182,9 @@ def build_demo_assessment(borrower_id: str, period_end: str) -> DemoAssessment:
         "COMPLIANT_EARLY_WARNING": "WATCH",
         "BREACH": "BREACH",
         "DATA_CONFLICT_ABSTAIN": "INCOMPLETE",
-        "WAIVED": "INCOMPLETE",
-        "NOT_TESTED": "INCOMPLETE",
+        "WAIVED": "WAIVED",
+        "NOT_TESTED": "NOT_TESTED",
+        "UNRESOLVED": "UNRESOLVED",
     }.get(case["expected_status"], "INCOMPLETE")
     metric = float(case["expected_metric"]) if case["expected_metric"] else None
     headroom = float(case["expected_headroom"]) if case["expected_headroom"] else None
@@ -187,7 +216,11 @@ def build_demo_assessment(borrower_id: str, period_end: str) -> DemoAssessment:
         metric=metric,
         headroom=headroom,
         status=status,
-        early_warning=case["early_warning_expected"].lower() == "true",
+        early_warning=(
+            case["early_warning_expected"].lower() == "true"
+            if case["early_warning_expected"]
+            else None
+        ),
         rationale=case["rationale"],
         financial_facts=financial_facts,
         history=history,

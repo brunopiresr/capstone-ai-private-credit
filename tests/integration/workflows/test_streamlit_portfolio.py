@@ -47,7 +47,7 @@ def connected(monkeypatch, tmp_path):
 
 def test_assessments_are_explicit_real_and_restored_after_refresh(connected):
     app, working, model = connected
-    assert len(app.dataframe[0].value) == 12
+    assert len(app.dataframe[0].value) == 37
     assert set(app.dataframe[0].value["Compliance"]) == {"Not assessed"}
     assert row(app, "SYN003")["Period"] == "2025-06-30"
     assert model.respond.call_count == 0
@@ -76,7 +76,7 @@ def test_all_assessments_cover_every_borrower_and_table_click_selects_real_detai
     app.text_input(key="portfolio_search").set_value("Harbor").run()
     click(app, "Assess all borrowers")
     app.text_input(key="portfolio_search").set_value("").run()
-    assert len(app.dataframe[0].value) == 12
+    assert len(app.dataframe[0].value) == 37
     assert "Not assessed" not in set(app.dataframe[0].value["Compliance"])
     assert row(app, "SYN003")["Compliance"] == "Incomplete"
     assert row(app, "SYN003")["Period"] == "2025-09-30"
@@ -134,7 +134,7 @@ def test_invalid_cutoff_does_not_run_services(connected):
 
 
 @pytest.mark.parametrize(
-    "scope,expected", [("Run selected assessment", 1), ("Assess all borrowers", 12)]
+    "scope,expected", [("Run selected assessment", 1), ("Assess all borrowers", 37)]
 )
 def test_assessment_can_include_agent_reviews_for_selected_or_all_borrowers(
     connected,

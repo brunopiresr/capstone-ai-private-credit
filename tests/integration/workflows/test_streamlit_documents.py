@@ -83,6 +83,7 @@ def test_fetch_process_cache_force_and_history_are_real(connected, monkeypatch):
     assert next(b for b in app.button if b.label == "Process selected").disabled
     click(app, "Fetch selected")
     assert len(downloaded) == 1
+
     assert app.dataframe[0].value.loc[0, "HTML"]
     monkeypatch.setenv("OPENAI_API_KEY", "offline-test")
     app.run()
@@ -101,6 +102,39 @@ def test_fetch_process_cache_force_and_history_are_real(connected, monkeypatch):
     page(app, "Documents & data")
     assert model.respond.call_count == 2
     assert len(downloaded) == 1
+
+
+def test_bulk_process_uses_isolated_workers_and_publishes_complete_archive(connected, monkeypatch):
+    import json
+
+    app, model, downloaded = connected
+    original = documents.create_document_service
+
+    def create(**kwargs):
+        service = original(**kwargs)
+
+        def fresh_model():
+            child = ScriptedModel(model_name="documents-ui-offline")
+            child.respond.side_effect = model.respond
+            return child
+
+        service.model_factory = fresh_model
+        return service
+
+    monkeypatch.setattr(documents, "create_document_service", create)
+    monkeypatch.setenv("OPENAI_API_KEY", "offline-test")
+    app.run()
+    borrower = app.selectbox(key="documents_borrower").value
+    app.multiselect(key=f"documents_selected_{borrower}").set_value(["DOC_ONE", "DOC_TWO"]).run()
+    assert app.number_input(key="documents_workers").value == 4
+    click(app, "Process selected")
+    assert model.respond.call_count == 2 and len(downloaded) == 2
+    assert set(app.dataframe[0].value["Extraction"]) == {"complete"}
+    workspace = documents.get_document_workspace()
+    archive = json.loads(workspace.archive_path.read_text())
+    assert len(archive["document_extractions"]) == 2
+    assert all(row["status"] == "complete" for row in archive["document_extractions"])
+    assert workspace.repository.operations()[0]["state"] == "complete"
 
 
 def test_explicit_link_reassessment_warning_and_financial_recreation(connected):

@@ -2,7 +2,6 @@
 
 import csv
 import os
-import shutil
 from pathlib import Path
 
 from credit_monitoring.agents.conversation import AgentConversation
@@ -10,6 +9,7 @@ from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.bootstrap import create_assessment_service
+from credit_monitoring.application.financial_workspace import initialize_working_financials
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.agent import AgentAnswer
@@ -32,7 +32,7 @@ class SyntheticWorkspace:
         self.working_dir.mkdir(parents=True, exist_ok=True)
         database = self.working_dir / "financials.sqlite3"
         synthetic_dir = self.data_root / "app" / "synthetic"
-        shutil.copyfile(synthetic_dir / "financials.sqlite3", database)
+        initialize_working_financials(synthetic_dir / "financials.sqlite3", database)
         self.financial_repository = FinancialRepository(database)
         with (synthetic_dir / "synthetic_borrowers.csv").open(newline="", encoding="utf-8") as f:
             self.borrowers = sorted(

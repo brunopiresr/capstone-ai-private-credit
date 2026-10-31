@@ -24,7 +24,7 @@ def notebook_cells():
     return {cell["id"]: "".join(cell["source"]) for cell in notebook["cells"]}
 
 
-def test_notebook_default_configures_a_working_stub(notebook_cells, tmp_path, monkeypatch):
+def test_notebook_opt_out_configures_a_working_stub(notebook_cells, tmp_path, monkeypatch):
     trained = Mock(side_effect=AssertionError("Default must not load numerical artifacts"))
     monkeypatch.setattr("credit_monitoring.ml.factory.LogisticRegressionRiskModel", trained)
     namespace = {
@@ -33,6 +33,7 @@ def test_notebook_default_configures_a_working_stub(notebook_cells, tmp_path, mo
         "MODELS_DIR": MODELS_DIR,
     }
     exec(notebook_cells["select-risk-model"], namespace)
+    namespace["USE_TRAINED_MODEL"] = False
     exec(notebook_cells["9cf32123"], namespace)
     service = namespace["assessment_service"]
     assert service.settings.risk_model.type == "stub"
@@ -40,6 +41,22 @@ def test_notebook_default_configures_a_working_stub(notebook_cells, tmp_path, mo
     assert result.results and result.prediction.breach_probability is None
     assert result.prediction.model_name == "stub"
     trained.assert_not_called()
+
+
+def test_notebook_default_selects_the_bundled_model(notebook_cells, tmp_path, monkeypatch):
+    create = Mock()
+    monkeypatch.setattr("credit_monitoring.ml.factory.create_risk_model", create)
+    namespace = {
+        "processed_dir": tmp_path,
+        "APP_SYNTHETIC_DIR": APP_SYNTHETIC_DIR,
+        "MODELS_DIR": MODELS_DIR,
+    }
+    exec(notebook_cells["select-risk-model"], namespace)
+    exec(notebook_cells["9cf32123"], namespace)
+    service = namespace["assessment_service"]
+    assert service.settings.risk_model.type == "logistic_regression"
+    assert service.settings.risk_model.artifact_path == MODELS_DIR / "logistic_regression/v1"
+    create.assert_called_once_with(service.settings.risk_model)
 
 
 @pytest.mark.parametrize(

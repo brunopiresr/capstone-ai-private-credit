@@ -31,6 +31,7 @@ def data_root(tmp_path):
         "synthetic_borrowers.csv",
         "synthetic_quarterly_financials.csv",
         "synthetic_covenant_terms.csv",
+        "financials.sqlite3",
     ):
         shutil.copyfile(APP_SYNTHETIC_DIR / name, synthetic / name)
     markdown = data / "cache" / "sec" / "markdown"

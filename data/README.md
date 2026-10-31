@@ -9,7 +9,7 @@ those inputs test-only fixtures.
 | --- | --- | --- |
 | `app/synthetic/` | Synthetic borrowers, financial inputs, and covenant terms used by the working app and CLI | Yes |
 | `app/synthetic/financials.sqlite3` | Ready-to-use financial database for the app and CLI | Yes |
-| `app/sec/public_sec_documents.csv` | Catalog of 29 public SEC sources used by document workflows | Yes |
+| `app/sec/public_sec_documents.csv` | Catalog of 69 public SEC sources used by document workflows | Yes |
 | `evaluation/` | Public and synthetic gold labels, 60 evaluation tasks, and controlled judge cases | Yes |
 | `evaluation/snapshots/sec/covenants.sqlite3` | Preserved extraction observations for explicit read-only quality measurement | Yes; evaluation evidence |
 | `training/synthetic/` | Generated synthetic histories, features, outcomes, training table, and manifest | Existing reviewed dataset retained |
@@ -23,9 +23,22 @@ assessment never reads gold labels. The separate **Benchmark portfolio (mock)** 
 intentionally loads pre-labeled examples from `evaluation/`; it is not an assessment
 or forecast. Financial notes and outcome labels stay out of agent/model inputs.
 
+The expansion adds 25 borrowers across six quarters through June 2026. Combined totals
+are 37 fictional borrowers, 172 financial records, 198 synthetic expected results and
+69 SEC catalog sources. The 180 supplied expectations are retained separately in
+`evaluation/synthetic_bundle_gold_cases.csv`; the public gold benchmark remains 42 cases.
+`app/synthetic/dataset_bundle_manifest.json` records the import provenance and source hashes.
+
+Maintainers can validate the ignored delivery ZIP with
+`uv run --locked python scripts/import_credit_monitoring_bundle.py`; add `--apply` to
+publish normalized inputs and rebuild the bundled database. Identical repeats do not
+rewrite assets. The ZIP is unnecessary after integration or when cloning the repository.
+
 ## Run with bundled inputs
 
-The Streamlit app copies the bundled financial database into its local workspace. The CLI
+The Streamlit app copies the bundle into a fresh workspace. Existing workspaces receive
+a backed-up schema upgrade and missing records, preserving existing rows and saved work.
+Updates have transactional version receipts and are safe to retry. The CLI
 reads the bundled database directly and writes results into ignored runtime storage:
 
 ```bash

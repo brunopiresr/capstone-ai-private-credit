@@ -20,6 +20,7 @@ def financial_period_from_row(row: dict) -> FinancialPeriod:
         available_at=row.get("available_at"),
         currency=row.get("currency"),
         scale=row.get("scale"),
+        debt_source_status=row.get("debt_source_status"),
     )
 
 

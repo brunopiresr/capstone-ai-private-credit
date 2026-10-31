@@ -52,12 +52,12 @@ def preview(monkeypatch, tmp_path):
 def test_all_pages_render_without_services_and_borrower_list_filters(preview):
     app = preview
     assert not any(item.label == "Workspace" for item in app.selectbox)
-    assert len(app.dataframe[0].value) == 12
+    assert len(app.dataframe[0].value) == 37
     app.text_input(key="portfolio_search").set_value("northstar").run()
     assert app.dataframe[0].value["Borrower"].tolist() == ["Northstar Packaging"]
     app.text_input(key="portfolio_search").set_value("")
     app.selectbox(key="portfolio_status_filter").select("Not assessed").run()
-    assert len(app.dataframe[0].value) == 12
+    assert len(app.dataframe[0].value) == 37
     assert "Pioneer Security" in app.dataframe[0].value["Borrower"].tolist()
     app.text_input(key="portfolio_search").set_value("no-such-borrower").run()
     assert any("No borrowers match" in item.value for item in app.info)

@@ -33,12 +33,19 @@ def test_initial_snapshot_has_all_borrowers_without_running_or_loading_labels(po
     service, data_root, model = portfolio
     assert not (data_root / "evaluation").exists()
     entries = service.snapshot(period_end=None, cutoff=CUTOFF)
-    assert len(entries) == 12
+    assert len(entries) == 37
     assert all(entry.assessment is None for entry in entries)
     targets = {entry.borrower_id: entry.period_end for entry in entries}
     assert targets["SYN003"] == date(2025, 6, 30)
     assert targets["SYN002"] == CUTOFF
-    assert service.periods() == [date(2025, 3, 31), date(2025, 6, 30), PERIOD, CUTOFF]
+    assert service.periods() == [
+        date(2025, 3, 31),
+        date(2025, 6, 30),
+        PERIOD,
+        CUTOFF,
+        date(2026, 3, 31),
+        date(2026, 6, 30),
+    ]
     assert model.respond.call_count == 0
     assert all(
         set(borrower) == {"borrower_id", "borrower_name", "industry"}
@@ -71,9 +78,9 @@ def test_batch_matches_real_rules_preserves_gaps_and_survives_reinitialization(p
         cutoff=CUTOFF,
         progress=lambda i, n, o: progress.append((i, n)),
     )
-    assert len(outcomes) == 12
+    assert len(outcomes) == 37
     assert not any(outcome.error for outcome in outcomes)
-    assert progress[-1] == (12, 12)
+    assert progress[-1] == (37, 37)
     entries = {
         entry.borrower_id: entry for entry in service.snapshot(period_end=PERIOD, cutoff=CUTOFF)
     }
@@ -89,7 +96,7 @@ def test_batch_matches_real_rules_preserves_gaps_and_survives_reinitialization(p
         data_root=data_root, working_dir=tmp_path / "working", model=model
     )
     assert reopened.financial_repository.get_history("SYN012") == []  # Seed was not recopied.
-    assert len(reopened.snapshot(period_end=PERIOD, cutoff=CUTOFF)) == 12
+    assert len(reopened.snapshot(period_end=PERIOD, cutoff=CUTOFF)) == 37
     assert (
         reopened.repository.get_assessment(entries["SYN001"].assessment.assessment_run_id)
         == entries["SYN001"].assessment

@@ -5,12 +5,14 @@ from pathlib import Path
 
 from credit_monitoring.domain import ExtractionResult
 from credit_monitoring.persistence.database import open_database
+from credit_monitoring.persistence.locking import resource_lock
 
 
 class CovenantRepository:
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
-        with open_database(self.database_path) as connection:
+        self._write_lock = resource_lock("database", str(self.database_path.resolve()))
+        with self._write_lock, open_database(self.database_path) as connection:
             connection.executescript("""
                 CREATE TABLE IF NOT EXISTS document_extractions (
                     document_id TEXT NOT NULL,
@@ -63,7 +65,7 @@ class CovenantRepository:
         total_sections: int,
         force: bool,
     ) -> None:
-        with open_database(self.database_path) as connection:
+        with self._write_lock, open_database(self.database_path) as connection:
             if force:
                 connection.execute(
                     "DELETE FROM document_extractions WHERE document_id = ? AND cache_key = ?",
@@ -111,14 +113,14 @@ class CovenantRepository:
     def save_section(
         self, document_id: str, cache_key: str, index: int, result: ExtractionResult
     ) -> None:
-        with open_database(self.database_path) as connection:
+        with self._write_lock, open_database(self.database_path) as connection:
             connection.execute(
                 "INSERT OR REPLACE INTO document_extraction_sections VALUES (?, ?, ?, ?)",
                 (document_id, cache_key, index, result.model_dump_json()),
             )
 
     def finish(self, document_id: str, cache_key: str, result: ExtractionResult) -> None:
-        with open_database(self.database_path) as connection:
+        with self._write_lock, open_database(self.database_path) as connection:
             connection.execute(
                 "UPDATE document_extractions SET status = 'complete', result_json = ?, "
                 "error = NULL, updated_at = CURRENT_TIMESTAMP "
@@ -127,7 +129,7 @@ class CovenantRepository:
             )
 
     def fail(self, document_id: str, cache_key: str, error: str) -> None:
-        with open_database(self.database_path) as connection:
+        with self._write_lock, open_database(self.database_path) as connection:
             connection.execute(
                 "UPDATE document_extractions SET status = 'failed', result_json = NULL, "
                 "error = ?, updated_at = CURRENT_TIMESTAMP WHERE document_id = ? AND cache_key = ?",

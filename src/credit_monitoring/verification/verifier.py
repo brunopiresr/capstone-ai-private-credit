@@ -81,6 +81,15 @@ def verify_assessment(assessment: RiskAssessment) -> ValidationReport:
                     f"{path}.{field}",
                     "Result differs from its stored calculation inputs.",
                 )
+        if replay.financial_inputs.get("underlying_calculation") != result.financial_inputs.get(
+            "underlying_calculation"
+        ):
+            report.add(
+                "error",
+                "calculation_mismatch",
+                f"{path}.underlying_calculation",
+                "Underlying waived calculation differs from its stored inputs.",
+            )
     if assessment.prediction is not None:
         prediction = assessment.prediction
         snapshot = assessment.feature_snapshot

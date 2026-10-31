@@ -79,6 +79,13 @@ _SYNTHETIC_FORMULAS = {
     ),
 }
 
+BUNDLE_FORMULAS = {
+    "TOTAL_LEVERAGE": "total_leverage",
+    "NET_LEVERAGE": "net_leverage",
+    "INTEREST_COVERAGE": "interest_coverage",
+    "FIXED_CHARGE_COVERAGE": "fixed_charge_coverage",
+}
+
 
 def _fingerprint(value: dict) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
@@ -195,6 +202,11 @@ class SyntheticCovenantReader:
         financials: FinancialPeriod,
         evidence: list[dict],
     ) -> ResolvedCovenant:
+        contract = row.get("calculation_contract") or "legacy_v1"
+        if contract == "bundle_v1":
+            return self._resolve_bundle_row(row, covenant_id, period_end, financials, evidence)
+        if contract != "legacy_v1":
+            raise ValueError("Unsupported synthetic calculation contract.")
         formula_text = row["metric_formula"]
         if formula_text not in _SYNTHETIC_FORMULAS:
             raise ValueError("Unsupported synthetic calculation formula.")
@@ -261,6 +273,45 @@ class SyntheticCovenantReader:
             synergy_cap_fraction=0.5 if formula == "pro_forma_leverage" else None,
             testing_status=testing_status,
             evidence=evidence,
+        )
+
+    @staticmethod
+    def _resolve_bundle_row(row, covenant_id, period_end, financials, evidence):
+        if row["metric_formula"] not in BUNDLE_FORMULAS:
+            raise ValueError("Unsupported bundle formula identifier.")
+        formula = BUNDLE_FORMULAS[row["metric_formula"]]
+        testing_status = "active"
+        if row.get("springing_trigger_pct"):
+            trigger = float(row["springing_trigger_pct"])
+            availability = financials.metrics.get("revolver_availability_pct")
+            if availability is None:
+                testing_status = "unresolved"
+            elif availability >= trigger:
+                testing_status = "inactive"
+        waived = json.loads(row.get("waived_periods") or "[]")
+        if testing_status == "active" and period_end.isoformat() in waived:
+            testing_status = "waived"
+        caps = {
+            name: float(row[name]) if row.get(name) else None
+            for name in ("cash_netting_cap", "addback_cap_fraction", "synergy_cap_fraction")
+        }
+        return ResolvedCovenant(
+            borrower_id=row["borrower_id"],
+            agreement_id=f"synthetic:{row['borrower_id']}",
+            covenant_id=covenant_id,
+            covenant_name=row["covenant_name"],
+            covenant_type=formula,
+            covenant_version=_fingerprint(row),
+            period_end=period_end,
+            threshold=float(row["threshold"]),
+            operator=row["operator"],
+            unit="x",
+            formula=formula,
+            calculation_contract="bundle_v1",
+            measurement_basis="Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+            testing_status=testing_status,
+            evidence=evidence,
+            **caps,
         )
 
 

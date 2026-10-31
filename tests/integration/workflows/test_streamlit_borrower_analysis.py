@@ -422,7 +422,7 @@ def test_borrower_list_is_visible_before_assessment_and_with_invalid_dates(conne
     app, model = connected
     page(app, "Borrower analysis")
     directory = app.dataframe[0].value
-    assert len(directory) == 12
+    assert len(directory) == 37
     assert {"Borrower", "ID", "Compliance"} <= set(directory.columns)
     assert set(directory["Compliance"]) == {"Not assessed"}
     assert not app.selectbox(key="analysis_borrower").value == ""
@@ -430,7 +430,7 @@ def test_borrower_list_is_visible_before_assessment_and_with_invalid_dates(conne
     app.selectbox(key="analysis_period").select("2025-09-30").run()
     app.date_input(key="analysis_cutoff").set_value(date(2025, 6, 30)).run()
     assert not app.exception
-    assert len(app.dataframe[0].value) == 12
+    assert len(app.dataframe[0].value) == 37
     assert {"Borrower", "ID", "Sector"} == set(app.dataframe[0].value.columns)
     assert any("cutoff must be" in item.value for item in app.error)
     assert model.respond.call_count == 0
@@ -450,8 +450,9 @@ def test_borrower_directory_cell_row_search_and_manual_selection_share_saved_ana
     assert app.selectbox(key="analysis_borrower").value == "SYN001"
     assert app.selectbox(key="analysis_version").value == run_id
     app.text_input(key="analysis_directory_search").set_value("elmwood").run()
-    assert app.dataframe[0].value["ID"].tolist() == ["SYN003"]
-    select_directory(app, cells=[[0, "Borrower"]])
+    assert set(app.dataframe[0].value["ID"]) == {"SYN003", "SYN034"}
+    row = app.dataframe[0].value.index[app.dataframe[0].value["ID"] == "SYN003"][0]
+    select_directory(app, cells=[[int(row), "Borrower"]])
     assert app.selectbox(key="analysis_borrower").value == "SYN003"
     app.selectbox(key="analysis_borrower").select("SYN008").run()
     app.run()

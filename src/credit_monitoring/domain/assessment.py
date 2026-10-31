@@ -43,6 +43,9 @@ class FinancialPeriod(AssessmentModel):
         default=None, description="Explicit source currency; never inferred."
     )
     scale: str | None = Field(default=None, description="Explicit monetary scale; never inferred.")
+    debt_source_status: Literal["CONFLICTING", "RECONCILED"] | None = Field(
+        default=None, description="Explicit source reconciliation state; never inferred."
+    )
 
     @field_validator("metrics")
     @classmethod
@@ -71,6 +74,9 @@ class ResolvedCovenant(AssessmentModel):
     formula: CalculationFormula | None = Field(
         default=None, description="Allowlisted calculation formula; null if unsupported."
     )
+    calculation_contract: Literal["legacy_v1", "bundle_v1"] = Field(
+        default="legacy_v1", description="Versioned economic definitions for these terms."
+    )
     measurement_basis: str | None = Field(
         default=None, description="Explicit contractual measurement basis."
     )
@@ -83,7 +89,9 @@ class ResolvedCovenant(AssessmentModel):
         default=None, ge=0, description="Addback cap as a fraction of reported EBITDA."
     )
     synergy_cap_fraction: float | None = Field(
-        default=None, ge=0, description="Synergy cap as a fraction of acquired EBITDA."
+        default=None,
+        ge=0,
+        description="Synergy cap against acquired EBITDA (legacy) or base EBITDA (bundle).",
     )
     testing_status: TestingStatus = Field(
         default="active", description="Whether the covenant is actively tested for this period."
@@ -109,6 +117,7 @@ class ResolvedCovenant(AssessmentModel):
         return json.dumps(
             {
                 "formula": self.formula,
+                "calculation_contract": self.calculation_contract,
                 "measurement_basis": self.measurement_basis,
                 "cash_netting_cap": self.cash_netting_cap,
                 "addback_cap_fraction": self.addback_cap_fraction,

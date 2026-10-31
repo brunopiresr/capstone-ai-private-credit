@@ -11,3 +11,28 @@ SYN009,Juniper Healthcare,fccr_early_warning,Healthcare services,Fixed-charge co
 SYN010,Orion Distribution,springing_covenant,Distribution,FCCR only tested when revolver availability falls below 25%.
 SYN011,Meadow Telecom,cash_netting_cap,Telecom,Net leverage cash deduction is contractually capped.
 SYN012,Pioneer Security,pro_forma_acquisition,Security services,Acquired EBITDA and capped synergies must be included in covenant EBITDA.
+SYN013,Ashford Foundry Components,breach_recovery,Industrial Manufacturing,Recovery after breach
+SYN014,Meridian Cold Chain Logistics,leverage_trend,Cold Chain Logistics,Debt repayment improving headroom
+SYN015,Pinehaven Outdoor Supply,breach_recovery,Consumer Goods,Seasonal deterioration and recovery
+SYN016,Eastbrook Infrastructure Services,leverage_trend,Infrastructure Services,Debt-funded expansion causing breach
+SYN017,Northvale Business Solutions,threshold_change,Business Services,Tightening thresholds causing breach despite stable financials
+SYN018,Clearwater Packaging Systems,cross_covenant,Packaging,Leverage passes while interest coverage fails
+SYN019,Stonebridge Medical Distribution,leverage_trend,Healthcare Distribution,Leverage fails while interest coverage passes
+SYN020,Westbrook Specialty Chemicals,breach_recovery,Specialty Chemicals,Two breaches followed by recovery
+SYN021,Cedarpoint Logistics Holdings,leverage_trend,Transportation,Total leverage fails while net leverage passes due to capped cash netting
+SYN022,Briarfield Facility Management,cross_covenant,Facilities Management,Leverage passes while FCCR inputs are incomplete
+SYN023,Harborstone Analytics Services,adjusted_ebitda,Software Services,Addback cap becomes binding
+SYN024,Redwood Precision Equipment,adjusted_ebitda,Industrial Equipment,Capped addbacks prevent false compliance
+SYN025,Bluewater Port Services,net_leverage,Maritime Services,Cash exceeds netting cap and prevents false compliance
+SYN026,Summit Ridge Diagnostics,leverage_trend,Healthcare Services,Acquired EBITDA restores covenant headroom
+SYN027,Arborline Retail Technology,adjusted_ebitda,Retail Technology,Synergy cap prevents false compliance
+SYN028,Ironclad Components Supply,springing,Automotive Supply,Springing test activates into breach when availability falls below 25 percent
+SYN029,Moorland Working Capital Partners,springing,Wholesale,Exact 25 percent availability boundary is inactive
+SYN030,Lakeshore Specialty Apparel,springing,Apparel,Inactive springing test remains not tested despite missing calculation inputs
+SYN031,Silvercrest Building Products,breach_recovery,Building Products,One-quarter waiver followed by breach and recovery
+SYN032,Vantage Health Technologies,threshold_change,Healthcare Technology,Waiver followed by testing under a tighter effective-dated threshold
+SYN033,Kestrel Regional Transport,data_quality,Regional Transport,Missing EBITDA is later supplied
+SYN034,Elmwood Community Media,breach_recovery,Media,Zero and negative EBITDA followed by recovery
+SYN035,Granite Peak Engineering,data_quality,Engineering,Missing interest is later supplied
+SYN036,Foxglove Inventory Services,springing,Inventory Services,Missing springing trigger is later resolved
+SYN037,Hearthside Food Distribution,data_quality,Food Distribution,Conflicting debt sources are later reconciled
