@@ -1,107 +1,77 @@
 # Data layout
 
-The app reads authored inputs from `app/`. Expected answers and captured evaluation
-observations live in `evaluation/`. Generated databases, downloads, and reports have
-separate ignored locations. Tests may reuse the same authored inputs without making
-those inputs test-only fixtures.
+App inputs, evaluation answers, training data, and local output are kept separately.
+The working assessment never reads gold labels. The **Benchmark portfolio (mock)** page
+uses pre-labeled examples and is separate from live assessments.
 
-| Location | Purpose | Versioned? |
+| Location | Contents | In Git? |
 | --- | --- | --- |
-| `app/synthetic/` | Synthetic borrowers, financial inputs, and covenant terms used by the working app and CLI | Yes |
-| `app/synthetic/financials.sqlite3` | Ready-to-use financial database for the app and CLI | Yes |
-| `app/sec/public_sec_documents.csv` | Catalog of 69 public SEC sources used by document workflows | Yes |
-| `evaluation/` | Public and synthetic gold labels, 60 evaluation tasks, and controlled judge cases | Yes |
-| `evaluation/snapshots/sec/covenants.sqlite3` | Preserved extraction observations for explicit read-only quality measurement | Yes; evaluation evidence |
-| `training/synthetic/` | Generated synthetic histories, features, outcomes, training table, and manifest | Existing reviewed dataset retained |
-| `models/logistic_regression/v1/` | Optional synthetic-trained pipeline and compatibility manifest | Yes |
-| `cache/sec/` | Downloaded HTML, cleaned HTML, converted Markdown, and conversion markers | No |
-| `runtime/` | App/CLI databases and generated evaluation reports | No |
+| `app/synthetic/` | Fictional borrowers, financial CSVs, terms, and ready-to-use SQLite database | Yes |
+| `app/sec/public_sec_documents.csv` | Catalog of 69 public SEC sources | Yes |
+| `evaluation/` | Gold labels, 60 tasks, judge examples, and a preserved extraction snapshot | Yes |
+| `training/synthetic/` | Reviewed synthetic histories, features, outcomes, and manifest | Yes |
+| `models/logistic_regression/v1/` | Synthetic-trained pipeline and compatibility manifest | Yes |
+| `cache/sec/` | Downloaded HTML, cleaned HTML, Markdown, and conversion markers | No |
+| `runtime/` | Working databases, saved reports, backups, and evaluation output | No |
 
-Controlled fixtures specific to tests stay in `tests/fixtures/`. The dated homework
-evaluation corpus stays with its runner under `homework/evaluation/`. The working
-assessment never reads gold labels. The separate **Benchmark portfolio (mock)** page
-intentionally loads pre-labeled examples from `evaluation/`; it is not an assessment
-or forecast. Financial notes and outcome labels stay out of agent/model inputs.
-
-The expansion adds 25 borrowers across six quarters through June 2026. Combined totals
-are 37 fictional borrowers, 172 financial records, 198 synthetic expected results and
-69 SEC catalog sources. The 180 supplied expectations are retained separately in
-`evaluation/synthetic_bundle_gold_cases.csv`; the public gold benchmark remains 42 cases.
-`app/synthetic/dataset_bundle_manifest.json` records the import provenance and source hashes.
-
-Maintainers can validate the ignored delivery ZIP with
-`uv run --locked python scripts/import_credit_monitoring_bundle.py`; add `--apply` to
-publish normalized inputs and rebuild the bundled database. Identical repeats do not
-rewrite assets. The ZIP is unnecessary after integration or when cloning the repository.
+Test fixtures live in `tests/fixtures/`; the dated evaluation corpus lives in
+`homework/evaluation/`. See [data sources](../docs/project/data_sources.md) for provenance.
 
 ## Run with bundled inputs
 
-The Streamlit app copies the bundle into a fresh workspace. Existing workspaces receive
-a backed-up schema upgrade and missing records, preserving existing rows and saved work.
-Updates have transactional version receipts and are safe to retry. The CLI
-reads the bundled database directly and writes results into ignored runtime storage:
+No import or training is needed after cloning. The app creates a local working copy;
+existing workspaces receive backed-up additive updates that preserve saved work.
+The CLI reads the bundled database and writes results to local runtime storage:
 
 ```bash
 uv run --locked python scripts/run_assessment.py \
   --borrower-id SYN002 --period-end 2025-09-30 --information-cutoff 2025-09-30
 ```
 
-No database import or training is required after cloning. To use the trained model from
-the CLI, add `--ml --model-type logistic_regression --model-artifact
-data/models/logistic_regression/v1` and run with `uv run --locked --extra ml`.
+For the bundled forecast, use `uv run --locked --extra ml` and add
+`--ml --model-type logistic_regression --model-artifact data/models/logistic_regression/v1`.
+See the [ML guide](../docs/guides/ml_early_warning.md).
 
-After intentionally editing the bundled financial CSV, maintainers refresh its database
-with `uv run --locked python scripts/prepare_demo_database.py` and commit both files.
-Restart the app to load the updated snapshot. Custom CSVs can still be imported with
-`credit_monitoring.ingestion.loaders.financials` and selected using `--financial-db`.
+Maintainers who edit the bundled financial CSV must run
+`uv run --locked python scripts/prepare_demo_database.py`, commit the CSV and database
+together, and restart the app. Use `--financial-db` for a separate CLI database.
 
-The [ML guide](../docs/guides/ml_early_warning.md) explains generation, training,
-optional dependencies, and artifact compatibility. The retained dataset uses seed 42
-and 50 borrowers for each of 12 scenarios. Retraining is optional for loading the
-bundled compatible model. Keep generated training/model manifests and their data
-consistent; changing generated bytes can invalidate recorded checksums.
+The bundle has 37 borrowers, 172 financial records, and 198 synthetic expected results
+(18 original and 180 added). Import provenance is in
+`app/synthetic/dataset_bundle_manifest.json`. The original delivery ZIP is unnecessary
+for running the project; [integration notes](../docs/project/dataset_expansion_plan.md)
+cover maintenance.
 
 ## SEC source download
-
-From the repository root after installing the core environment:
 
 ```bash
 export SEC_USER_AGENT="Your Name your.email@example.com"
 uv run --locked python scripts/download_sec_documents.py --document-id DOC_FMC_AMD3_2025
 ```
 
-Omit `--document-id` to download the catalog, or repeat it to select several documents.
-The downloader and processing services share `data/cache/sec/html/<document_id>.html`;
-converted Markdown lives in `data/cache/sec/markdown/`. Defaults resolve from the
-checkout, independent of the working directory. `--source-file PATH` and
-`--html-dir PATH` select alternative inputs/cache locations. Help and import perform
-no downloads or directory creation.
-
-Existing nonempty HTML is reused without credentials. Cache misses need an identifying
-`SEC_USER_AGENT`; downloads are serial and throttled. Successful files are published
-atomically. Empty or failed downloads leave no reusable new file, other documents
-continue, and any failure returns a nonzero exit code. The HTML pipeline does not
-support PDF input. Conversion markers determine when Markdown must be refreshed.
-
-Existing ignored local files are preserved during restructuring. Flat legacy files
-under the migrated cache are not automatically renamed into the active HTML directory.
+Omit `--document-id` for the whole catalog, or repeat it for several documents.
+Downloads and processing share `cache/sec/html/<document_id>.html`; converted files go
+to `cache/sec/markdown/`. Nonempty cached HTML is reused. Cache misses need an identifying
+User-Agent; downloads are throttled. Failed files remain explicit and return a nonzero exit.
+Only HTML is supported. Use `--source-file` and `--html-dir` to override locations.
 
 ## Evaluation and preservation
 
-The public benchmark contains 42 cases across 10 borrowers. Evidence grades mean:
-A supplies enough inputs to recompute the metric; B discloses a threshold and actual,
-status, breach, or waiver; C mainly supports threshold/amendment/waiver testing; EW
-is a temporal early-warning case. Public filings often lack the bespoke contractual
-EBITDA needed for independent private-credit reconstruction.
+The public benchmark has 42 cases across 10 borrowers. Evidence grades describe what
+the source supports:
 
-For early-warning backtests, documents after the information cutoff are outcome
-labels only. Public extraction cases may contain the answer in the filing and measure
-faithful extraction rather than forecasting. Use exact threshold/operator/status
-checks, documented numeric tolerances, source IDs, and explicit abstentions for gaps.
-See the [evaluation guide](../docs/homework/evaluation.md) for the actual measurement
-contract and known unsupported targets.
+| Grade | Evidence |
+| --- | --- |
+| A | Enough inputs to recompute the metric |
+| B | Disclosed threshold and actual, status, breach, or waiver |
+| C | Mainly threshold, amendment, or waiver facts |
+| EW | A temporal early-warning case |
 
-Use the preserved snapshot explicitly; it is never a runtime default:
+Public filings often lack contractual EBITDA inputs needed for independent calculation.
+Future documents are outcome labels only in early-warning tests. Notes and labels stay
+out of model inputs; unknown availability dates remain unknown.
+
+Measure the preserved extraction snapshot explicitly:
 
 ```bash
 uv run --locked python scripts/compare_public_sec_gold.py \
@@ -109,8 +79,7 @@ uv run --locked python scripts/compare_public_sec_gold.py \
   --output data/runtime/sec-evaluations/review
 ```
 
-The runner opens SQLite read-only and exports observations, hashes, coverage, and
-reports. Its strict source-coverage option also needs the corresponding local SEC
-Markdown. Historical observations are retained because rerunning extraction can
-cost money and produce different results. Local working financial/analytics databases
-are preserved as ignored runtime files and can be recreated from authored inputs.
+The runner opens SQLite read-only and saves observations, hashes, coverage, and reports.
+Strict source coverage also needs the corresponding local Markdown. The snapshot is
+historical evaluation evidence and is never a runtime default. See the
+[evaluation guide](../docs/homework/evaluation.md) for comparison rules and known gaps.

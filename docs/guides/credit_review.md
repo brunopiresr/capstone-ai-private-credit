@@ -1,29 +1,15 @@
-# Credit perspective reviews
+# Credit reviews
 
-The service analyzes one borrower's completed calculations, deterministic trends, and
-optional ML outputs from two perspectives. Independent bullish and bearish PydanticAI
-agents return evidence-backed analyses. A neutral Recommendation agent receives both
-complete analyses and the original evidence, then produces an advisory recommendation.
+Bullish and bearish agents independently interpret one borrower's saved assessment.
+A recommendation agent receives both full analyses and the original evidence, then
+explains its advisory action. The analyst makes the decision.
 
-This workflow is available through Python application services. Streamlit integration,
-borrower comparison, live news collection, review persistence, and execution of exposure
-changes are separate work. The [architecture decision](../project/decisions/001-credit-review-agents.md)
-records the agreed boundaries and implementation choices.
-
-```mermaid
-flowchart TD
-    A[Completed assessment for one borrower] --> E[Frozen evidence snapshot]
-    E --> B[Bullish agent]
-    E --> D[Bearish agent]
-    E --> R[Recommendation agent]
-    B -->|Complete analysis and rationale| R
-    D -->|Complete analysis and rationale| R
-    R --> O[Typed result for the credit analyst]
-```
+In the app, use **Borrower analysis → Run agent review** or enable **Include agent
+reviews** in Portfolio. See the [walkthrough](ui_preview.md).
 
 ## Review an existing assessment
 
-Given a `RiskAssessment` returned by the existing assessment service:
+With a completed `RiskAssessment` and provider credentials configured:
 
 ```python
 from credit_monitoring.application.bootstrap import create_credit_review_service
@@ -32,180 +18,79 @@ from credit_monitoring.domain.credit_review import ExposureDecisionContext
 reviews = create_credit_review_service()
 decision = ExposureDecisionContext(
     question="Should the existing exposure be maintained?",
-    credit_criteria=(
-        "Consider current compliance, comparable headroom trends, and material data gaps.",
-    ),
+    credit_criteria=("Review compliance, comparable headroom trends, and data gaps.",),
     constraints=("No numerical exposure sizing.",),
 )
 result = await reviews.review_assessment_async(assessment, decision_context=decision)
-print(result.recommendation.model_dump_json(indent=2))
-print(result.model_dump_json(indent=2))  # Includes both full analyses and their rationales.
+print(result.model_dump_json(indent=2))
 ```
 
-Use `reviews.review_assessment(...)` synchronously. Synchronous wrappers reject an
-already-running event loop; use `await` in notebooks or async applications.
+Use `review_assessment(...)` in synchronous code. In notebooks or an active event loop,
+use `await`. To assess and review in one call, provide an `assessment_service` to the
+factory and call `review(...)` or `review_async(...)` with borrower, period, and cutoff.
+This creates one assessment before reviewing it.
 
-The default model is the project's existing `DEFAULT_MODEL`. Live calls require its
-provider credentials, such as `OPENAI_API_KEY` for the default OpenAI provider. Models
-and credentials are resolved at execution time, so constructing the service performs
-no model or news calls. This API consumes the completed assessment without calling
-calculation, feature-building, or prediction services again.
+Construction makes no model requests. Execution needs provider credentials; the default
+model is `openai-responses:gpt-4o-mini`. Factory `model` and per-role model overrides
+configure service calls; the app also reads `LLM_MODEL`.
 
-## Create an assessment and review it
+## Results and boundaries
 
-This complete example uses the bundled synthetic inputs and the stub prediction service:
-
-```python
-from datetime import date
-from pathlib import Path
-
-from credit_monitoring.application.bootstrap import (
-    create_assessment_service,
-    create_credit_review_service,
-)
-from credit_monitoring.config.settings import AssessmentSettings
-from credit_monitoring.covenants.structured import SyntheticCovenantReader
-from credit_monitoring.domain.credit_review import ExposureDecisionContext
-from credit_monitoring.financials.repositories import FinancialRepository
-from credit_monitoring.ingestion.loaders.financials import load_financials
-
-storage = Path("data/runtime/credit_review")
-financial_database = storage / "financials.sqlite3"
-load_financials(Path("data/app/synthetic/synthetic_quarterly_financials.csv"), financial_database)
-assessments = create_assessment_service(
-    financial_repository=FinancialRepository(financial_database),
-    covenant_reader=SyntheticCovenantReader(Path("data/app/synthetic/synthetic_covenant_terms.csv")),
-    settings=AssessmentSettings(analytics_database=storage / "analytics.sqlite3"),
-)
-reviews = create_credit_review_service(assessment_service=assessments)
-decision = ExposureDecisionContext(
-    question="Assess continued exposure to SYN002.",
-    credit_criteria=("Review compliance, comparable trends, and unresolved evidence gaps.",),
-)
-result = reviews.review(
-    "SYN002", date(2025, 9, 30), date(2025, 9, 30),
-    decision_context=decision, ml_enabled=True,
-)
-```
-
-`review_async(...)` is the asynchronous equivalent. The convenience path calls
-`AssessmentService.assess(...)` once and delegates to the same review workflow. It
-passes `ml_enabled` through unchanged. The stub has no forecast or probability; use
-the existing [trained-model setup](ml_early_warning.md) for actual synthetic-trained
-predictions. Deterministic trends remain available when prediction is disabled.
-
-## Analysis and recommendation contracts
-
-Each perspective returns a thesis and individually identified arguments. An argument
-includes its statement, evidence IDs, rationale, credit implication, and assumptions.
-The review also retains supported counterevidence, gaps, change-of-view conditions,
-and evidence confidence with an explanation. A perspective with no supported arguments
-must identify its gaps and use low confidence.
-
-The Recommendation agent receives the original evidence plus both full structured
-reviews. No intermediate summarizer discards their reasoning. Its `argument_judgments`
-must cover every supplied argument exactly once, using `(perspective, argument_id)`
-to identify it. Each judgment explains acceptance, qualification, or rejection and
-cites evidence. The final rationale connects these judgments to the recommended action.
+Each perspective retains arguments, evidence IDs, rationales, assumptions, counterevidence,
+gaps, and confidence. Synthesis judges every supplied argument and explains its action:
 
 | Action | Meaning |
 | --- | --- |
-| `maintain` | Advise retaining current exposure. |
-| `increase` | Advise increasing exposure, without numerical sizing. |
-| `reduce` | Advise reducing exposure, without numerical sizing. |
-| `review` | Request analyst reassessment before choosing an exposure change. |
-| `defer` | Evidence, decision criteria, or completed reviews are insufficient. |
+| `maintain` | Retain current exposure |
+| `increase` / `reduce` | Advise a direction without sizing |
+| `review` | Request analyst reassessment |
+| `defer` | Evidence, criteria, or completed reviews are insufficient |
 
-Confidence measures evidence support, not risk or probability. The analyst makes the
-final decision. Automated validation checks schema, reference membership, argument
-coverage, and permitted actions; it does not establish semantic correctness of prose.
+All agents use the same frozen evidence. Generated narratives, benchmark labels, and
+catalog/financial notes are excluded. Agents have no calculation tools and do not
+change compliance. Confidence describes evidence support, not a risk probability.
+The default news provider reports unavailable and performs no search.
 
-The snapshot stores sanitized assessment data as canonical `assessment_json`, with an
-immutable evidence registry and news records. `snapshot.assessment_data` returns an
-isolated parsed copy. `snapshot.prompt_context()` returns the JSON-compatible context
-used by all agents. Evidence registry paths are JSON pointers into that context.
-Calculations retain their result/run IDs, financials retain file/row provenance, and
-source citations, hashes, prediction metadata, and availability warnings are preserved.
-Generated assessment narratives, raw source-value annotations, benchmark labels, and
-CSV/catalog notes are excluded.
-
-## Configuration, progress, and failures
-
-`create_credit_review_service(...)` accepts a shared `model`, per-role `bullish_model`,
-`bearish_model`, and `recommendation_model` overrides, `CreditReviewSettings`, an
-optional `news_provider`, and an async `event_handler`.
-
-```python
-from credit_monitoring.config.settings import CreditReviewSettings
-
-async def progress(event):
-    print(event.kind, event.stage, event.error_code)
-
-reviews = create_credit_review_service(
-    settings=CreditReviewSettings(timeout_seconds=60, output_retries=1),
-    event_handler=progress,
-)
-```
-
-The timeout covers each role's full run, including output retries. The request limit
-is `output_retries + 1`; no function tools or autonomous delegation are registered.
-Each role starts with fresh history. A parent cancellation propagates to active model
-runs rather than publishing a completed result. A convenience call's upstream synchronous
-assessment runs in a worker thread; cancellation does not roll back an assessment
-already being persisted by that service.
-
-Callbacks receive immutable `CreditReviewEvent` records for stage start, completion,
-failure, and review completion. Concurrent reviewer event order is unspecified.
-Callback errors become sanitized issues without discarding analysis. Execution metadata
-records application-owned IDs, role, model, prompt version, duration, requests, token
-usage, response identity when available, and stable failure codes. Model messages and
-provider thinking blocks are not returned or logged.
-
-| Condition | Returned behavior |
+| Condition | Behavior |
 | --- | --- |
-| Invalid structured verification or mismatched assessment identity | `blocked`, `defer`; all agents skip. |
-| Missing credit criteria, no current results, or no supported arguments | Restrict synthesis to `defer`; retain available analyses. |
-| One reviewer fails | `incomplete`, `defer`; preserve the successful review and synthesize with low confidence. |
-| Both reviewers fail | `incomplete`, service-generated `defer`; skip synthesis. |
-| Recommendation agent fails validation, refuses, times out, or errors | `incomplete`, service-generated `defer`; preserve both reviews. |
-| Missing or failed news/ML | Disclose the limitation; preserve deterministic evidence and available analyses. |
+| Invalid verification or identity | Block agents; defer |
+| Missing criteria or supported evidence | Defer; retain available analysis |
+| Reviewer failure | Incomplete; defer and retain successful work |
+| Recommendation failure | Incomplete; defer and retain both reviews |
+| Missing news or ML | Disclose the gap and preserve deterministic evidence |
 
-`complete` describes workflow completion, so a complete review can recommend `defer`.
-Consumers should display `result.issues`, snapshot limitations, both analyses, and the
-recommendation together. Neither a completed review nor a high confidence explanation
-changes underlying compliance or verification status.
+`complete` means the workflow finished; it can still recommend `defer`. Display
+`result.issues`, evidence limits, both analyses, and the recommendation together.
+Reference validation checks identifiers and coverage, not the truth of every sentence.
 
-## Future public news
+## Configuration
 
-Implement `PublicNewsProvider.get_context(borrower_id, information_cutoff)` asynchronously
-and return `PublicNewsContext`. Records require a news ID, explicit borrower scope,
-title, publisher, HTTP(S) URL, excerpt, and publication time (or explicit `None`).
+`create_credit_review_service(...)` accepts shared/per-role models, `CreditReviewSettings`,
+an optional news provider, and an async progress callback. Defaults are 60 seconds per
+role and one output-validation retry. Bullish and bearish runs are concurrent;
+recommendation follows. Cancellation propagates; successful persisted assessments remain.
 
-The default reports `unavailable` and performs no search. Provider failures report
-`failed`; an available search with no accepted records reports `empty`. The service
-excludes other borrowers' records, unknown publication times, and publication after
-the cutoff. A date cutoff includes the complete UTC day. Accepted records join the
-same snapshot for all three agents; excerpts remain untrusted evidence. Issuer-to-borrower
-mapping belongs to the provider's explicit configuration.
+An injected news provider must supply explicit borrower mapping and publication provenance.
+Unknown publication times and records after the cutoff are excluded; a date cutoff
+includes the complete UTC day. See the [decision record](../project/decisions/001-credit-review-agents.md).
 
 ## Validation and model evaluation
 
-Run the offline workflow regressions with:
-
 ```bash
 uv run --locked pytest tests/integration/workflows/test_credit_review.py
-make lint
-make test
 ```
 
-The tests exercise real SQLite assessments and PydanticAI output validation with scripted
-model boundaries. They establish data flow, reference validation, rationale retention,
-parallelism, failure handling, and serialization. They do not measure live reasoning quality.
+Offline tests check scope, evidence flow, references, failures, and serialization.
+For live evaluation, review improving, deteriorating, breached-with-mitigants, and
+missing-input cases. Save the full result and model/prompt metadata; check argument
+support, counterevidence, and whether the action follows from the supplied criteria.
 
-For an explicitly requested live evaluation, run representative improving, deteriorating,
-breached-with-mitigants, and missing-input cases through the documented service API.
-Capture `result.model_dump_json()` with model and prompt metadata. Review whether each
-argument is supported, material counterevidence is addressed, the final action follows
-from both reviews and supplied criteria, and unavailable predictions or news remain
-unavailable. Distinct useful interpretations matter; disagreement alone is not success.
-Live calls incur provider usage and require credentials; none run in the portable suite.
+To evaluate generated follow-up questions on saved app reviews:
+
+```bash
+uv run --locked python scripts/evaluate_follow_up_questions.py --live \
+  --run-id YOUR_SAVED_ASSESSMENT_ID --output /tmp/follow-up-quality.json
+```
+
+This makes model requests and exports questions plus a human scoring rubric. Successful
+generation alone does not establish quality. Repeat `--run-id` for varied borrowers.

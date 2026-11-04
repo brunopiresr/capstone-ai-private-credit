@@ -4,7 +4,7 @@
 
 This document proposes user-facing test scenarios for the credit monitoring agent. The homework asks us to act as a user, consider the expected output and tool calls, and identify situations in which the agent may behave incorrectly.
 
-These scenarios define expected behavior. Automated live-agent tests for the three main cases are available in [homework-tests](../README.md); the remaining scenarios are proposals. Numerical examples were checked through offline assessment-service runs using temporary databases. Risks in this document describe what to investigate; live outcomes should be recorded separately.
+These scenarios define expected behavior. Automated live-agent tests for the three main cases are available in [agent tests](../README.md); the remaining scenarios are proposals. Numerical examples were checked through offline assessment-service runs using temporary databases. Risks in this document describe what to investigate; live outcomes should be recorded separately.
 
 The three recommended cases to share are in [three-main-cases.md](three-main-cases.md).
 
@@ -26,7 +26,7 @@ The primary user is a credit analyst. The following query types come from the pr
 
 ## Where to exercise the agent
 
-Use `CreditAssessmentAgent` or `homework/notebooks/03-agents.ipynb`. The Streamlit interface currently uses mocked responses, so it does not exercise the real agent's tool selection.
+Use `CreditAssessmentAgent` or [the agents notebook](../../notebooks/03-agents.ipynb) to inspect live tool selection. The main Streamlit workspace also uses real agents; its separate benchmark page remains a mock.
 
 For borrower scenarios, configure an assessment service and the stated `borrower_id` through the application. For issuer scenarios, configure the stated `ticker`. Borrower scope is not a model-visible assessment-tool argument.
 
@@ -352,11 +352,11 @@ For each attempted scenario, record:
 
 Keep gold labels, benchmark notes, and later outcomes outside the generating agent's context. Exact numerical results and argument values can be checked deterministically. Answer completeness and faithful explanation require review of the generated response; the existing offline answer judge can support that review.
 
-These documents define the scenarios. The separate [homework-tests](../README.md) folder implements checks for the three main cases without changing the agent.
+These documents define the scenarios. The [agent test suite](../README.md) implements checks for the three main cases.
 
 ## Project references
 
-- [Project overview and current implementation status](../README.md)
+- [Project overview and current implementation status](../../../README.md)
 - [Credit analyst persona and intended capabilities](../../../docs/archive/06_POC_Code_Agent_Implementation_Spec.md)
 - [Document processing, tools, conversations, and verification limits](../../../docs/guides/document_processing.md)
 - [Assessment workflow, stub behavior, and data limits](../../../docs/guides/ml_early_warning.md)

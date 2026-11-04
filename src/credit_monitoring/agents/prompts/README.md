@@ -1,18 +1,14 @@
 # Prompt resources
 
-- `extraction.py`: exact agreed `EXTRACTION_INSTRUCTIONS` and its version.
-- `batch.py`: separate grouping directive for one-call all-company extraction.
-- `narrative.py`: source-stated monitoring notes without covenant calculations.
-- `assembly.py`: JSON envelopes shared by both workflows.
-- `credit_assessment.py`: core evidence, scope, citation and confidence rules;
-  the builder includes date rules only when assessment tools are enabled.
-- `credit_review.py`: versioned bullish, bearish, and neutral recommendation mandates;
-  complete cited rationales and explicit argument judgments for one borrower.
+| Module | Purpose |
+| --- | --- |
+| `extraction.py` | Versioned extraction instructions; current version v2.3 |
+| `batch.py` | All-company grouping instructions, v2.1 |
+| `narrative.py` | Source-stated monitoring notes |
+| `assembly.py` | Shared JSON evidence envelopes |
+| `credit_assessment.py` | Evidence, scope, citations, confidence, and conditional assessment-date rules |
+| `credit_review.py` | Bullish, bearish, and recommendation roles with cited arguments |
 
-Tool docstrings own workflow and argument guidance. Assessment tool results carry
-applicable model and availability caveats in their existing `issues` fields.
-
-The extraction prompt changes only through a separately reviewed version update.
-The extraction/batch prompts are versioned `v2.1`; full-document extraction must
-include every fiscal-quarter schedule row and preserve exact ratio wording.
-See [current service and agent usage](../../../../docs/guides/document_processing.md).
+Tool docstrings define tool/argument guidance. Assessment results carry model and
+availability caveats in `issues`. Extraction prompt changes require a deliberate
+version update and matching fixtures. See [document processing](../../../../docs/guides/document_processing.md).

@@ -4,13 +4,13 @@ Portable tests use controlled observations plus a small captured FMC regression,
 without a local public cache or model calls:
 
 ```bash
-uv run pytest tests/evaluation/extraction tests/unit/evaluation/test_sec_snapshot.py -q
+uv run --locked pytest tests/evaluation/extraction tests/unit/evaluation/test_sec_snapshot.py -q
 ```
 
 Run the separate quality measurement with an explicit existing database:
 
 ```bash
-uv run python scripts/compare_public_sec_gold.py \
+uv run --locked python scripts/compare_public_sec_gold.py \
   --database /absolute/path/to/covenants.sqlite3 \
   --output /tmp/public-sec-comparison --require-complete-sources
 ```
@@ -26,7 +26,7 @@ select other inputs. No extraction or model request is made.
 Replay without SQLite or the original source files:
 
 ```bash
-uv run python scripts/compare_public_sec_gold.py \
+uv run --locked python scripts/compare_public_sec_gold.py \
   --snapshot /tmp/public-sec-comparison/observations.json \
   --output /tmp/public-sec-replay --require-complete-sources
 ```

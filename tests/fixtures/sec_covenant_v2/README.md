@@ -1,31 +1,23 @@
-# Controlled SEC covenant extraction fixtures
+# SEC extraction fixtures
 
-`records.json` contains labelled synthetic excerpts. They are not claims about
-actual SEC filings, including the four URLs in the implementation guide.
+`records.json` contains labeled synthetic excerpts, not claims about real SEC filings.
+Workflow tests use controlled models/HTTP responses to check input preservation,
+parsing, provenance, serialization, and failures. They do not measure live extraction
+accuracy or prompt-injection resistance.
 
-`extraction_prompt_v2.txt` freezes the exact agreed V2 instruction string,
-including leading/trailing newlines. A reviewed prompt-version update should
-update this snapshot deliberately.
+| Prompt snapshot | Version |
+| --- | --- |
+| `extraction_prompt_v2.txt` | Historical v2.0 |
+| `extraction_prompt_v2_1.txt` | Historical v2.1 |
+| `extraction_prompt_v2_2.txt` | Historical v2.2 |
+| `extraction_prompt_v2_3.txt` | Active v2.3 |
 
-Unit tests construct expected structured facts from these snippets. Workflow
-tests use injected PydanticAI models and controlled service/HTTP collaborators. They verify preservation, input assembly, parsing, provenance, serialization,
-and error handling; they do **not** establish live model extraction accuracy or
-resistance to prompt injection. The injection test checks instruction/data isolation.
+Snapshots preserve exact prompt bytes and require deliberate versioned updates.
+Version 2.2 separates actuals from limits and ties operators/quotes to their covenant.
+Version 2.3 preserves source names and records contradictory headers; extraction
+inputs exclude descriptive catalog notes.
 
-The optional local SEC regression reads an existing ignored Markdown file when
-available and otherwise skips. It checks verbatim provenance without calling a model.
-
-The original tests have been run successfully. Complete-document regression coverage
-also uses `fmc_amendment_schedule.md`, a source excerpt containing all 19 leverage
-and 17 interest-coverage quarters from `DOC_FMC_AMD3_2025`, including page continuation.
-The source catalog links that amendment to the SEC filing. These are pipeline tests
-with mocked model outputs, not live LLM accuracy evaluations.
-
-`extraction_prompt_v2.txt` preserves the historical v2.0 prompt;
-`extraction_prompt_v2_1.txt` preserves v2.1; `extraction_prompt_v2_2.txt` preserves v2.2; `extraction_prompt_v2_3.txt` is active.
-Version 2.2 addresses source-confirmed actual/threshold confusion, adjacent-covenant
-operator contamination, covenant-family classification, and invented evidence quotations.
-Version 2.3 preserves source covenant names and records contradictory table headers
-without combining separate clauses. Its extraction input assembly also excludes
-descriptive catalog notes while preserving source text and provenance.
-See [public benchmark triage](../../../docs/reviews/public_sec_benchmark_triage.md).
+`fmc_amendment_schedule.md` preserves all 19 leverage and 17 interest-coverage quarters
+from `DOC_FMC_AMD3_2025`, including continuation rows. Mocked pipeline checks verify
+complete input delivery. The optional local SEC regression skips if its ignored
+Markdown source is absent. See [public benchmark findings](../../../docs/reviews/public_sec_benchmark_triage.md).

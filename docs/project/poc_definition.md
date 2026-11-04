@@ -1,12 +1,13 @@
-# POC definition
+# Project scope
 
-The capstone POC focuses on covenant monitoring, deterministic financial calculations, covenant headroom and trend analysis, legal/public evidence retrieval, a verified quarterly assessment, and analyst review. It does not make autonomous lending, investment, or escalation decisions.
+This proof of concept supports covenant monitoring with deterministic calculations,
+headroom and trend analysis, source retrieval, optional synthetic-trained forecasts,
+and advisory AI reviews.
 
-The service layer now includes independent bullish and bearish reviews of one borrower's
-calculation and ML outputs, followed by a dedicated recommendation agent. Both full
-analyses and supporting rationales are returned to the analyst. Recommendations are
-advisory; they do not execute credit decisions. See [credit reviews](../guides/credit_review.md).
+The Streamlit workspace connects portfolio assessment, analyst validation and submission,
+risk manager review, document operations, and saved board reports. See the
+[walkthrough](../guides/ui_preview.md).
 
-The long-term platform may expand to portfolio prioritization, borrower comparison,
-private-data integrations, and production workflows. Credit-review UI wiring and live
-public-news collection remain future work.
+The analyst remains responsible for decisions. The POC does not execute lending or
+investment actions. Authentication, external notifications, PDF export, live news,
+private-data integrations, and borrower comparison are outside the current scope.

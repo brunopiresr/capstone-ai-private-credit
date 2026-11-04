@@ -1,14 +1,15 @@
 # Data sources
 
-Implemented inputs are the [SEC filing catalog](../../data/app/sec/public_sec_documents.csv), cached
-HTML/Markdown, stored extractions, and controlled synthetic borrower financials/covenant
-terms. The [shared download command](../../data/README.md#sec-source-download) populates the
-HTML cache used by services and notebooks. The catalog supplies source URLs and document
-metadata; extraction and retrieval retain exact quotes and provenance.
+| Source | Use |
+| --- | --- |
+| [Synthetic financials and terms](../../data/app/synthetic/) | Fictional borrower assessments and demonstrations |
+| [SEC catalog](../../data/app/sec/public_sec_documents.csv) | Public filing URLs, identity, and dates for HTML extraction and search |
+| Local HTML, Markdown, and SQLite extractions | Cached source text, quotations, and provenance |
+| [Evaluation data](../../data/evaluation/) | Expected answers and historical observations; excluded from runtime evidence |
 
-Synthetic gold labels are acceptance expectations, not runtime evidence. Financial CSV
-notes can reveal expected outcomes and are excluded from agent inputs. Reporting dates
-and actual source availability are distinct; unknown availability remains unknown.
+Public issuers and synthetic borrowers are separate. Link sources explicitly; names
+and tickers do not establish a relationship. Financial notes that reveal outcomes are
+excluded from agent inputs. Reporting dates do not establish publication availability.
 
-SEC company-facts feeds, issuer investor-relations collection, and a general public-news
-provider are planned, not implemented. See the [current architecture and roadmap](architecture.md).
+See [data layout and downloads](../../data/README.md). SEC company-facts feeds,
+investor-relations collection, and live public news are not implemented.

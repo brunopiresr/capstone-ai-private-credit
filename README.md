@@ -1,109 +1,74 @@
-# AI Credit Monitoring POC
+# AI Credit Monitoring
 
-An analyst POC for covenant monitoring: deterministic financial calculations and trends,
-SEC document extraction and lexical retrieval, optional synthetic-trained risk prediction,
-and PydanticAI follow-ups. Missing and conflicting inputs remain visible; the analyst
-retains responsibility for decisions.
+A proof of concept (POC) for reviewing borrower covenants: calculate compliance and
+headroom, inspect source evidence, compare bullish and bearish AI reviews, and prepare
+analyst, risk manager, and board reports. Analysts make the decisions.
+
+The demo includes **37 fictional borrowers**, **172 quarterly financial records**, and
+**69 public SEC source references**. Synthetic borrowers are separate from real SEC issuers.
 
 ## Run the app
-
-To use the new Streamlit POC workspace, run:
-
-```bash
-make preview
-```
-
-**Portfolio** is connected to the calculation services and bullish, bearish and
-recommendation agents. Choose reporting dates, run one borrower or the whole portfolio,
-and inspect saved results. Enable **Include agent reviews** when requesting assessments
-to run all three agents for each newly assessed borrower. The option is off by default.
-Assessments use bundled synthetic inputs without model
-credentials. Agent reviews require `OPENAI_API_KEY` in `.env` or the environment;
-`LLM_MODEL` optionally selects the model. Results survive browser refresh in ignored
-`data/runtime/portfolio/` storage. Opening/filtering the page does not run assessments
-or agents.
-
-**Borrower analysis** shares those saved results and supports calculation evidence,
-prediction controls, version history, real assistant conversations, validation,
-flags and analyst report submission. **Documents & data** now supports a persistent
-working catalog, explicit borrower links, HTML fetch/extraction, cache retries,
-source inspection and backed-up database/index rebuilds. Downloads need
-`SEC_USER_AGENT`; extraction also needs `OPENAI_API_KEY`. **Risk review** now saves
-manager observations, recommendations, reviewed decisions and flag resolutions against
-exact submitted versions. Further-analysis requests support context-only agent reruns
-or analyst recalculation, validation and resubmission. **Board report** saves draft
-and final snapshots containing open flags, older cases, untriaged breaches and explicit
-pending items. Saved reports can be opened using `?report_id=...`. **Reset navigation**
-retains all saved records.
-See the [POC walkthrough](docs/guides/ui_preview.md).
-
-The bundled app includes **37 fictional borrowers**, **172 quarterly financial records**,
-and **69 SEC catalog sources**. New borrowers SYN013–SYN037 cover six quarters through
-June 2026, including mixed covenant outcomes, capped adjustments, waivers and data gaps.
-Existing workspaces receive backed-up additive financial updates. Bulk document processing
-uses four document workers by default; **Documents processed at once** adjusts concurrency.
-See the [dataset integration notes](docs/project/dataset_expansion_plan.md).
-
-Open **User guide** in the sidebar for the first-assessment walkthrough, task help
-and troubleshooting. Collapsed **How to…** sections explain controls beside the work.
-After each credit review, an additional read-only agent generates up to three
-follow-up questions from the saved calculations and bullish, bearish and recommendation
-analyses. In **Borrower analysis → Credit assistant**, expand **Suggested follow-up questions**,
-select a question and edit the
-**Question draft**, then **Send question**. Existing saved analyses offer **Generate
-follow-up questions**. Generation uses model credentials and incurs provider usage;
-saved questions are reused when browsing. Answers receive the matching saved risk analysis.
 
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
 
 ```bash
 uv sync --group dev --extra ml --locked
-make run
+make preview
 ```
 
-Choose a borrower, reporting period, and information cutoff, then **Run assessment**.
-The financial SQLite database and trained ML pipeline are included in Git. The working
-page copies the bundled database into ignored local storage; no credentials, downloads,
-database import, data generation, or model training are needed. Select **Logistic Regression**
-to use the bundled trained model. The separate **Benchmark portfolio (mock)** page shows fixed,
-pre-labeled examples.
+Open the URL printed in the terminal. In **Portfolio**, choose reporting dates and a
+borrower, then run an assessment. Calculations and the bundled Logistic Regression model
+work without API keys, downloads, or training. Saved work stays in `data/runtime/portfolio/`.
 
-For analyst follow-ups, copy [.env.example](.env.example) to `.env` and set
-`OPENAI_API_KEY`. `LLM_MODEL` optionally changes the default
-`openai-responses:gpt-4o-mini`. Conversation memory belongs to each browser session
-and clears on a new assessment or **Clear conversation**.
+| Page | Use it to |
+| --- | --- |
+| Portfolio | Assess borrowers and inspect saved results |
+| Borrower analysis | Review calculations, ask questions, validate, flag, and submit a report |
+| Documents & data | Register and link sources, process HTML filings, and inspect evidence |
+| Risk review | Record manager decisions and request further analysis |
+| Board report | Save and finalize a report from reviewed cases and pending items |
 
-The connected `make preview` app enables the bundled **Logistic Regression** forecast
-by default. Existing assessments saved with ML off can be updated using **Run
-assessment with ML**, followed by **Run agent review** for the new version. The
-original `make run` app still defaults to **Off**. Model details, SEC downloads, credit perspective reviews,
-and Logfire setup are documented in the [usage guides](docs/README.md#usage-guides).
-Synthetic model results do not establish real-world forecasting performance.
+Open **User guide** in the sidebar for help, or read the [walkthrough](docs/guides/ui_preview.md).
+The original single-borrower app is available with `make run`; its prediction mode starts at **Off**.
+The main workspace starts with **Logistic Regression** selected.
+
+## Optional services
+
+Copy [.env.example](.env.example) to `.env` and fill in only the settings you need.
+
+| Setting | Enables |
+| --- | --- |
+| `OPENAI_API_KEY` | AI reviews, assistant replies, extraction, and generated follow-up questions |
+| `LLM_MODEL` | Model override; default: `openai-responses:gpt-4o-mini` |
+| `SEC_USER_AGENT` | SEC downloads; use your name or organization and contact email |
+| `LOGFIRE_TOKEN` | Optional telemetry; see [Logfire setup](docs/guides/logfire_setup.md) |
+
+Model requests incur provider usage. Browsing saved results does not run assessments
+or agents. Keep `.env` and local runtime files out of shared commits.
+
+## Scope and limits
+
+Financial calculations are deterministic. Missing inputs, conflicts, waivers, and
+unavailable forecasts remain visible. AI reviews are advisory. The risk model is trained
+on synthetic data; its scores do not establish real-world forecasting performance.
+Automatic post-extraction verification is disabled, and public-source extraction has
+[known quality gaps](docs/reviews/public_sec_benchmark_triage.md).
+
+This local POC has no authentication, external notifications, or PDF export.
 
 ## Find your way around
 
-| Directory | Purpose |
-| --- | --- |
-| [src/credit_monitoring](src/credit_monitoring/) | Shared app code: services, financial rules, agents, storage, and UI |
-| [data](data/README.md) | App inputs, evaluation answers, training data, models, and ignored local output, explicitly separated |
-| [tests](tests/) | App regressions and controlled fixtures |
-| [homework](homework/README.md) | Notebooks, monitoring exercise, agent tests, dated evaluation work, and optional judges |
-| [scripts](scripts/) | Assessment, download, training, and evaluation commands |
-| [docs](docs/README.md) | Current project context, usage guides, homework guidance, reviews, and archived plans |
-
-Start with the [current architecture](docs/project/architecture.md) and
-[POC scope](docs/project/poc_definition.md). The [complexity review](docs/reviews/poc_simplification_review.md)
-records the cleanup and remaining opportunities; the
-[deferred simplification plan](docs/project/deferred-simplification-plan.md) covers larger follow-up work.
+- [Documentation](docs/README.md): guides, architecture, decisions, and historical notes.
+- [Data](data/README.md): inputs, benchmarks, models, and local storage.
+- [Homework](homework/README.md): notebooks, monitoring demo, and evaluation exercises.
+- [Source](src/credit_monitoring/), [scripts](scripts/), and [tests](tests/).
 
 ## Check the project
 
 ```bash
-make test-all      # App and homework checks; live scenarios skip.
+make test-all      # Offline app and homework checks; live scenarios skip
 make lint
 ```
 
-These checks need no model credentials or local SEC cache. Optional training checks,
-live scenarios, and the separate Python 3.13 judges environment are described in
-[homework](homework/README.md) and [evaluation](docs/homework/evaluation.md).
-Passing controlled tests does not establish live extraction or answer quality.
+See [evaluation](docs/homework/evaluation.md) for optional ML, live, and judge checks.
+Offline tests check behavior; they do not measure live answer quality.

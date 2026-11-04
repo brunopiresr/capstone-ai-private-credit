@@ -1,63 +1,37 @@
-# Homework agent tests
+# Agent tests
 
-The three [main scenarios](test-cases/three-main-cases.md) share prompts, exact tool contracts and answer criteria in `scenarios.py`:
+Three [main scenarios](test-cases/three-main-cases.md) cover missing financial inputs,
+missing dates, and an unavailable stub forecast. Shared prompts and criteria live in
+`scenarios.py`; the [scenario catalog](test-cases/all-scenarios.md) provides manual extensions.
 
-- `test_main_scenarios.py` uses ordinary assertions for tool calls, dates, and structured results.
-- `test_llm_scenarios.py` runs the same scenarios asynchronously, checks the same tool contracts first, and calls `await assert_criteria(response, [...])` to check the response and tool behavior.
+| Suite | Checks |
+| --- | --- |
+| `test_main_scenarios.py` | Actual tool calls, dates, and structured results |
+| `test_llm_scenarios.py` | The same tool contract, followed by a structured final-answer judge |
+| `test_criteria_helpers.py` | Offline validation, failure capture, and ordered trace handling |
 
-`criteria_helpers.py` uses a PydanticAI judge (`openai:gpt-4o-mini`) with structured `JudgeFeedback`. One judge call evaluates all criteria for a completed scenario. The helper prints the feedback and asserts that every criterion passed. Incomplete agent runs and missing, reordered, or mismatched feedback fail explicitly. Evidence comes from the actual answer and ordered `AgentAnswer.tool_trace`, including tool arguments and returned results.
-
-The LLM tests check missing financial inputs and FCCR activation for SYN010, missing-date clarification for SYN002, and an unavailable stub forecast distinguished from current compliance and headroom. Tool-order and exact date requirements are included in the criteria. The judge receives these expectations only after the agent runs.
-
-Run the ordinary assertions:
-
-```bash
-uv run pytest homework/agent-tests/test_main_scenarios.py --run-live -v -s
-```
-
-Run the async judge tests:
+Run offline checks:
 
 ```bash
-uv run pytest homework/agent-tests/test_llm_scenarios.py --run-llm-evals -v -s
+uv run --locked pytest homework/agent-tests -q
 ```
 
-Both flags enable live requests and are aliases. Credentials are loaded from `OPENAI_API_KEY` or the repository's `.env`. Use `--homework-model` to change the generating model; the judge uses the model specified in `create_judge_agent()`. Both suites use real local services and temporary databases. Without a live flag, the six live scenarios skip while offline helper regressions run:
+Live tests require `OPENAI_API_KEY` in the environment or root `.env` and incur usage:
 
 ```bash
-uv run pytest homework/agent-tests -q
+uv run --locked pytest homework/agent-tests/test_main_scenarios.py --run-live -v -s
+uv run --locked pytest homework/agent-tests/test_llm_scenarios.py --run-llm-evals -v -s
 ```
 
-The judge tests run directly in the project environment. `test_criteria_helpers.py`
-retains offline checks of valid and invalid criteria, incomplete runs, failed criteria,
-missing/duplicate/reordered/mismatched feedback, failed-judgment artifact capture, and
-answer/ordered-trace preservation. These checks explicitly disable real model requests.
-Default app pytest discovery excludes homework; `make test-homework` runs the exercise
-suites and `make test-all` also runs app regressions.
-Both live suites retain answer, generating-model identity, ordered tool arguments and
-results in ignored `data/runtime/judges-homework-*` directories. The judged suite
-also saves judge identity, criteria and feedback before asserting acceptance.
+The two live flags are aliases; without either, six live scenarios skip. Use
+`--homework-model` to change generation. The judge uses `openai:gpt-4o-mini` as configured
+in `create_judge_agent()` and evaluates all criteria in one request per scenario.
+It receives the completed answer and actual ordered tool trace after generation.
 
-Validation on October 18, 2026 initially reproduced all six live failures. The
-assessment prompt now requires both analyst-supplied dates before any tool call,
-an initial financial read, and the exact assessment or forecast sequence. Tool
-instructions reinforce the forecast prerequisite. The same six scenarios then
-passed, including all three final-answer judge checks. A later run exposed an
-omitted activation comparison; the prompt now asks for the observed input and
-trigger threshold. Final validation after the streaming refactor: **14 passed**
-(eight offline helper checks plus all six live scenarios), using `openai-responses:gpt-4o-mini`
-for generation and `openai:gpt-4o-mini` for judging. These are observed live results, not expected-failure
-markers or proof of general model reliability. Subsequent runs may still fail and
-retain their captures for diagnosis.
+Live captures save model identities, answers, tool results, criteria, and feedback under
+ignored `data/runtime/judges-homework-*`. Failed judgments are saved before assertions.
 
-
-Offline discovery and lint (no live flag or credentials required):
-
-```bash
-uv run --locked pytest homework/agent-tests --collect-only -q
-make test-homework
-make lint
-```
-
-The historical live results above have not been rerun by the F13–F19 cleanup. Current
-mocked helper checks validate plumbing, not answer quality or judge calibration. The
-optional Evidently suite uses its own Python 3.13 environment; see [evaluation](../../docs/homework/evaluation.md).
+The recorded streaming-refactor run passed eight helper checks and six live scenarios.
+This historical result is not a current reliability claim; later runs may fail.
+`make test-homework` includes offline helpers. See [evaluation](../../docs/homework/evaluation.md)
+for the separate Evidently environment and other measurement options.
