@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E06",
+  "category": "edge_case",
+  "topic": "compliance_headroom",
+  "family": "unsupported_period",
+  "question": "Assess SYN001 at the exact period requested; do not substitute an earlier record. Reporting date: 2030-03-31. Information cutoff: 2030-03-31.",
+  "expected_behavior": "Requested 2030-03-31 financial inputs are unavailable. Report incomplete assessment with null actual/headroom; do not substitute an earlier quarter or invent inputs. Cite available assessment IDs.",
+  "answer": "As of the requested reporting date of 2030-03-31, no financial inputs are available for SYN001, resulting in an incomplete assessment of the net leverage covenant. The threshold for compliance under the Maximum Net Leverage covenant is set at 5.5x. Due to missing financial metrics, particularly reported EBITDA, the compliance status cannot be determined, leading to an \"incomplete\" compliance result.",
+  "confidence": "low",
+  "confidence_explanation": "The assessment is based solely on covenant parameters without any actual financial data available for the reporting period. The historical data points indicate the absence of necessary metrics for the March 31, 2030 period.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 6.657,
+  "judge_seconds": 6.738,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "46c0dfd588f44eddc42585809f1b4d97323ca3a56061800acb489dadf22bebde",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E06/answer.json"
+}

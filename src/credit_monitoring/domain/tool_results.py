@@ -39,7 +39,7 @@ class ToolFailure(ExtractionModel):
     message: str = Field(
         description="Explanation from argument validation or the executed service."
     )
-    terminal: bool = False
+    terminal: bool = Field(default=False, description="True when policy requires ending the turn.")
 
 
 type ToolOutcome = (

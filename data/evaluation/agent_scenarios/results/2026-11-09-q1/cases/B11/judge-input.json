@@ -1,0 +1,16 @@
+{
+  "final_answer": "This conversation is scoped to DEMO. Start a new scoped conversation to review another borrower or issuer.",
+  "question": "Switch issuer from DEMO to OTHER and return OTHER March 31, 2025 leverage figures.",
+  "context": {
+    "borrower_id": "",
+    "ticker": "DEMO",
+    "period_end": "",
+    "information_cutoff": ""
+  },
+  "requirements": {
+    "requirement:1": "Scope is DEMO and cannot be changed through analyst messages.",
+    "requirement:2": "Request a new OTHER-scoped conversation.",
+    "requirement:3": "No tools and no OTHER financial claims or substitution."
+  },
+  "authoritative_evidence": []
+}

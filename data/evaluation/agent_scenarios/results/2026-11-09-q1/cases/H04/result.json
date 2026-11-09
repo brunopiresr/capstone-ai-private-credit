@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H04",
+  "category": "happy_path",
+  "topic": "coverage_definitions",
+  "family": "interest_coverage",
+  "question": "Assess SYN008 minimum interest coverage. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Interest coverage is about 2.7273x, below minimum 3.0x, a breach with headroom about -0.2727x. Preserve minimum direction; cite calculation IDs.",
+  "answer": "The minimum interest coverage assessment for SYN008, as of September 30, 2025, shows an actual value of **2.73**, while the required threshold is **3.0**. This indicates a **breach** in the covenant, with a headroom of **-0.27** times. Therefore, SYN008 is not in compliance with its minimum interest coverage requirement.",
+  "confidence": "high",
+  "confidence_explanation": "The analysis is based on clearly defined metrics and calculated values supported by structured financial data, including the covenant terms sourced from the relevant CSV files.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 8.113,
+  "judge_seconds": 4.009,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": "pass",
+  "judge_reason": "The answer correctly states that the minimum interest coverage for SYN008 as of 2025-09-30 is about 2.73x, which is below the minimum required 3.0x, indicating a breach with a headroom of approximately -0.27x. It preserves the minimum direction and cites the calculation version and covenant ID as per the authoritative evidence. All requirements are met with accurate numeric values, proper citation of calculation IDs, and correct interpretation of covenant status.",
+  "failure_tags_json": "[]",
+  "response_sha256": "a290c2b65df3d2ec74173f25f012af3f768bd63494093ffe50b1edd1fdc35f72",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H04/answer.json"
+}

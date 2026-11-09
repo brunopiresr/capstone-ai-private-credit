@@ -1,0 +1,1023 @@
+{
+  "final_answer": "The assessment of SYN022 covenants indicates mixed compliance status. Specifically:\n\n1. **Maximum Total Leverage Covenant**:\n   - **Actual Value**: 3.2x\n   - **Threshold**: 4.5x\n   - **Compliance Status**: Compliant\n   - **Headroom**: 1.30x\n   - **Source**: [Covenant Terms](https://source_file_location) (CSV Row 29)\n\n2. **Minimum Fixed Charge Coverage Covenant**:\n   - **Actual Value**: Unavailable\n   - **Threshold**: 1.3x\n   - **Compliance Status**: Incomplete due to missing financial inputs, specifically for fixed charges.\n   - **Source**: [Covenant Terms](https://source_file_location) (CSV Row 30)\n\n**Conclusion**: While SYN022 is compliant with the maximum total leverage covenant, the lack of available data for the fixed charge coverage covenant renders its compliance status incomplete. Therefore, we cannot conclusively state that the whole borrower is compliant. \n\n**Verification Issues**: There are warnings related to the availability of financial inputs for the fixed charge coverage covenant, impacting reliability.",
+  "question": "Assess all SYN022 covenants. Can we conclude the whole borrower is compliant? Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "context": {
+    "borrower_id": "SYN022",
+    "ticker": "",
+    "period_end": "2025-09-30",
+    "information_cutoff": "2025-09-30"
+  },
+  "requirements": {
+    "requirement:1": "Leverage is compliant at 3.2x versus 4.5x, headroom 1.3x.",
+    "requirement:2": "FCCR remains incomplete because required inputs are missing, actual/headroom null, minimum 1.3x.",
+    "requirement:3": "Do not generalize one passing covenant to whole-borrower compliance; cite calculation IDs."
+  },
+  "authoritative_evidence": [
+    {
+      "tool": "get_financials",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "result": {
+        "borrower_id": "SYN022",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "current": {
+          "borrower_id": "SYN022",
+          "period_end": "2025-09-30",
+          "metrics": {
+            "total_debt": 320.0,
+            "cash": 25.0,
+            "reported_ebitda": 100.0,
+            "eligible_addbacks": 0.0,
+            "cash_interest": null,
+            "capex": null,
+            "cash_taxes": null,
+            "scheduled_principal": null,
+            "rent": null,
+            "revolver_availability_pct": 40.0,
+            "acquired_ebitda": 0.0,
+            "synergy_addback": 0.0,
+            "financials_debt": null,
+            "compliance_certificate_debt": null,
+            "interest_expense": 30.0,
+            "fixed_charge_numerator": 120.0,
+            "fixed_charges": null
+          },
+          "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+          "source_row": 80,
+          "loaded_at": "2026-11-09T14:19:28.401Z",
+          "available_at": null,
+          "currency": "USD",
+          "scale": "millions",
+          "debt_source_status": "RECONCILED"
+        },
+        "history": [
+          {
+            "borrower_id": "SYN022",
+            "period_end": "2025-03-31",
+            "metrics": {
+              "total_debt": 320.0,
+              "cash": 25.0,
+              "reported_ebitda": 100.0,
+              "eligible_addbacks": 0.0,
+              "cash_interest": null,
+              "capex": null,
+              "cash_taxes": null,
+              "scheduled_principal": null,
+              "rent": null,
+              "revolver_availability_pct": 40.0,
+              "acquired_ebitda": 0.0,
+              "synergy_addback": 0.0,
+              "financials_debt": null,
+              "compliance_certificate_debt": null,
+              "interest_expense": 30.0,
+              "fixed_charge_numerator": 120.0,
+              "fixed_charges": null
+            },
+            "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+            "source_row": 78,
+            "loaded_at": "2026-11-09T14:19:28.401Z",
+            "available_at": null,
+            "currency": "USD",
+            "scale": "millions",
+            "debt_source_status": "RECONCILED"
+          },
+          {
+            "borrower_id": "SYN022",
+            "period_end": "2025-06-30",
+            "metrics": {
+              "total_debt": 320.0,
+              "cash": 25.0,
+              "reported_ebitda": 100.0,
+              "eligible_addbacks": 0.0,
+              "cash_interest": null,
+              "capex": null,
+              "cash_taxes": null,
+              "scheduled_principal": null,
+              "rent": null,
+              "revolver_availability_pct": 40.0,
+              "acquired_ebitda": 0.0,
+              "synergy_addback": 0.0,
+              "financials_debt": null,
+              "compliance_certificate_debt": null,
+              "interest_expense": 30.0,
+              "fixed_charge_numerator": 120.0,
+              "fixed_charges": null
+            },
+            "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+            "source_row": 79,
+            "loaded_at": "2026-11-09T14:19:28.401Z",
+            "available_at": null,
+            "currency": "USD",
+            "scale": "millions",
+            "debt_source_status": "RECONCILED"
+          }
+        ],
+        "issues": [
+          "Source availability dates are unknown; load times are not publication dates."
+        ]
+      }
+    },
+    {
+      "tool": "assess_covenants",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "result": {
+        "assessment_run_id": "7f80b366-00ce-48c5-a94a-1be6b9769c36",
+        "borrower_id": "SYN022",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "results": [
+          {
+            "result_id": "125ba5f6-f159-4c8b-a46c-3e64122f752c",
+            "assessment_run_id": "7f80b366-00ce-48c5-a94a-1be6b9769c36",
+            "borrower_id": "SYN022",
+            "agreement_id": "synthetic:SYN022",
+            "covenant_id": "synthetic:SYN022:LEV",
+            "covenant_version": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa",
+            "covenant_type": "total_leverage",
+            "period_end": "2025-09-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": 3.2,
+            "threshold": 4.5,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": 1.2999999999999998,
+            "compliance_status": "compliant",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN022",
+              "agreement_id": "synthetic:SYN022",
+              "covenant_id": "synthetic:SYN022:LEV",
+              "covenant_name": "Maximum total leverage",
+              "covenant_type": "total_leverage",
+              "covenant_version": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa",
+              "period_end": "2025-09-30",
+              "threshold": 4.5,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "total_leverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 29,
+                  "source_values": {
+                    "borrower_id": "SYN022",
+                    "covenant_id": "LEV",
+                    "covenant_name": "Maximum total leverage",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "TOTAL_LEVERAGE",
+                    "operator": "<=",
+                    "threshold": "4.5",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN022",
+                "period_end": "2025-09-30",
+                "metrics": {
+                  "total_debt": 320.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 40.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 80,
+                "loaded_at": "2026-11-09T14:19:28.401Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "calculated"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                "source_row": 29,
+                "source_values": {
+                  "borrower_id": "SYN022",
+                  "covenant_id": "LEV",
+                  "covenant_name": "Maximum total leverage",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "TOTAL_LEVERAGE",
+                  "operator": "<=",
+                  "threshold": "4.5",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T14:19:33.341416Z"
+          },
+          {
+            "result_id": "92c0b026-7d18-4b51-8e8c-d910ae10c78b",
+            "assessment_run_id": "7f80b366-00ce-48c5-a94a-1be6b9769c36",
+            "borrower_id": "SYN022",
+            "agreement_id": "synthetic:SYN022",
+            "covenant_id": "synthetic:SYN022:FCCR",
+            "covenant_version": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3",
+            "covenant_type": "fixed_charge_coverage",
+            "period_end": "2025-09-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": null,
+            "threshold": 1.3,
+            "operator": ">=",
+            "unit": "x",
+            "headroom": null,
+            "compliance_status": "incomplete",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN022",
+              "agreement_id": "synthetic:SYN022",
+              "covenant_id": "synthetic:SYN022:FCCR",
+              "covenant_name": "Minimum fixed charge coverage",
+              "covenant_type": "fixed_charge_coverage",
+              "covenant_version": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3",
+              "period_end": "2025-09-30",
+              "threshold": 1.3,
+              "operator": ">=",
+              "unit": "x",
+              "formula": "fixed_charge_coverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 30,
+                  "source_values": {
+                    "borrower_id": "SYN022",
+                    "covenant_id": "FCCR",
+                    "covenant_name": "Minimum fixed charge coverage",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "FIXED_CHARGE_COVERAGE",
+                    "operator": ">=",
+                    "threshold": "1.3",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN022",
+                "period_end": "2025-09-30",
+                "metrics": {
+                  "total_debt": 320.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 40.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 80,
+                "loaded_at": "2026-11-09T14:19:28.401Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "unavailable"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                "source_row": 30,
+                "source_values": {
+                  "borrower_id": "SYN022",
+                  "covenant_id": "FCCR",
+                  "covenant_name": "Minimum fixed charge coverage",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "FIXED_CHARGE_COVERAGE",
+                  "operator": ">=",
+                  "threshold": "1.3",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3"
+              }
+            ],
+            "issues": [
+              "Missing financial input: fixed_charges."
+            ],
+            "created_at": "2026-11-09T14:19:33.341504Z"
+          }
+        ],
+        "history": [
+          {
+            "result_id": "cf569bc6-1ea3-43ee-a7cb-41b2aefee326",
+            "assessment_run_id": "7f80b366-00ce-48c5-a94a-1be6b9769c36",
+            "borrower_id": "SYN022",
+            "agreement_id": "synthetic:SYN022",
+            "covenant_id": "synthetic:SYN022:LEV",
+            "covenant_version": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa",
+            "covenant_type": "total_leverage",
+            "period_end": "2025-03-31",
+            "information_cutoff": "2025-09-30",
+            "actual_value": 3.2,
+            "threshold": 4.5,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": 1.2999999999999998,
+            "compliance_status": "compliant",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN022",
+              "agreement_id": "synthetic:SYN022",
+              "covenant_id": "synthetic:SYN022:LEV",
+              "covenant_name": "Maximum total leverage",
+              "covenant_type": "total_leverage",
+              "covenant_version": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa",
+              "period_end": "2025-03-31",
+              "threshold": 4.5,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "total_leverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 29,
+                  "source_values": {
+                    "borrower_id": "SYN022",
+                    "covenant_id": "LEV",
+                    "covenant_name": "Maximum total leverage",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "TOTAL_LEVERAGE",
+                    "operator": "<=",
+                    "threshold": "4.5",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN022",
+                "period_end": "2025-03-31",
+                "metrics": {
+                  "total_debt": 320.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 40.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 78,
+                "loaded_at": "2026-11-09T14:19:28.401Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "calculated"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                "source_row": 29,
+                "source_values": {
+                  "borrower_id": "SYN022",
+                  "covenant_id": "LEV",
+                  "covenant_name": "Maximum total leverage",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "TOTAL_LEVERAGE",
+                  "operator": "<=",
+                  "threshold": "4.5",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T14:19:33.340780Z"
+          },
+          {
+            "result_id": "2f19a6b5-bdd8-4ce2-b2cd-0412b7cf6ca1",
+            "assessment_run_id": "7f80b366-00ce-48c5-a94a-1be6b9769c36",
+            "borrower_id": "SYN022",
+            "agreement_id": "synthetic:SYN022",
+            "covenant_id": "synthetic:SYN022:FCCR",
+            "covenant_version": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3",
+            "covenant_type": "fixed_charge_coverage",
+            "period_end": "2025-03-31",
+            "information_cutoff": "2025-09-30",
+            "actual_value": null,
+            "threshold": 1.3,
+            "operator": ">=",
+            "unit": "x",
+            "headroom": null,
+            "compliance_status": "incomplete",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN022",
+              "agreement_id": "synthetic:SYN022",
+              "covenant_id": "synthetic:SYN022:FCCR",
+              "covenant_name": "Minimum fixed charge coverage",
+              "covenant_type": "fixed_charge_coverage",
+              "covenant_version": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3",
+              "period_end": "2025-03-31",
+              "threshold": 1.3,
+              "operator": ">=",
+              "unit": "x",
+              "formula": "fixed_charge_coverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 30,
+                  "source_values": {
+                    "borrower_id": "SYN022",
+                    "covenant_id": "FCCR",
+                    "covenant_name": "Minimum fixed charge coverage",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "FIXED_CHARGE_COVERAGE",
+                    "operator": ">=",
+                    "threshold": "1.3",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN022",
+                "period_end": "2025-03-31",
+                "metrics": {
+                  "total_debt": 320.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 40.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 78,
+                "loaded_at": "2026-11-09T14:19:28.401Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "unavailable"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                "source_row": 30,
+                "source_values": {
+                  "borrower_id": "SYN022",
+                  "covenant_id": "FCCR",
+                  "covenant_name": "Minimum fixed charge coverage",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "FIXED_CHARGE_COVERAGE",
+                  "operator": ">=",
+                  "threshold": "1.3",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3"
+              }
+            ],
+            "issues": [
+              "Missing financial input: fixed_charges."
+            ],
+            "created_at": "2026-11-09T14:19:33.340928Z"
+          },
+          {
+            "result_id": "e2e2e21c-84bd-45f9-a4b7-24047246ee59",
+            "assessment_run_id": "7f80b366-00ce-48c5-a94a-1be6b9769c36",
+            "borrower_id": "SYN022",
+            "agreement_id": "synthetic:SYN022",
+            "covenant_id": "synthetic:SYN022:LEV",
+            "covenant_version": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa",
+            "covenant_type": "total_leverage",
+            "period_end": "2025-06-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": 3.2,
+            "threshold": 4.5,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": 1.2999999999999998,
+            "compliance_status": "compliant",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN022",
+              "agreement_id": "synthetic:SYN022",
+              "covenant_id": "synthetic:SYN022:LEV",
+              "covenant_name": "Maximum total leverage",
+              "covenant_type": "total_leverage",
+              "covenant_version": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa",
+              "period_end": "2025-06-30",
+              "threshold": 4.5,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "total_leverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 29,
+                  "source_values": {
+                    "borrower_id": "SYN022",
+                    "covenant_id": "LEV",
+                    "covenant_name": "Maximum total leverage",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "TOTAL_LEVERAGE",
+                    "operator": "<=",
+                    "threshold": "4.5",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN022",
+                "period_end": "2025-06-30",
+                "metrics": {
+                  "total_debt": 320.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 40.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 79,
+                "loaded_at": "2026-11-09T14:19:28.401Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "calculated"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                "source_row": 29,
+                "source_values": {
+                  "borrower_id": "SYN022",
+                  "covenant_id": "LEV",
+                  "covenant_name": "Maximum total leverage",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "TOTAL_LEVERAGE",
+                  "operator": "<=",
+                  "threshold": "4.5",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "b47b5eb327ae05026637a97e2d59939ff6a00e982140503557416e55ec8d10aa"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T14:19:33.341148Z"
+          },
+          {
+            "result_id": "0bc31a42-0360-4788-b6b1-b91728d6bf8d",
+            "assessment_run_id": "7f80b366-00ce-48c5-a94a-1be6b9769c36",
+            "borrower_id": "SYN022",
+            "agreement_id": "synthetic:SYN022",
+            "covenant_id": "synthetic:SYN022:FCCR",
+            "covenant_version": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3",
+            "covenant_type": "fixed_charge_coverage",
+            "period_end": "2025-06-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": null,
+            "threshold": 1.3,
+            "operator": ">=",
+            "unit": "x",
+            "headroom": null,
+            "compliance_status": "incomplete",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN022",
+              "agreement_id": "synthetic:SYN022",
+              "covenant_id": "synthetic:SYN022:FCCR",
+              "covenant_name": "Minimum fixed charge coverage",
+              "covenant_type": "fixed_charge_coverage",
+              "covenant_version": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3",
+              "period_end": "2025-06-30",
+              "threshold": 1.3,
+              "operator": ">=",
+              "unit": "x",
+              "formula": "fixed_charge_coverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 30,
+                  "source_values": {
+                    "borrower_id": "SYN022",
+                    "covenant_id": "FCCR",
+                    "covenant_name": "Minimum fixed charge coverage",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "FIXED_CHARGE_COVERAGE",
+                    "operator": ">=",
+                    "threshold": "1.3",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN022",
+                "period_end": "2025-06-30",
+                "metrics": {
+                  "total_debt": 320.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 40.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 79,
+                "loaded_at": "2026-11-09T14:19:28.401Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "unavailable"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-q1/inputs/synthetic_covenant_terms.csv",
+                "source_row": 30,
+                "source_values": {
+                  "borrower_id": "SYN022",
+                  "covenant_id": "FCCR",
+                  "covenant_name": "Minimum fixed charge coverage",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "FIXED_CHARGE_COVERAGE",
+                  "operator": ">=",
+                  "threshold": "1.3",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "6f173ca75db37ec8e59ddc0f4fab010fb0785d476f545cc5120daaaf3d8bcbf3"
+              }
+            ],
+            "issues": [
+              "Missing financial input: fixed_charges."
+            ],
+            "created_at": "2026-11-09T14:19:33.341255Z"
+          }
+        ],
+        "trends": {
+          "borrower_id": "SYN022",
+          "period_end": "2025-09-30",
+          "information_cutoff": "2025-09-30",
+          "feature_schema_version": "v1",
+          "covenants": [
+            {
+              "covenant_id": "synthetic:SYN022:FCCR",
+              "covenant_type": "fixed_charge_coverage",
+              "actual_value": null,
+              "threshold": 1.3,
+              "headroom": null,
+              "compliance_status": "incomplete",
+              "metric_change_qoq": null,
+              "headroom_change_qoq": null,
+              "threshold_change_qoq": 0.0,
+              "basis_changed": false,
+              "previous_breach": null,
+              "previous_waiver": false
+            },
+            {
+              "covenant_id": "synthetic:SYN022:LEV",
+              "covenant_type": "total_leverage",
+              "actual_value": 3.2,
+              "threshold": 4.5,
+              "headroom": 1.2999999999999998,
+              "compliance_status": "compliant",
+              "metric_change_qoq": 0.0,
+              "headroom_change_qoq": 0.0,
+              "threshold_change_qoq": 0.0,
+              "basis_changed": false,
+              "previous_breach": false,
+              "previous_waiver": false
+            }
+          ],
+          "reported_ebitda_growth_qoq": 0.0,
+          "reported_ebitda_growth_yoy": null,
+          "total_debt_growth_qoq": 0.0,
+          "total_debt_growth_yoy": null,
+          "liquidity": null,
+          "liquidity_change_qoq": null,
+          "information_availability_known": false
+        },
+        "feature_snapshot": null,
+        "prediction": null,
+        "ml_status": "disabled",
+        "issues": [
+          "Source availability dates are unknown; point-in-time forecast reliability is not established."
+        ],
+        "verification": {
+          "is_valid": true,
+          "issues": [
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[0]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[1]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[2]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[3]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[4]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[5]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

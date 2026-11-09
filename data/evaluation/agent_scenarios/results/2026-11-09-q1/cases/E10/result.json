@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E10",
+  "category": "edge_case",
+  "topic": "springing_tests",
+  "family": "missing_trigger",
+  "question": "Assess SYN036 springing covenant when trigger data is missing. Reporting date: 2025-06-30. Information cutoff: 2025-06-30.",
+  "expected_behavior": "Revolver availability is missing, so activation cannot be determined. Report unresolved testing/compliance (UNKNOWN_TRIGGER) and null actual/headroom, not inactive or compliant. Cite calculation IDs.",
+  "answer": "The assessment of the springing covenant for SYN036 indicates an unresolved compliance status. The specific covenant is a springing maximum total leverage, with a threshold of 4.0x. However, the actual value needed to assess compliance is unavailable due to missing trigger data related to liquidity availability. Consequently, this lack of information hinders our ability to determine compliance effectively.\n\n**Covenant Details:**  \n- **Covenant ID:** synthetic:SYN036:SPR  \n- **Covenant Type:** Total Leverage  \n- **Threshold:** 4.0x  \n- **Operator:** <=  \n- **Compliance Status:** Unresolved  \n\n**Issues:**  \n- UNKNOWN_TRIGGER: Springing availability data is missing, which is critical for compliance assessment.\n\nOverall, without the relevant trigger data, we cannot confirm compliance with the covenant, resulting in an unresolved status. This indicates a potential risk and the borrower should address this information gap promptly.",
+  "confidence": "medium",
+  "confidence_explanation": "The assessment indicates unresolved compliance due to unavailable values, affecting confidence in the analysis. The reported metrics and covenant terms are available, but missing trigger data prevents a final compliance determination.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 10.525,
+  "judge_seconds": 6.814,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "25d35f70c157977aa4ad8dab3117effad32e98c68890be0096f4578f52b39081",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 6,
+      "denominator": 6,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E10/answer.json"
+}

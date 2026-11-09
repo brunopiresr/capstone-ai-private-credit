@@ -1,0 +1,7 @@
+{
+  "question": "Find DEMO interest coverage waiver scope and March 31, 2025 minimum.",
+  "borrower_id": null,
+  "ticker": "DEMO",
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

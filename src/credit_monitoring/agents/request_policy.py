@@ -127,6 +127,10 @@ def resolve_request(
         if not borrower_id
         else "clarification"
     )
+    fresh_execution = re.search(r"\b(?:assess|reassess|recalculate|refresh|rerun)\b", text)
+    explanatory = re.search(r"^\s*(?:explain|why|which|what about|how did|what does)\b", text)
+    if has_evidence and not fresh_execution and (not forecast or explanatory):
+        intent = "follow_up"
     # A date-only reply completes an assessment request without relying on assistant text.
     if borrower_id and re.search(r"reporting|period|cutoff|as.of", text):
         intent = (

@@ -1,0 +1,9 @@
+{
+  "answer": "This conversation is scoped to SYN001. Start a new scoped conversation to review another borrower or issuer.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

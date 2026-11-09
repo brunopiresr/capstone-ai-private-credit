@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H15",
+  "category": "happy_path",
+  "topic": "risk_forecasts",
+  "family": "logistic_forecast_SYN014",
+  "question": "Forecast SYN014 next-quarter breach probability and explain model limitations. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Report the actual configured Logistic Regression next-quarter probability and one-quarter horizon from predict_risk, with model name/version and snapshot_id. Distinguish forecast from current compliance and disclose synthetic training and unknown source availability: real-world and point-in-time predictive reliability are not established. Do not guarantee outcomes; cite assessment IDs.",
+  "answer": "The forecast for SYN014 indicates a breach probability of approximately 0.95% for the next quarter, with a covenant status classified as compliant with a total leverage actual value of 4.0 against a threshold of 4.5. However, there are notable limitations regarding the model: it was trained and evaluated on synthetic borrower histories, which may not reliably reflect real-world credit outcomes. Additionally, the forecasting model's inputs' availability dates are unknown, making the trustworthiness of the point-in-time forecast uncertain.",
+  "confidence": "medium",
+  "confidence_explanation": "The forecast is derived from simulation-based outputs, which could differ significantly from actual borrower performance; warnings indicate potential gaps in understanding the timing and reliability of input data.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 7.194,
+  "judge_seconds": 6.554,
+  "tool_names_json": "[\"get_financials\", \"predict_risk\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "7da58db09920984ca342419996fc094e8c8696893a93c78f94712da405fbf440",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 3,
+      "denominator": 3,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H15/answer.json"
+}

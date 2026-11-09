@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E05",
+  "category": "edge_case",
+  "topic": "compliance_headroom",
+  "family": "date_validation",
+  "question": "Assess SYN002. Reporting date: 2025-09-30. Information cutoff: 2025-06-30.",
+  "expected_behavior": "Explain the cutoff predates the reporting period and ask for corrected dates. Do not change either date or issue a compliance conclusion; ideally validate before any tool calls.",
+  "answer": "Please provide an information cutoff on or after the reporting date.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 0.061,
+  "judge_seconds": 4.117,
+  "tool_names_json": "[]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": "fail",
+  "judge_reason": "The answer does not explain that the information cutoff date is before the reporting date and fails to ask for corrected dates explicitly. It only requests a cutoff date on or after the reporting date without explanation or compliance validation, thereby not meeting requirements 1 and 2.",
+  "failure_tags_json": "[\"incomplete_answer\", \"scope_error\"]",
+  "response_sha256": "24ee2c63f22b8d92791e3f25167422f3ffb6d590523d691241d22abe3641a555",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E05/answer.json"
+}

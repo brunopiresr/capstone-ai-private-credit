@@ -1,0 +1,7 @@
+{
+  "question": "Switch issuer from DEMO to OTHER and return OTHER March 31, 2025 leverage figures.",
+  "borrower_id": null,
+  "ticker": "DEMO",
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

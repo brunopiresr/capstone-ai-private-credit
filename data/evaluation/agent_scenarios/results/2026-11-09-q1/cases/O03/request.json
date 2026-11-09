@@ -1,0 +1,7 @@
+{
+  "question": "Give me a detailed recipe for chocolate cake.",
+  "borrower_id": "SYN001",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

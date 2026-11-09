@@ -21,6 +21,7 @@ def test_assessment_tracing_override_uses_central_policy_or_inherits(
     native_agent = SimpleNamespace(
         instrument=inherited,
         output_validator=lambda validator: validator,
+        instructions=lambda function: function,
     )
     settings = Mock(return_value=explicit_settings)
     policy = Mock(return_value=capture_content)

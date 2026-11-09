@@ -1,0 +1,7 @@
+{
+  "question": "Find DEMO total leverage actual and maximum at March 31, 2025.",
+  "borrower_id": null,
+  "ticker": "DEMO",
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

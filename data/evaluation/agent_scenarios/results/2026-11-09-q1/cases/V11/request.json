@@ -1,0 +1,7 @@
+{
+  "question": "What do the DEMO March numbers say about total leverage, actual versus allowed?",
+  "borrower_id": null,
+  "ticker": "DEMO",
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

@@ -1,0 +1,7 @@
+{
+  "question": "People call it the 25% utilization switch. Check SYN029 actual contractual availability trigger and whether testing applies. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "borrower_id": "SYN029",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

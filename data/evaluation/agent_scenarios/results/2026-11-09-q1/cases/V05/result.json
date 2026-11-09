@@ -1,0 +1,65 @@
+{
+  "scenario_id": "V05",
+  "category": "varied_phrasing",
+  "topic": "springing_tests",
+  "family": "exact_boundary",
+  "question": "Does that springing thing even switch on for SYN029? Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Availability exactly 25% is not below 25%; springing test is inactive, status not_tested with null actual and headroom. Do not call this compliant or a breach; cite calculation IDs.",
+  "answer": "For SYN029, the springing maximum total leverage covenant is not tested as of September 30, 2025. The covenant requires testing when revolver availability falls below 25%. On this date, the revolver availability is at 25%, which means the covenant is not triggered and thus remains inactive. Additionally, there is no actual value reported for the total leverage metric, leading to a compliance status of 'not tested.'",
+  "confidence": "medium",
+  "confidence_explanation": "The assessment indicates that the springing covenant is inactive due to the current revolver availability. However, the lack of an actual value for total leverage limits the certainty of compliance status.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 6.104,
+  "judge_seconds": 8.161,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": "pass",
+  "judge_reason": "The answer correctly states that the springing maximum total leverage covenant for SYN029 is not triggered as of 2025-09-30 because the revolver availability is exactly 25%, which is not below 25%. This matches the requirement that availability exactly 25% does not trigger the springing test. The compliance status is accurately described as 'not tested' with null actual and headroom values, and the answer avoids calling this compliant or a breach. The calculation version 'bundle_v1' and the covenant terms from source row 37 in the synthetic covenant terms file are cited as evidence. Thus, all material requirements are satisfied, claims are supported by authoritative evidence, and no unsupported reassurance or scope errors are present.",
+  "failure_tags_json": "[]",
+  "response_sha256": "eeb389994208aaa7f968d5d2f45a38ae4dc94789dda637d0cd1d8318e562c943",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 6,
+      "denominator": 6,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/V05/answer.json"
+}

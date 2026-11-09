@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H14",
+  "category": "happy_path",
+  "topic": "risk_forecasts",
+  "family": "logistic_forecast_SYN016",
+  "question": "Forecast SYN016 next-quarter breach probability and explain model limitations. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Report the actual configured Logistic Regression next-quarter probability and one-quarter horizon from predict_risk, with model name/version and snapshot_id. Distinguish forecast from current compliance and disclose synthetic training and unknown source availability: real-world and point-in-time predictive reliability are not established. Do not guarantee outcomes; cite assessment IDs.",
+  "answer": "The forecasted breach probability for SYN016 as of September 30, 2025, is approximately **0.19%**. The model indicates that SYN016 remains compliant with its maximum total leverage covenant of 4.5x, with an actual leverage of 3.3x and a headroom of approximately 1.20x. \n\n### Model Limitations:\n1. **Synthetic Data:** The model employed a logistic regression trained on synthetic borrower histories rather than real credit outcomes. Consequently, while the predictions are structured, their applicability to actual scenarios may be limited.\n2. **Data Availability:** The source availability dates for the financial inputs used in the assessment are unknown, limiting the reliability of the point-in-time forecast. The prediction does not guarantee that the inputs accurately represent the borrower's financial state at the moment the forecast was made.\n3. **Unknown Reporting Dates:** The reporting dates do not clarify when these financial metrics became available or were reported, which can impact the confidence in the stated compliance status and forecast accuracy. \n\nThis level of detail underpins the qualified nature of the breach probability prediction, highlighting potential uncertainties in its application.",
+  "confidence": "medium",
+  "confidence_explanation": "The breach probability is calculated using financial metrics, yet limitations stem from the synthetic nature of the data and unknown reporting dates, which affect confidence in the prediction.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 18.124,
+  "judge_seconds": 10.051,
+  "tool_names_json": "[\"get_financials\", \"predict_risk\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "fe327fe495dfd3138262594ad7f4ec6c60351ce835e9033681ef13c3c12d88cc",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 3,
+      "denominator": 3,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H14/answer.json"
+}

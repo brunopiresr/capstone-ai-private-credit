@@ -1,0 +1,7 @@
+{
+  "question": "Build a complete JavaScript platform game for me.",
+  "borrower_id": "SYN001",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

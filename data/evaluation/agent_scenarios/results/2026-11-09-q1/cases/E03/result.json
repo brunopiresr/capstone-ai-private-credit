@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E03",
+  "category": "edge_case",
+  "topic": "compliance_headroom",
+  "family": "date_validation",
+  "question": "Assess SYN002. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Ask for the missing reporting date before any tool calls or conclusion; do not infer the period from the cutoff.",
+  "answer": "Please provide the reporting date in YYYY-MM-DD format.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "status": "pass",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 0.052,
+  "judge_seconds": 1.68,
+  "tool_names_json": "[]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": "pass",
+  "judge_reason": "The answer explicitly requests the missing reporting date in the required YYYY-MM-DD format before making any tool calls or conclusions, which satisfies the requirement.",
+  "failure_tags_json": "[]",
+  "response_sha256": "f981858d5e699184c9350a7529c06d6e0c012ab355636dfd5d92a8255dacfc52",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E03/answer.json"
+}

@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H09",
+  "category": "happy_path",
+  "topic": "springing_tests",
+  "family": "inactive_missing_inputs",
+  "question": "Assess SYN030 springing test despite missing calculation inputs. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "The springing test is inactive at observed availability at or above 25%. Missing calculation inputs do not turn this into active incomplete testing. Report not_tested, null actual/headroom; cite calculation IDs.",
+  "answer": "The springing test for SYN030 indicates that the maximum total leverage covenant threshold is set at 4.0x, but the actual value for the total leverage is not tested due to missing calculation inputs. Therefore, we cannot determine compliance status at this time. This covenant has not been tested as of the reporting date of 2025-09-30, and its compliance status remains \"not_tested.\" Additionally, the financial inputs necessary for a complete assessment, such as total debt and reported EBITDA, are unavailable. Consequently, any forecast reliability is not established since source availability dates are unknown and inputs may have become available after the reporting date. This reflects a significant limitation in assessing compliance due to incomplete financial metrics and testing status.",
+  "confidence": "low",
+  "confidence_explanation": "The compliance assessment is based on missing actual values for total leverage and other key financial metrics, leading to a lack of verified information for determining covenant compliance.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 8.891,
+  "judge_seconds": 7.742,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "b71965500fc7781960fd4214b6a215f8c6c9a67711fb2cbbe118e13eb1ac40ab",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 6,
+      "denominator": 6,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H09/answer.json"
+}

@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E12",
+  "category": "edge_case",
+  "topic": "evidence_retrieval",
+  "family": "absent_fact",
+  "question": "Find DEMO actual interest coverage for March 31, 2025 and say if it met the minimum.",
+  "expected_behavior": "Search the packet. Minimum is 2.00x but actual interest coverage and underlying calculation inputs are absent. State compliance cannot be determined; no invented ratio or inference from leverage. Cite retrieved evidence for supported facts.",
+  "answer": "The actual interest coverage ratio for DEMO as of March 31, 2025, is not provided in the available documents. However, the minimum required interest coverage ratio is stated to be 2.00x. Therefore, it cannot be determined if the actual interest coverage met this minimum requirement.",
+  "confidence": "medium",
+  "confidence_explanation": "The confidence is medium because the documents specify the minimum ratio but do not provide the actual coverage ratio, leaving uncertainty regarding compliance.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 6.796,
+  "judge_seconds": 5.49,
+  "tool_names_json": "[\"search_evidence\", \"list_documents\", \"search_evidence\"]",
+  "failed_checks_json": "[{\"name\": \"source_citation:EVAL_DEMO_Q1\", \"passed\": false, \"detail\": \"Require the exact document ID and returned citation in the prose.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "a5799cfb3a553f80a26e5f12d3c1e2451c78d2e340e707c9556814c9f3dd273d",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 3,
+      "denominator": 3,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E12/answer.json"
+}

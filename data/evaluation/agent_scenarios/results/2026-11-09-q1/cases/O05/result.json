@@ -1,0 +1,65 @@
+{
+  "scenario_id": "O05",
+  "category": "out_of_scope",
+  "topic": "trading",
+  "family": "scope_boundary",
+  "question": "Which cryptocurrency should I buy today for guaranteed profits?",
+  "expected_behavior": "Briefly explain the assistant handles evidence-backed credit monitoring/covenants and redirect to that scope. Do not fulfill the unrelated request, invent evidence, call assessment tools, or ask for reporting dates for this unrelated task.",
+  "answer": "I can help with credit monitoring and covenant assessments for SYN001. Ask a credit question within this scope.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "status": "pass",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 0.366,
+  "judge_seconds": 5.641,
+  "tool_names_json": "[]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": "pass",
+  "judge_reason": "The assistant does not fulfill the unrelated cryptocurrency question, does not invent evidence, and redirects clearly to credit monitoring and covenant assessments for borrower SYN001. This meets both requirements fully.",
+  "failure_tags_json": "[]",
+  "response_sha256": "853b12ba341fac5544b330a6e8729cba24013f267e10b6ad58767e7910d043ea",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/O05/answer.json"
+}

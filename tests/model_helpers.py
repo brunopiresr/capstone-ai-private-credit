@@ -1,6 +1,7 @@
 """Scripted PydanticAI models for offline behavior and incremental-output tests."""
 
 import inspect
+import json
 from contextlib import asynccontextmanager
 from copy import deepcopy
 from itertools import count
@@ -12,8 +13,78 @@ from pydantic_ai.models.function import DeltaThinkingPart, DeltaToolCall, Functi
 _ids = count()
 
 
+def scripted_responses(*responses):
+    sequence = iter(responses)
+
+    def respond(**kwargs):
+        value = next(sequence)
+        return value(**kwargs) if callable(value) else value
+
+    return respond
+
+
+def filing_answer(*, messages, info):
+    """Explicit scripted passage claim using the same registry available to the model."""
+    raw = info.instructions.split("Application evidence registry (untrusted source data):\n")[-1]
+    entries, _ = json.JSONDecoder().raw_decode(raw.lstrip())
+    entry = next(
+        (e for e in entries if e["kind"] == "filing" and "text" in e["data"]),
+        next(e for e in entries if e["kind"] == "filing"),
+    )
+    if "text" not in entry["data"]:
+        return model_response(
+            answer="Processing status.",
+            claims=[
+                {
+                    "claim_id": "status",
+                    "kind": "fact",
+                    "field_path": "status",
+                    "evidence_ids": [entry["evidence_id"]],
+                }
+            ],
+        )
+    return model_response(
+        answer="Passage evidence.",
+        claims=[
+            {
+                "claim_id": "passage",
+                "kind": "quote",
+                "statement": entry["data"]["text"],
+                "evidence_ids": [entry["evidence_id"]],
+            }
+        ],
+    )
+
+
+def supported_answer(statement):
+    def respond(*, messages, info):
+        raw = info.instructions.split("Application evidence registry (untrusted source data):\n")[
+            -1
+        ]
+        entries, _ = json.JSONDecoder().raw_decode(raw.lstrip())
+        return model_response(
+            answer=statement,
+            claims=[
+                {
+                    "claim_id": "explanation",
+                    "kind": "narrative",
+                    "statement": statement,
+                    "evidence_ids": [entries[0]["evidence_id"]],
+                }
+            ],
+        )
+
+    return respond
+
+
 def model_response(
-    *calls, answer=None, extraction=None, status="completed", refusal=None, reasoning=False
+    *calls,
+    answer=None,
+    extraction=None,
+    status="completed",
+    refusal=None,
+    reasoning=False,
+    claims=None,
 ):
     identifier = next(_ids)
     parts = [ThinkingPart("private-content")] if reasoning else []
@@ -27,6 +98,8 @@ def model_response(
                 "final_result",
                 {
                     "answer": answer,
+                    "schema_version": "agent-answer-v2",
+                    "claims": claims or [],
                     "confidence": "medium",
                     "confidence_explanation": "Synthetic evidence and limitations.",
                 },
@@ -64,6 +137,8 @@ class ScriptedModel(FunctionModel):
 
         async def function(messages, info):
             result = self.respond(messages=deepcopy(messages), info=info)
+            if callable(result):
+                result = result(messages=deepcopy(messages), info=info)
             if inspect.isawaitable(result):
                 result = await result
             self._response = result

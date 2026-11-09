@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E09",
+  "category": "edge_case",
+  "topic": "coverage_definitions",
+  "family": "zero_ebitda",
+  "question": "Assess SYN034 leverage when EBITDA is zero. Reporting date: 2025-03-31. Information cutoff: 2025-03-31.",
+  "expected_behavior": "Zero EBITDA is an invalid leverage denominator. Report incomplete, null actual/headroom, not zero leverage or compliance; explain zero EBITDA and cite calculation IDs.",
+  "answer": "As of March 31, 2025, SYN034's leverage assessment indicates the following:\n- **Covenant**: Maximum total leverage\n- **Threshold**: 4.5x\n- **EBITDA**: Reported EBITDA is zero.\n- **Total Debt**: $250 million\n\nDue to the reported EBITDA being zero, the total leverage ratio cannot be calculated, leading to an incomplete compliance status. The standard calculation for total leverage requires positive EBITDA in the denominator, thereby making it impossible to assess the ratio accurately. As such, SYN034 is currently non-compliant with respect to this covenant because the necessary calculation yields no valid results.",
+  "confidence": "medium",
+  "confidence_explanation": "The assessment is based on the provided financials, which show zero EBITDA. However, the compliance status is noted as incomplete due to the inability to calculate leverage. The total leverage threshold is known, but without EBITDA, compliance cannot be determined.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 8.881,
+  "judge_seconds": 4.046,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": "pass",
+  "judge_reason": "The answer correctly identifies that zero EBITDA is an invalid denominator for leverage calculation (requirement:1) and reports the status as incomplete rather than zero leverage or compliance (requirement:2). It explains the reason for the incomplete status due to zero EBITDA and cites the calculation ID 'bundle_v1' and the specific covenant ID 'synthetic:SYN034:LEV' from the authoritative evidence. The report matches the cited evidence from the assessment run, and no unsupported claims or omissions were found.",
+  "failure_tags_json": "[]",
+  "response_sha256": "15972e6ff649d4e0a4a081ed98f4445ccd3a7cde066b55c3b73fa26c622c8551",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E09/answer.json"
+}

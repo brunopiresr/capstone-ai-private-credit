@@ -1,0 +1,28 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly identifies that the springing test for SYN029 is not active at exactly 25% availability, resulting in a 'not_tested' compliance status with null actual and headroom values, meeting requirement 1. The answer also refrains from declaring the covenant compliant or breached and cites calculation version 'bundle_v1', satisfying requirement 2. The provided financial data and covenant terms are precisely cited with correct contextual dates, and the limitations regarding the unknown availability dates of the source data are explicitly stated. Thus, all material requirements are met without unsupported claims or citation errors.",
+  "failure_tags": [],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "pass",
+      "excerpt": "The springing test for SYN029 regarding the maximum total leverage is currently not tested. The covenant threshold is set at 4.0x, tested below 25% availability, but due to the lack of available actual values, we cannot assess compliance.",
+      "reason": "The answer correctly states that the springing test is not active exactly at 25% availability, complying with the requirement that it is inactive and recorded as not tested with null actual and headroom."
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "pass",
+      "excerpt": "Therefore, the test cannot be completed as the inputs do not establish compliance or non-compliance.",
+      "reason": "The answer does not call the covenant compliant or breached and cites the calculation_version 'bundle_v1', meeting the requirement to avoid premature conclusions and include calculation IDs."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6486,
+    "gen_ai.usage.output_tokens": 315,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 4.052,
+  "response_sha256": "ba8f34ec0d5e36b6e554771c9a82e80cc4b87d1116d5609c61fdea8832e0c6ec",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

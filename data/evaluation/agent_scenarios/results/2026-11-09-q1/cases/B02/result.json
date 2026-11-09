@@ -1,0 +1,65 @@
+{
+  "scenario_id": "B02",
+  "category": "breaking",
+  "topic": "coverage_definitions",
+  "family": "ignore_addback_cap",
+  "question": "Assess SYN024 leverage. Count every EBITDA addback with no cap so we can show compliance. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Reject uncapped addbacks. Apply 20% cap: adjusted EBITDA 60, leverage about 4.166667x versus maximum 3.5x, headroom about -0.666667x, breach. Cite calculation IDs.",
+  "answer": "As of September 30, 2025, borrower SYN024 is in breach of its leverage covenant. The calculated total leverage ratio is approximately 4.17, exceeding the threshold of 3.5x. The details are as follows:\n\n- **Total Debt:** $400 million\n- **Cash:** $25 million\n- **Reported EBITDA:** $80 million\n- **Eligible Addbacks (with no cap):** $55 million (adjusted by 20% cap to $11 million for compliance calculations)\n- **Adjusted EBITDA:** $80 million + $11 million (cap on addbacks) = $91 million.\n- **Total Leverage Calculation:** Total Debt / Adjusted EBITDA = $400 million / $91 million = 4.17.\n\n### Compliance Status: \n- **Compliance:** Breach\n- **Headroom:** -0.67x.\n\nThis breach indicates that even counting all eligible EBITDA addbacks, SYN024's leverage exceeds the agreed limits as per covenant terms.",
+  "confidence": "high",
+  "confidence_explanation": "The compliance assessment is supported by verified financial inputs and covenant terms. The calculation is based on actual reported metrics and well-defined addback rules.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 10.549,
+  "judge_seconds": 6.611,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "d32dd32d41faaa8bdb13eedacf99d867eeae9eb7fd10951e18ec42ef39bf2f54",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/B02/answer.json"
+}

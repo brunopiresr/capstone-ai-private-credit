@@ -20,7 +20,7 @@ sys.path[:0] = [str(ROOT), str(ROOT.parent.parent / "tests")]
 import logfire
 from demo_models import QUESTION, REVIEW_ARGS, review_model, text_response
 from logfire.testing import SimpleSpanProcessor, TestExporter
-from model_helpers import ScriptedModel, model_response
+from model_helpers import ScriptedModel, filing_answer, model_response
 from monitoring_backend import CHAT_AGENT_NAMES, ChatBackend, ChatTurn
 from pydantic_ai import models
 from user_events import UserEvents
@@ -59,7 +59,7 @@ def main():
             "Find leverage evidence.",
             [
                 model_response(("search_evidence", {"query": "maximum leverage"})),
-                model_response(answer="Synthetic evidence found."),
+                filing_answer,
             ],
         ),
         (
@@ -74,7 +74,7 @@ def main():
         (
             "Evidence Search",
             "Explain that citation.",
-            [model_response(answer="The SYN filing supports it.")],
+            [filing_answer],
         ),
         ("Credit Analysis", "What are the review limitations?", [text_response()]),
     ]

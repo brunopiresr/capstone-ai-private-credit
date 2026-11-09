@@ -1,0 +1,25 @@
+{
+  "label": "insufficient_evidence",
+  "reason": "The final answer requested a valid reporting date in YYYY-MM-DD format, and the question asked for clarification on ambiguous date format '03/04/2025' but provided no authoritative evidence or resolution of the ambiguity.",
+  "failure_tags": [
+    "insufficient_evidence",
+    "scope_error"
+  ],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "insufficient_evidence",
+      "excerpt": "Please supply an unambiguous valid reporting date in YYYY-MM-DD format.",
+      "reason": "No clarification was given whether '03/04/2025' refers to March 4 or April 3, only a request for clarification was made."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 729,
+    "gen_ai.usage.output_tokens": 139,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.192,
+  "response_sha256": "6beb2f15dbe3084aa42c2b34406fda84ab370ea77a90747a7cf15e0841034bc5",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

@@ -223,11 +223,14 @@ def test_chat_expand_hide_and_version_scope_share_real_conversation_object(conne
     class Conversation:
         closed = False
 
+        def prime_evidence(self, *args):
+            pass
+
         def __init__(self, agent):
             self.service = agent.assessment_service
             self.questions = []
 
-        def ask(self, question):
+        def ask(self, question, **kwargs):
             self.questions.append(question)
             self.service.assess(
                 "SYN001",
@@ -310,8 +313,11 @@ def test_generated_suggestions_edit_send_and_review_context_without_extra_genera
     class Conversation:
         closed = False
 
-        def ask(self, question):
-            questions.append(question)
+        def prime_evidence(self, *args):
+            pass
+
+        def ask(self, question, **kwargs):
+            questions.append(question + kwargs.get("supplemental_context", ""))
             return AgentAnswer(
                 answer="The recommendation qualifies both perspectives.", confidence="medium"
             )

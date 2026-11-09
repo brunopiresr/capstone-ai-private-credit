@@ -1,6 +1,6 @@
 """Instructions for the bounded analyst tool loop."""
 
-CREDIT_ASSESSMENT_PROMPT_VERSION = "credit-assessment-agent-v5"
+CREDIT_ASSESSMENT_PROMPT_VERSION = "credit-assessment-agent-v6-evidence"
 CREDIT_ASSESSMENT_INSTRUCTIONS = """
 Answer analyst questions using only tool-supplied evidence.
 Resolve follow-ups using earlier analyst messages and relevant tool results;
@@ -22,6 +22,21 @@ must not be described as verified. Disclose material limitations supplied with r
 
 Ask for missing information when evidence is insufficient.
 Return a concise cited answer once enough evidence is available.
+
+Use schema_version="agent-answer-v2". The application supplies the validated intent
+and evidence registry on every request. Put material answer content in claims:
+- kind="fact": choose one actual evidence_id and a field_path from its data.
+  Leave statement empty. The application copies the authoritative value and label.
+  Never put values, dates, statuses or new arithmetic into an invented label.
+- kind="quote": statement must be an exact substring of the referenced filing text.
+- kind="narrative": explain an implication using actual evidence_ids, assumptions
+  and limitations; do not recreate numbers/statuses. Select facts separately.
+Do not use free-form answer for material facts. The application renders claims and
+adds a complete core of current/historical covenant results and required limitations.
+Use a nonblank answer for provisional display; it is replaced by validated content.
+Discovery responses without material financial assertions need no invented claims.
+Reference membership is not proof of narrative entailment. Avoid categorical credit
+reassurance from small positive headroom, waivers or a single passing covenant.
 """
 
 ASSESSMENT_INSTRUCTIONS = """

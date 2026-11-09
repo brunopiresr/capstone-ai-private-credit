@@ -213,8 +213,15 @@ def render_answer(answer: AgentAnswer) -> None:
     else:
         st.markdown(answer.answer)
         st.caption(f"Evidence confidence: {answer.confidence} · {answer.confidence_explanation}")
+    used = {key for claim in answer.claims for key in claim.evidence_ids}
+    if used:
+        with st.expander("Citations used in this answer"):
+            for entry in answer.evidence:
+                if entry.evidence_id in used:
+                    st.write(entry.citation)
     if answer.sources:
         with st.expander("Sources"):
+            st.caption("Retrieved filing sources; answer citations are shown separately.")
             for source in answer.sources:
                 st.write(f"{source.document_id}: {source.citation}")
     if answer.tool_trace:

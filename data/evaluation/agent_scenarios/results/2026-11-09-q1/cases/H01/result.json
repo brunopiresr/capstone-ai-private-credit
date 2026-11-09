@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H01",
+  "category": "happy_path",
+  "topic": "compliance_headroom",
+  "family": "healthy",
+  "question": "Assess leverage compliance and headroom for SYN001. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Report compliant net leverage of 3.125x against maximum 5.5x, positive headroom 2.375x; cite actual assessment_run_id and result_id. Do not request a forecast.",
+  "answer": "For SYN001 as of September 30, 2025, the leverage compliance assessment reveals the following:\n- **Covenant**: Maximum Net Leverage\n- **Actual Value**: 3.125\n- **Threshold**: 5.5\n- **Headroom**: 2.375\n- **Compliance Status**: Compliant\n\nThe company remains well below the threshold, indicating a strong compliance position with headroom above the required metrics. \n\n### Notes:\n- The sources for financial metrics are available, but the specific date when these inputs became accessible is unclear, which suggests caution in assessing the reliability of the information.",
+  "confidence": "high",
+  "confidence_explanation": "The compliance assessment yielded a clear compliant status with high headroom based on the latest metrics. All financial inputs and historical context align with the reported outcomes.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 10.805,
+  "judge_seconds": 8.952,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "37636e0b1eeefa86e0d6b36a95885296caf6e92d89eb1e54be410411f2135e04",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H01/answer.json"
+}

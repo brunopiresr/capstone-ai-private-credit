@@ -10,9 +10,13 @@ from typing import TYPE_CHECKING
 from pydantic_ai.messages import ModelMessage
 
 from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
+from credit_monitoring.agents.evidence import EvidenceRegistry
 from credit_monitoring.agents.request_policy import AnalystDate
 from credit_monitoring.agents.run_state import AgentRunState
-from credit_monitoring.domain.agent import AgentAnswer, SourceReference
+from credit_monitoring.agents.tools.sources import result_sources
+from credit_monitoring.domain.agent import AgentAnswer, EvidenceEntry, SourceReference
+from credit_monitoring.domain.assessment import RiskAssessment
+from credit_monitoring.domain.credit_review import CreditReviewResult
 from credit_monitoring.observability import SessionContext
 from credit_monitoring.observability.session import get_active_session
 
@@ -43,6 +47,7 @@ class AgentConversation:
         self._session = session if session is not None else get_active_session() or SessionContext()
         self._history: list[ModelMessage] = []
         self._sources: list[SourceReference] = []
+        self._evidence: list[EvidenceEntry] = []
         self._dates: dict[str, AnalystDate] = {}
         self._has_evidence = False
         self._pending_intent = None
@@ -69,9 +74,31 @@ class AgentConversation:
         self._closed = True
         self._history.clear()
         self._sources.clear()
+        self._evidence.clear()
         self._dates.clear()
         self._has_evidence = False
         self._pending_intent = None
+
+    def prime_evidence(
+        self, assessment: RiskAssessment, review: CreditReviewResult | None = None
+    ) -> None:
+        """Accept a selected application snapshot as evidence, never as analyst date intent."""
+        if self.closed or self._in_progress:
+            raise RuntimeError("Cannot supply evidence to a closed or running conversation.")
+        registry = EvidenceRegistry()
+        registry.retain(self._evidence)
+        registry.record(assessment, borrower_id=self._borrower_id, ticker=self._ticker)
+        if review:
+            registry.record_review(
+                review,
+                borrower_id=self._borrower_id,
+                assessment_run_id=assessment.assessment_run_id,
+            )
+        self._evidence = list(registry.entries)
+        self._has_evidence = True
+        sources = {(s.document_id, s.citation): s for s in self._sources}
+        sources.update({(s.document_id, s.citation): s for s in result_sources(assessment)})
+        self._sources = [s.model_copy(deep=True) for s in sources.values()]
 
     def ask(
         self,
@@ -142,6 +169,7 @@ class AgentConversation:
             has_retained_evidence=self._has_evidence,
             sources={(s.document_id, s.citation): s.model_copy(deep=True) for s in self._sources},
         )
+        state.evidence.retain(self._evidence)
         try:
             async with aclosing(
                 self._agent._stream_question(
@@ -162,6 +190,7 @@ class AgentConversation:
                     if event.kind == "run_end" and not self.closed:
                         self._history = deepcopy(state.history)
                         if event.answer.complete:
+                            self._evidence = list(state.evidence.entries)
                             self._has_evidence = (
                                 self._has_evidence
                                 or any(

@@ -1,0 +1,65 @@
+{
+  "scenario_id": "V06",
+  "category": "varied_phrasing",
+  "topic": "springing_tests",
+  "family": "exact_boundary",
+  "question": "People call it the 25% utilization switch. Check SYN029 actual contractual availability trigger and whether testing applies. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Availability exactly 25% is not below 25%; springing test is inactive, status not_tested with null actual and headroom. Do not call this compliant or a breach; cite calculation IDs.",
+  "answer": "The 25% utilization switch applies to SYN029 under the covenant for \"Springing maximum total leverage, tested below 25% availability.\" \n\n- **Covenant Name:** Springing maximum total leverage, tested below 25% availability  \n- **Testing Status:** Inactive  \n- **Threshold:** 4.0x  \n- **Current Revolver Availability:** 25%  \n- **Compliance Status:** Not tested as of the reporting date (2025-09-30).\n\nThere was no actual leverage figure reported for the testing period. This covenant's testing condition is stated to be quarterly, but since it has not been tested, compliance is yet to be confirmed.\n\nPlease refer to source document [synthetic_covenant_terms.csv, Row 37] for more details on the covenant terms.",
+  "confidence": "medium",
+  "confidence_explanation": "The assessment indicates the covenant is inactive and has not been tested. The basis for compliance assessment is clear but lacks actual reported leverage values to affirm compliance status unequivocally.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 9.818,
+  "judge_seconds": 5.549,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "931387d7fb52090ad1e41be6c69d92809883cd6039fc671fd172319f376f525b",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 6,
+      "denominator": 6,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/V06/answer.json"
+}

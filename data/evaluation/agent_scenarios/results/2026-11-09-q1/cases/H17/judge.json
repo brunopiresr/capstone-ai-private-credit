@@ -1,0 +1,48 @@
+{
+  "label": "fail",
+  "reason": "The answer does not verbatim quote the required excerpts from the source. The response paraphrases the waiver scope and minimum interest coverage ratio without exact quotes from the EVAL_DEMO_WAIVER source. Verbatim excerpts are needed per grading instructions to pass the citation requirement.",
+  "failure_tags": [
+    "citation_error"
+  ],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "fail",
+      "excerpt": null,
+      "reason": "Answer states the waiver applies to the December 31, 2024 default alone but does not provide the verbatim quote 'The lenders waive that December 31, 2024 default only.'"
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "fail",
+      "excerpt": null,
+      "reason": "Answer states the waiver excludes March 31, 2025 and later quarters but does not provide the verbatim quote 'This waiver does not extend to March 31, 2025 or any subsequent fiscal quarter.'"
+    },
+    {
+      "requirement_id": "requirement:3",
+      "verdict": "fail",
+      "excerpt": null,
+      "reason": "Answer gives the March 31, 2025 minimum interest coverage ratio as 2.00x but does not provide the verbatim quote 'The minimum interest coverage ratio for March 31, 2025 is 2.00x.'"
+    },
+    {
+      "requirement_id": "requirement:4",
+      "verdict": "fail",
+      "excerpt": null,
+      "reason": "Answer states the waiver is not proof the old ratio met its threshold but does not provide the verbatim quote 'A waiver does not mean that the failed historical ratio met its threshold.'"
+    },
+    {
+      "requirement_id": "requirement:5",
+      "verdict": "fail",
+      "excerpt": null,
+      "reason": "Answer does not cite the exact returned citation string from EVAL_DEMO_WAIVER verbatim: 'Cobalt Demo Holdings, synthetic amendment (2025-05-15), EVAL_DEMO_WAIVER — https://example.invalid/demo/waiver'"
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 3852,
+    "gen_ai.usage.output_tokens": 835,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 9.388,
+  "response_sha256": "e98c759c079f522196c174aa430b8eb22b39025f52159b1721586a8cc4be66ca",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

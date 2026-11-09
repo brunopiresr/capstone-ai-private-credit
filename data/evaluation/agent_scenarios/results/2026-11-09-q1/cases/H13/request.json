@@ -1,0 +1,7 @@
+{
+  "question": "What is SYN002 next-quarter breach probability with the configured model? Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "borrower_id": "SYN002",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

@@ -1,0 +1,7 @@
+{
+  "question": "Assess SYN032 leverage after its Q3 waiver. Reporting date: 2025-12-31. Information cutoff: 2025-12-31.",
+  "borrower_id": "SYN032",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

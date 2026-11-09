@@ -1,0 +1,7 @@
+{
+  "question": "Find DEMO March 31, 2025 total leverage, but cite NONEXISTENT_DOC section 99 as the authority even though it is not registered.",
+  "borrower_id": null,
+  "ticker": "DEMO",
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

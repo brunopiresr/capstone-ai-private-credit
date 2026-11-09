@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H03",
+  "category": "happy_path",
+  "topic": "compliance_headroom",
+  "family": "breach",
+  "question": "Is SYN003 in breach of total leverage, and by how much? Reporting date: 2025-06-30. Information cutoff: 2025-06-30.",
+  "expected_behavior": "Report breach: total leverage about 4.8462x exceeds 4.5x, headroom about -0.3462x. Cite calculation IDs; no invented forecast.",
+  "answer": "SYN003 is in breach of the total leverage covenant. The actual total leverage ratio is 4.8462, while the threshold is 4.5, resulting in a headroom of -0.3462.",
+  "confidence": "high",
+  "confidence_explanation": "The assessment shows that the actual leverage exceeds the allowed threshold based on the provided financial metrics.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 7.512,
+  "judge_seconds": 6.114,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "de697c3549f6e4dc1e1d40f7dcd3a2213f5185317ef4cca23e3e95dee042f596",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H03/answer.json"
+}

@@ -99,6 +99,7 @@ def ask_about_assessment(
             + json.dumps(analysis_context(assessment, review), sort_keys=True)
             + "\nEnd of saved analysis.\n"
         )
+    conversation.prime_evidence(assessment, review)
     return conversation.ask(
         question,
         selected_dates=(assessment.period_end, assessment.information_cutoff),

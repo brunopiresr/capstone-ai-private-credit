@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H12",
+  "category": "happy_path",
+  "topic": "amendments_waivers",
+  "family": "waiver_expiry",
+  "question": "Assess SYN032 leverage after its Q3 waiver. Reporting date: 2025-12-31. Information cutoff: 2025-12-31.",
+  "expected_behavior": "The Q3-only waiver has ended by Q4. Apply 3.5x maximum, actual 3.8x and headroom -0.3x: breach. Do not extend waiver or use old 4.5x threshold; cite calculation IDs.",
+  "answer": "SYN032 has a total leverage ratio of 3.8x as of December 31, 2025, compared to a covenant threshold of 3.5x. This results in a headroom of -0.3x, indicating a breach of the leverage covenant. The leverage ratio is calculated using total debt of $380 million against reported EBITDA of $100 million. The covenant has been tightened following a waiver in Q3 2025, and it is currently in breach status due to the exceeded threshold.",
+  "confidence": "high",
+  "confidence_explanation": "The assessment is based on concrete financial metrics, including total debt and EBITDA, sourced from reconciled financial statements, affirming the accuracy of the calculated leverage ratio.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 8.073,
+  "judge_seconds": 7.493,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "6ee25e46bfd19dd332785e9ac14ee727d4bde215218305a72eb8d40b46f2f429",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H12/answer.json"
+}

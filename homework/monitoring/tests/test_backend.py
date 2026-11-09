@@ -4,7 +4,7 @@ from datetime import date
 
 import pytest
 from demo_models import QUESTION, REVIEW_ARGS, review_model, text_response
-from model_helpers import ScriptedModel, model_response
+from model_helpers import ScriptedModel, filing_answer, model_response
 from monitoring_backend import ChatBackend, ChatTurn
 from pydantic_ai import ModelRetry
 from pydantic_ai.models.function import FunctionModel
@@ -38,7 +38,7 @@ def test_evidence_streams_real_tools_and_sources(tmp_path, data_root):
     model.respond.side_effect = [
         model_response(("list_documents", {})),
         model_response(("search_evidence", {"query": "maximum leverage", "ticker": "SYN"})),
-        model_response(answer="Maximum leverage is 4.0; see SYN.", reasoning=True),
+        filing_answer,
     ]
     chat = backend(tmp_path, data_root, model)
     updates = []

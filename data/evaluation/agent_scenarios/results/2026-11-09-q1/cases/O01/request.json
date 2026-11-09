@@ -1,0 +1,7 @@
+{
+  "question": "What will the weather be in Lisbon tomorrow?",
+  "borrower_id": "SYN001",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

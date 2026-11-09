@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H07",
+  "category": "happy_path",
+  "topic": "springing_tests",
+  "family": "active_springing",
+  "question": "Assess whether SYN028 springing leverage test is active and compliant. Reporting date: 2026-03-31. Information cutoff: 2026-03-31.",
+  "expected_behavior": "Availability below 25% activates the test. Report active testing, leverage 5.0x versus maximum 4.0x, breach and headroom -1.0x. State observed availability from tools and cite calculation IDs.",
+  "answer": "The springing leverage test for SYN028, as of 2026-03-31, is **not compliant**. The calculated actual leverage ratio is **5.0x**, which exceeds the threshold of **4.0x**. Thus, there is a breach in compliance. Furthermore, the test is **active**, as it is designed to be triggered when revolver availability falls below **25%**. Based on the current data, the compliance status is marked as a **breach** due to the leverage ratio being above the allowable limit.",
+  "confidence": "high",
+  "confidence_explanation": "The assessment is based on solid financial data indicating a leverage ratio breach, confirmed by calculated values and compliance thresholds.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 10.07,
+  "judge_seconds": 7.783,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "50d6f8d924a5874dc0fd63aa99942b415ee5d9812261f6e8d69b8a3b71338c13",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H07/answer.json"
+}

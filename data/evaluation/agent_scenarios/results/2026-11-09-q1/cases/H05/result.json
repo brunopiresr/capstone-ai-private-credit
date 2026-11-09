@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H05",
+  "category": "happy_path",
+  "topic": "coverage_definitions",
+  "family": "fixed_charge_coverage",
+  "question": "Assess SYN009 fixed-charge coverage, headroom and trend. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "FCCR is about 1.2778x, narrowly compliant with minimum 1.25x and about 0.0278x headroom. Explain deterioration from supplied history without forecasting; cite calculation IDs.",
+  "answer": "As of September 30, 2025, the assessment of SYN009's fixed-charge coverage shows the following:\n\n- **Fixed-Charge Coverage Ratio**: 1.28 (actual value)\n- **Threshold**: 1.25\n- **Headroom**: 0.03\n- **Compliance Status**: Compliant\n\n### Trend Analysis:\n- **Quarter-over-Quarter Change in Actual Value**: -0.06\n- **Quarter-over-Quarter Change in Headroom**: -0.06\n\nThe fixed-charge coverage ratio decreased slightly compared to the previous quarter. However, it remains above the required threshold, indicating ongoing compliance. Overall, while the company maintains compliance, there is a slight downward trend in both the coverage ratio and headroom. \n\n**Sources**:\n- Financial metrics sourced from synthetic quarterly financials, indicating healthy operations but a need to monitor the downward trend closely for future quarters.",
+  "confidence": "high",
+  "confidence_explanation": "The compliance assessment and detailed financial metrics are based on verified calculations, indicating good robustness in the fixed-charge coverage assessment.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 10.257,
+  "judge_seconds": 3.402,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": "fail",
+  "judge_reason": "The final answer contains a numeric discrepancy and lacks the explicit citation of calculation IDs as required. The ratio is reported as 1.28 with headroom 0.03, but the authoritative evidence shows the exact value is 1.2777777777777777 with headroom 0.02777777777777768, which should be precisely reflected. Additionally, the explanation of deterioration is qualitative and does not cite the provided calculation IDs from the evidence, thus failing requirement 2.",
+  "failure_tags_json": "[\"numeric_error\", \"reference_gap\", \"incomplete_answer\"]",
+  "response_sha256": "2192d78054d8a6ee7c7c918ac741c8b79def13925ead44ee314ea9d269f352d9",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H05/answer.json"
+}

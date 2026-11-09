@@ -1,0 +1,9 @@
+{
+  "answer": "Please provide the reporting date and information cutoff in YYYY-MM-DD format.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

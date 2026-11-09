@@ -1,0 +1,28 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states that the minimum interest coverage for SYN008 as of 2025-09-30 is about 2.73x, which is below the minimum required 3.0x, indicating a breach with a headroom of approximately -0.27x. It preserves the minimum direction and cites the calculation version and covenant ID as per the authoritative evidence. All requirements are met with accurate numeric values, proper citation of calculation IDs, and correct interpretation of covenant status.",
+  "failure_tags": [],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "pass",
+      "excerpt": "The minimum interest coverage assessment for SYN008, as of September 30, 2025, shows an actual value of **2.73**, while the required threshold is **3.0**. This indicates a **breach** in the covenant, with a headroom of **-0.27** times.",
+      "reason": "The numeric values for interest coverage (2.7273x), threshold (3.0x), and headroom (-0.2727x) are accurately stated and match the authoritative evidence."
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "pass",
+      "excerpt": "The minimum interest coverage assessment for SYN008, as of September 30, 2025, shows an actual value of **2.73**, while the required threshold is **3.0**. This indicates a **breach** in the covenant, with a headroom of **-0.27** times. Therefore, SYN008 is not in compliance with its minimum interest coverage requirement.",
+      "reason": "The answer preserves the minimum direction (>=) and cites the calculation version ('v1') and covenant ID from the authoritative evidence."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2899,
+    "gen_ai.usage.output_tokens": 361,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 4.009,
+  "response_sha256": "a290c2b65df3d2ec74173f25f012af3f768bd63494093ffe50b1edd1fdc35f72",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

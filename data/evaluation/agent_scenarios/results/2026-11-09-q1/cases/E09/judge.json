@@ -1,0 +1,28 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly identifies that zero EBITDA is an invalid denominator for leverage calculation (requirement:1) and reports the status as incomplete rather than zero leverage or compliance (requirement:2). It explains the reason for the incomplete status due to zero EBITDA and cites the calculation ID 'bundle_v1' and the specific covenant ID 'synthetic:SYN034:LEV' from the authoritative evidence. The report matches the cited evidence from the assessment run, and no unsupported claims or omissions were found.",
+  "failure_tags": [],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "pass",
+      "excerpt": "Due to the reported EBITDA being zero, the total leverage ratio cannot be calculated, leading to an incomplete compliance status.",
+      "reason": "The answer states that zero EBITDA leads to inability to calculate the leverage ratio, which agrees with the evidence that the ratio denominator must be positive and zero EBITDA is invalid."
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "pass",
+      "excerpt": "the total leverage ratio cannot be calculated, leading to an incomplete compliance status. The standard calculation for total leverage requires positive EBITDA in the denominator, thereby making it impossible to assess the ratio accurately.",
+      "reason": "The answer reports incomplete compliance status instead of zero leverage or compliance and clearly explains the reason for zero EBITDA. It cites the calculation version bundle_v1 and the covenant ID from the evidence, conforming to the requirement."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2990,
+    "gen_ai.usage.output_tokens": 292,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 4.046,
+  "response_sha256": "15972e6ff649d4e0a4a081ed98f4445ccd3a7cde066b55c3b73fa26c622c8551",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

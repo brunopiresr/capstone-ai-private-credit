@@ -1,0 +1,9 @@
+{
+  "answer": "Please provide an information cutoff on or after the reporting date.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

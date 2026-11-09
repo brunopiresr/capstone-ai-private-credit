@@ -4,7 +4,7 @@ import asyncio
 from contextlib import aclosing
 
 import pytest
-from model_helpers import ScriptedModel, model_response
+from model_helpers import ScriptedModel, filing_answer, model_response, scripted_responses
 from pydantic_ai.exceptions import ModelAPIError
 from pydantic_ai.messages import ModelResponse, ToolCallPart
 from pydantic_ai.models.function import DeltaToolCall, FunctionModel
@@ -21,7 +21,12 @@ def test_stream_yields_partial_answer_before_confidence_and_finalizes(document_s
         yield {0: DeltaToolCall(name="final_result", json_args='{"answer":"First')}
         yield {0: DeltaToolCall(json_args=" sentence. More text")}
         yield {0: DeltaToolCall(json_args='", "confidence":"medium"')}
-        yield {0: DeltaToolCall(json_args=', "confidence_explanation":"Limited evidence."}')}
+        yield {
+            0: DeltaToolCall(
+                json_args=', "confidence_explanation":"Limited evidence.", '
+                '"schema_version":"agent-answer-v2"}'
+            )
+        }
 
     agent = CreditAssessmentAgent(
         service=document_service_factory(), model=FunctionModel(stream_function=generate)
@@ -84,14 +89,14 @@ def test_exhaustive_output_does_not_drop_accompanying_tools(document_service_fac
         ("search_evidence", {"query": "maximum leverage"}), answer="Evidence found"
     )
     response.parts.reverse()  # Output tool arrives before the service tool.
-    model.respond.return_value = response
+    model.respond.side_effect = scripted_responses(response, filing_answer)
     answer = CreditAssessmentAgent(
         service=document_service_factory(), model=model, max_tool_rounds=1
     ).ask("Explain")
     assert answer.complete
     assert [step.name for step in answer.tool_trace] == ["search_evidence"]
     assert [source.document_id for source in answer.sources] == ["SYN"]
-    assert model.respond.call_count == 1
+    assert model.respond.call_count == 2
 
 
 def test_cancelling_stream_keeps_successful_history_and_releases_turn(document_service_factory):
@@ -189,9 +194,10 @@ def test_mutating_events_cannot_change_trace_sources_or_conversation_history(
     model = ScriptedModel()
     model.respond.side_effect = [
         model_response(("search_evidence", {"query": "maximum leverage"})),
-        model_response(answer="The threshold is in SYN."),
-        model_response(answer="The earlier SYN filing supports it."),
+        filing_answer,
+        filing_answer,
     ]
+    model.respond.side_effect = scripted_responses(*model.respond.side_effect)
     agent = CreditAssessmentAgent(service=document_service_factory(), model=model)
     chat = agent.start_conversation(ticker="SYN")
     original_citation = agent.service.get_document_extraction("SYN").citation
@@ -234,6 +240,7 @@ def test_injected_test_model_and_legacy_answers(document_service_factory):
         call_tools=[],
         custom_output_args={
             "answer": "Answer",
+            "schema_version": "agent-answer-v2",
             "confidence": "high",
             "confidence_explanation": "Supplied evidence.",
         },

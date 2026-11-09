@@ -1,0 +1,65 @@
+{
+  "scenario_id": "V07",
+  "category": "varied_phrasing",
+  "topic": "amendments_waivers",
+  "family": "amendment",
+  "question": "Which ceiling governs SYN004 now, and does it fit underneath? Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Use the amendment effective 2025-07-01: maximum 5.5x, actual 5.4x, positive headroom 0.1x and compliance. Do not use stale 4.75x or describe a looser threshold as improved financial performance. Cite calculation IDs.",
+  "answer": "The governing ceiling for SYN004 is the Maximum Total Leverage, which has a threshold of 5.5x. As of the reporting date of September 30, 2025, SYN004's actual leverage is calculated to be 5.4x, which means it is compliant and fits beneath the ceiling by a headroom of approximately 0.1x. Therefore, SYN004 is currently in compliance with its leverage covenant.",
+  "confidence": "high",
+  "confidence_explanation": "The information is based on the assessment of actual leverage against the defined threshold, providing strong evidence that SYN004 is compliant.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 6.109,
+  "judge_seconds": 6.998,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "c82aa6d50dab8a32a6bed004b109908f29ddc4308ea4ad459e7adb85d5b24c6f",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/V07/answer.json"
+}

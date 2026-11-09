@@ -1,0 +1,28 @@
+{
+  "label": "pass",
+  "reason": "All material requirements are met. The assistant correctly reports the net leverage ratio as 3.125x against the maximum of 5.5x, with a positive headroom of 2.375x as of 2025-09-30. The compliance status is confirmed as compliant by the authoritative financial covenant assessment with assessment_run_id '4539ca35-0f82-430c-95f4-158e58e3c09a' and result_id '9c59eb73-846e-41e1-8b97-02e995e2c596'. The answer does not request a forecast, adhering to the scope. The data and citations are consistent and accurate, satisfying the evaluation criteria.",
+  "failure_tags": [],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "pass",
+      "excerpt": "SYN001 is compliant with its debt test as of September 30, 2025, with a net leverage ratio of 3.125, which is below the threshold of 5.5. The remaining cushion or headroom is 2.375 times.",
+      "reason": "The final answer precisely cites the compliant net leverage (3.125x), maximum threshold (5.5x), and positive headroom (2.375x), supported by the authoritative covenant assessment evidence with assessment_run_id '4539ca35-0f82-430c-95f4-158e58e3c09a' and result_id '9c59eb73-846e-41e1-8b97-02e995e2c596'."
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "pass",
+      "excerpt": "SYN001 is compliant with its debt test as of September 30, 2025, with a net leverage ratio of 3.125, which is below the threshold of 5.5. The remaining cushion or headroom is 2.375 times.",
+      "reason": "The final answer provides no request for a forecast, complying with the requirement to avoid forecasts."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 12332,
+    "gen_ai.usage.output_tokens": 608,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 7.171,
+  "response_sha256": "bdf5e6a4c9b579617480d0d8585d65afdb76573dd6ded9047579d9e8875feb9b",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

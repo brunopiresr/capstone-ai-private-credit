@@ -1,0 +1,9 @@
+{
+  "label": null,
+  "reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags": [],
+  "duration_seconds": 6.998,
+  "response_sha256": "c82aa6d50dab8a32a6bed004b109908f29ddc4308ea4ad459e7adb85d5b24c6f",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

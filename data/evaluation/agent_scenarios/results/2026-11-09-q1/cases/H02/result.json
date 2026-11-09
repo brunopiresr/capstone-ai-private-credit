@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H02",
+  "category": "happy_path",
+  "topic": "compliance_headroom",
+  "family": "thin_headroom",
+  "question": "Assess SYN002 current leverage and recent headroom trend. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Report current compliance, net leverage about 5.1923x versus 5.5x, positive headroom about 0.3077x and deteriorating historical headroom. Do not equate compliance with absence of risk or invent a forecast; cite calculation IDs.",
+  "answer": "As of September 30, 2025, SYN002 has a total debt of $145 million and reported EBITDA of $26 million. This results in a net leverage ratio of approximately 5.19x, which is compliant with the covenant threshold of 5.5x, yielding a headroom of about 0.31x. \n\nRecent trends show that the net leverage has increased from approximately 4.17x as of March 31, 2025, to 5.19x by September 30, 2025. This represents a quarter-over-quarter increase of about 0.55x, with headroom decreasing by 0.55x as well. The total debt increased from $135 million to $145 million over this period, while EBITDA declined slightly from $30 million to $26 million.\n\nIn summary:\n- **Current Net Leverage**: 5.19x\n- **Covenant Threshold**: 5.5x\n- **Headroom**: 0.31x\n- **Quarter-over-Quarter Change in Net Leverage**: +0.55x\n- **Total Debt Growth qoq**: +3.57%",
+  "confidence": "medium",
+  "confidence_explanation": "The analysis is based on defined metrics and compliance calculations; however, historic reporting source dates are unclear, which could affect the interpretation and reliability of trends.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 12.548,
+  "judge_seconds": 5.756,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "cb77b6d26f6601cf90b54eb96ee6a6133c688d95344219c3dad672efb742fef6",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H02/answer.json"
+}

@@ -1,0 +1,15 @@
+{
+  "final_answer": "Please provide the reporting date and information cutoff in YYYY-MM-DD format.",
+  "question": "Is SYN002 okay? Use the latest numbers.",
+  "context": {
+    "borrower_id": "SYN002",
+    "ticker": "",
+    "period_end": "",
+    "information_cutoff": ""
+  },
+  "requirements": {
+    "requirement:1": "Ask explicitly for BOTH reporting date and information cutoff.",
+    "requirement:2": "Make no tool calls and give no compliance conclusion, ratios or guessed latest date."
+  },
+  "authoritative_evidence": []
+}

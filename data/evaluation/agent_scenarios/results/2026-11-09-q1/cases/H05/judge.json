@@ -1,0 +1,32 @@
+{
+  "label": "fail",
+  "reason": "The final answer contains a numeric discrepancy and lacks the explicit citation of calculation IDs as required. The ratio is reported as 1.28 with headroom 0.03, but the authoritative evidence shows the exact value is 1.2777777777777777 with headroom 0.02777777777777768, which should be precisely reflected. Additionally, the explanation of deterioration is qualitative and does not cite the provided calculation IDs from the evidence, thus failing requirement 2.",
+  "failure_tags": [
+    "numeric_error",
+    "reference_gap",
+    "incomplete_answer"
+  ],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "fail",
+      "excerpt": "- **Fixed-Charge Coverage Ratio**: 1.28 (actual value)\n- **Threshold**: 1.25\n- **Headroom**: 0.03",
+      "reason": "The reported ratio and headroom values are rounded and not precisely as per the authoritative evidence which states 1.2778x and 0.0278x respectively; exactness is required."
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "fail",
+      "excerpt": "The fixed-charge coverage ratio decreased slightly compared to the previous quarter. However, it remains above the required threshold, indicating ongoing compliance.",
+      "reason": "The explanation of deterioration does not explicitly cite any calculation IDs from the supplied authoritative evidence and does not quantify the historical changes specifically, failing the requirement to explain deterioration citing calculation IDs."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6332,
+    "gen_ai.usage.output_tokens": 302,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 3.402,
+  "response_sha256": "2192d78054d8a6ee7c7c918ac741c8b79def13925ead44ee314ea9d269f352d9",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

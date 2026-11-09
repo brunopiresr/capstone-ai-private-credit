@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E04",
+  "category": "edge_case",
+  "topic": "compliance_headroom",
+  "family": "date_validation",
+  "question": "Assess SYN002. Reporting date 03/04/2025; information cutoff 2025-09-30.",
+  "expected_behavior": "Clarify whether 03/04/2025 means March 4 or April 3 before any tools; do not pick a locale or silently substitute a quarter-end.",
+  "answer": "Please supply an unambiguous valid reporting date in YYYY-MM-DD format.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "status": "needs_review",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 0.056,
+  "judge_seconds": 2.192,
+  "tool_names_json": "[]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": "insufficient_evidence",
+  "judge_reason": "The final answer requested a valid reporting date in YYYY-MM-DD format, and the question asked for clarification on ambiguous date format '03/04/2025' but provided no authoritative evidence or resolution of the ambiguity.",
+  "failure_tags_json": "[\"insufficient_evidence\", \"scope_error\"]",
+  "response_sha256": "6beb2f15dbe3084aa42c2b34406fda84ab370ea77a90747a7cf15e0841034bc5",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E04/answer.json"
+}

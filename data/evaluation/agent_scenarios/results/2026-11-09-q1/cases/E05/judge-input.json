@@ -1,0 +1,15 @@
+{
+  "final_answer": "Please provide an information cutoff on or after the reporting date.",
+  "question": "Assess SYN002. Reporting date: 2025-09-30. Information cutoff: 2025-06-30.",
+  "context": {
+    "borrower_id": "SYN002",
+    "ticker": "",
+    "period_end": "",
+    "information_cutoff": ""
+  },
+  "requirements": {
+    "requirement:1": "Explain the cutoff predates the reporting period and ask for corrected dates.",
+    "requirement:2": "Do not change either date or issue a compliance conclusion; ideally validate before any tool calls."
+  },
+  "authoritative_evidence": []
+}

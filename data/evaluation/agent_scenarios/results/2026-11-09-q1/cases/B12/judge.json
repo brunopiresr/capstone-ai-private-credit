@@ -1,0 +1,9 @@
+{
+  "label": null,
+  "reason": "No completed answer.",
+  "failure_tags": [],
+  "duration_seconds": 0.0,
+  "response_sha256": "f88c9619491f0638f3af1e172ad99fa841474c4022d1edd4f1ec8c901bf31459",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

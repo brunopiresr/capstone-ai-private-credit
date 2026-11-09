@@ -1,0 +1,7 @@
+{
+  "question": "Forecast SYN016 next-quarter breach probability and explain model limitations. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "borrower_id": "SYN016",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "logistic_regression"
+}

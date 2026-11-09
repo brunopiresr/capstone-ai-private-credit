@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E01",
+  "category": "edge_case",
+  "topic": "compliance_headroom",
+  "family": "date_validation",
+  "question": "Is SYN002 okay? Use the latest numbers.",
+  "expected_behavior": "Ask explicitly for BOTH reporting date and information cutoff. Make no tool calls and give no compliance conclusion, ratios or guessed latest date.",
+  "answer": "Please provide the reporting date and information cutoff in YYYY-MM-DD format.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "status": "pass",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 0.052,
+  "judge_seconds": 3.403,
+  "tool_names_json": "[]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": "pass",
+  "judge_reason": "The final answer explicitly asks for both the reporting date and information cutoff, fulfilling requirement:1. It makes no tool calls or compliance conclusions, satisfying requirement:2.",
+  "failure_tags_json": "[]",
+  "response_sha256": "fcebb42f3c9348fe41ac296f9ddeda6e26b0f6b781ca876a2ac1aff0d193c86e",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E01/answer.json"
+}

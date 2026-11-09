@@ -1,0 +1,65 @@
+{
+  "scenario_id": "V08",
+  "category": "varied_phrasing",
+  "topic": "amendments_waivers",
+  "family": "waiver",
+  "question": "SYN005 is on a covenant vacation. Does that mean it passed the test? Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Testing is waived for 2025-09-30, not passed. The waiver covers both June 30 and September 30, 2025 only. Preserve source-disclosed actual 5.2x and null headroom from the returned calculation; do not describe that actual as independently recalculated. Do not extend waiver beyond Q3; cite calculation IDs.",
+  "answer": "SYN005 is currently on a covenant vacation, meaning that the covenant testing for the period ending September 30, 2025, has been waived. Specifically, the total leverage covenant, which has a threshold of 4.5x, has not been assessed for compliance due to this waiver. The actual value for total leverage is 5.2x, which would indicate a breach if the covenant was not waived. Therefore, while it has not passed the test in a conventional sense (as it exceeded the threshold), it is effectively considered compliant for this reporting period because testing has been waived.",
+  "confidence": "high",
+  "confidence_explanation": "The assessment is based on direct results from the covenant evaluation, which indicated that testing was waived for the specified period, paired with verifiable metrics of total leverage.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 6.413,
+  "judge_seconds": 10.756,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "5a919ba7365b937b5817daff0fc51c8adf031a8b02346dbc22c7f0d2eb07ef31",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 6,
+      "denominator": 6,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/V08/answer.json"
+}

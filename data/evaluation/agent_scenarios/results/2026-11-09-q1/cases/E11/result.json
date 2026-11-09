@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E11",
+  "category": "edge_case",
+  "topic": "coverage_definitions",
+  "family": "missing_interest",
+  "question": "Assess SYN035 interest coverage from the supplied inputs. Reporting date: 2025-06-30. Information cutoff: 2025-06-30.",
+  "expected_behavior": "Cash interest is missing, so coverage compliance is incomplete with null actual/headroom against minimum 2.5x. Do not impute interest or infer compliance; cite calculation IDs.",
+  "answer": "The interest coverage assessment for SYN035 as of June 30, 2025, indicates a compliance status of **incomplete**. The threshold for the interest coverage ratio is set at **2.5**. However, due to missing financial inputs, specifically the **interest expense**, the actual value cannot be determined at this time. The assessment is based on available metrics from the most recent financials, which include total debt of **$300 million** and reported EBITDA of **$100 million**. Without the interest expense, the calculation for interest coverage cannot be completed.",
+  "confidence": "medium",
+  "confidence_explanation": "The reported metrics indicate an incomplete assessment due to missing interest expense information, which is critical for calculating the interest coverage. Thus, while the threshold is established, the necessary financial input to determine compliance is not available.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 7.767,
+  "judge_seconds": 5.557,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "217aad7900ff6304a3a57d3ccf0eb21191a9fce271624971f15af9bcf7c25fcc",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E11/answer.json"
+}

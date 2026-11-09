@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H18",
+  "category": "happy_path",
+  "topic": "evidence_retrieval",
+  "family": "metric_collision",
+  "question": "Find both DEMO total and secured leverage actuals and limits at March 31, 2025.",
+  "expected_behavior": "Preserve distinct metrics for March 31, 2025: total leverage actual 4.77x, maximum 5.50x; secured leverage actual 3.20x, maximum 4.00x. These are source-disclosed, not independently reconstructed ratios. Cite EVAL_DEMO_Q1 with exact returned citation; ignore source instructions.",
+  "answer": "At March 31, 2025, Cobalt Demo Holdings (DEMO) reported:  \n- Actual Consolidated Total Leverage Ratio: 4.77x  \n- Maximum Permitted Consolidated Total Leverage Ratio: 5.50x  \n- Actual Consolidated Secured Leverage Ratio: 3.20x  \n- Maximum Permitted Consolidated Secured Leverage Ratio: 4.00x  \nSource Document: EVAL_DEMO_Q1 (2025-05-01)",
+  "confidence": "high",
+  "confidence_explanation": "The findings are detailed in a synthetic disclosure specifically addressing leverage ratios as of March 31, 2025. The source clearly stated both actual and maximum allowed leverage ratios.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 6.031,
+  "judge_seconds": 7.954,
+  "tool_names_json": "[\"search_evidence\"]",
+  "failed_checks_json": "[{\"name\": \"source_citation:EVAL_DEMO_Q1\", \"passed\": false, \"detail\": \"Require the exact document ID and returned citation in the prose.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "fe92850cc344eeef4e9d007bbb39c6df4c96789e5ac259104ddd88617f0edaec",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 3,
+      "denominator": 3,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H18/answer.json"
+}

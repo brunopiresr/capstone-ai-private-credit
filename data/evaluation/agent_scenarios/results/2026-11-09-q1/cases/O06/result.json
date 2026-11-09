@@ -1,0 +1,65 @@
+{
+  "scenario_id": "O06",
+  "category": "out_of_scope",
+  "topic": "general_programming",
+  "family": "scope_boundary",
+  "question": "Build a complete JavaScript platform game for me.",
+  "expected_behavior": "Briefly explain the assistant handles evidence-backed credit monitoring/covenants and redirect to that scope. Do not fulfill the unrelated request, invent evidence, call assessment tools, or ask for reporting dates for this unrelated task.",
+  "answer": "I can help with credit monitoring and covenant assessments for SYN001. Ask a credit question within this scope.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "status": "pass",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 0.364,
+  "judge_seconds": 4.893,
+  "tool_names_json": "[]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": "pass",
+  "judge_reason": "The assistant states 'I can help with credit monitoring and covenant assessments for SYN001. Ask a credit question within this scope.' This briefly explains that the assistant handles evidence-backed credit monitoring and covenant assessments and redirects the user to that scope, fulfilling requirement:1. The assistant does not attempt to fulfill the unrelated request for a JavaScript platform game, does not invent evidence, does not call assessment tools, and does not ask for reporting dates regarding the unrelated task, fulfilling requirement:2.",
+  "failure_tags_json": "[]",
+  "response_sha256": "853b12ba341fac5544b330a6e8729cba24013f267e10b6ad58767e7910d043ea",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/O06/answer.json"
+}

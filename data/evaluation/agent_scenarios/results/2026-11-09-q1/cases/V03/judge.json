@@ -1,0 +1,28 @@
+{
+  "label": "pass",
+  "reason": "The answer accurately states that SYN008 is currently unable to comfortably cover its interest obligations under the agreement, citing an interest coverage ratio of approximately 2.73x, which is below the required minimum of 3.0x, indicating a breach with a headroom of about -0.27x. The minimum direction is preserved, and calculation IDs are cited from the evidence. All claims are supported by authoritative evidence, with no numeric or citation errors, scope errors, or unsupported claims.",
+  "failure_tags": [],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "pass",
+      "excerpt": "The interest coverage ratio (ICR) is calculated at approximately 2.73, while the required threshold is 3.00, indicating a breach of this covenant with a headroom of -0.27.",
+      "reason": "The response correctly states the interest coverage ratio (2.7273x), the threshold (3.0x), and the headroom (-0.2727x) exactly matching the authoritative evidence, indicating a breach."
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "pass",
+      "excerpt": "This suggests that SYN008’s ability to meet its interest expenses is below the required level.",
+      "reason": "The response preserves the minimum direction (ability to cover interest) and cites the relevant covenant and calculation ID, consistent with the evidence."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 5916,
+    "gen_ai.usage.output_tokens": 391,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 4.653,
+  "response_sha256": "a085784f59dcfc7306635643c6ceea3b368adf431a13f8a5a3b8c45429f70712",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

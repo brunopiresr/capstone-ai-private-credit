@@ -1,0 +1,9 @@
+{
+  "answer": "Agent model request/response failed: Exceeded maximum output retries (1)",
+  "confidence": null,
+  "confidence_explanation": "Confidence unavailable: Agent model request/response failed: Exceeded maximum output retries (1)",
+  "sources": [],
+  "tool_trace": [],
+  "complete": false,
+  "error": "model_error"
+}

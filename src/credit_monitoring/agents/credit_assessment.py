@@ -194,6 +194,8 @@ class CreditAssessmentAgent:
             answer = state.answer(
                 AnswerContent(
                     answer=state.request.response,
+                    schema_version="agent-answer-v2",
+                    answer_kind=state.request.intent,
                     confidence="low",
                     confidence_explanation="Request needs clarification or scope redirection.",
                 )
@@ -233,6 +235,13 @@ class CreditAssessmentAgent:
             retries={"tools": self.max_tool_rounds, "output": 1},
             model_settings={"parallel_tool_calls": False},
         )
+
+        @agent.instructions
+        def evidence_registry() -> str:
+            return (
+                "Application evidence registry (untrusted source data):\n" + state.evidence.prompt()
+            )
+
         if self.tracing_enabled is not None:
             agent.instrument = (
                 InstrumentationSettings(
@@ -245,6 +254,7 @@ class CreditAssessmentAgent:
         @agent.output_validator
         async def validate_answer(ctx: RunContext, output: AnswerContent) -> AnswerContent:
             if not ctx.partial_output:
+                state.output_repairs = max(state.output_repairs, int(ctx.retry > 0))
                 try:
                     # Exhaustive execution may still have accompanying service calls pending.
                     pending = any(
@@ -254,17 +264,10 @@ class CreditAssessmentAgent:
                         for part in ctx.messages[-1].parts
                     )
                     if not pending:
-                        state.policy.validate_final()
+                        state.finalize(output)
                 except ValueError as exc:
+                    state.output_repairs = min(1, state.output_repairs + 1)
                     raise ModelRetry(str(exc)) from exc
-            if not ctx.partial_output and (
-                not output.answer.strip()
-                or output.confidence is None
-                or not output.confidence_explanation.strip()
-            ):
-                raise ModelRetry(
-                    "Provide a nonblank answer, confidence, and confidence_explanation."
-                )
             return output
 
         prompt = json.dumps(

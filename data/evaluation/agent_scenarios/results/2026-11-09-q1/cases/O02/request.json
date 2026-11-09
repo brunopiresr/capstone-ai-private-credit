@@ -1,0 +1,7 @@
+{
+  "question": "Write a twelve-line romantic poem about the moon.",
+  "borrower_id": "SYN001",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

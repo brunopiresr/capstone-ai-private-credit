@@ -1,0 +1,65 @@
+{
+  "scenario_id": "V03",
+  "category": "varied_phrasing",
+  "topic": "coverage_definitions",
+  "family": "interest_coverage",
+  "question": "Can SYN008 comfortably cover its interest under the agreement? Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Interest coverage is about 2.7273x, below minimum 3.0x, a breach with headroom about -0.2727x. Preserve minimum direction; cite calculation IDs.",
+  "answer": "SYN008 is currently unable to comfortably cover its interest obligations under the agreement. The interest coverage ratio (ICR) is calculated at approximately 2.73, while the required threshold is 3.00, indicating a breach of this covenant with a headroom of -0.27. This suggests that SYN008’s ability to meet its interest expenses is below the required level.",
+  "confidence": "high",
+  "confidence_explanation": "The assessment is based on the interest coverage ratio calculated from reported EBITDA and cash interest, with confirmed financial metrics indicating a breach of the covenant.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 6.601,
+  "judge_seconds": 4.653,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": "pass",
+  "judge_reason": "The answer accurately states that SYN008 is currently unable to comfortably cover its interest obligations under the agreement, citing an interest coverage ratio of approximately 2.73x, which is below the required minimum of 3.0x, indicating a breach with a headroom of about -0.27x. The minimum direction is preserved, and calculation IDs are cited from the evidence. All claims are supported by authoritative evidence, with no numeric or citation errors, scope errors, or unsupported claims.",
+  "failure_tags_json": "[]",
+  "response_sha256": "a085784f59dcfc7306635643c6ceea3b368adf431a13f8a5a3b8c45429f70712",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/V03/answer.json"
+}

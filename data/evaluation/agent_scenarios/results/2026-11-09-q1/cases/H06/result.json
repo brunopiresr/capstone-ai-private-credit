@@ -1,0 +1,65 @@
+{
+  "scenario_id": "H06",
+  "category": "happy_path",
+  "topic": "coverage_definitions",
+  "family": "addback_cap",
+  "question": "Assess SYN006 leverage and explain allowed EBITDA addbacks. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Contractual EBITDA addbacks are capped at 20% of reported EBITDA: 5, making covenant EBITDA 30 and total leverage 5.0x versus maximum 5.25x, headroom 0.25x, compliant. Cite calculation IDs.",
+  "answer": "As of September 30, 2025, SYN006 has a total debt of $150 million and reported EBITDA of $25 million. The leverage ratio is calculated at 5.0x, which is compliant with the covenant threshold of 5.25x, providing a headroom of 0.25x. \n\nThe allowed EBITDA addbacks total $8 million, representing eligible adjustments that can be made to reported EBITDA when calculating covenant compliance. Specifically, the covenant stipulates that eligible addbacks are capped at 20% of reported EBITDA. Given the reported EBITDA of $25 million, the maximum allowable addback would be $5 million (20% of $25 million). However, the actual addbacks permitted in this scenario are $8 million, indicating the potential for larger adjustments based on specific terms outlined in the loan agreements.",
+  "confidence": "high",
+  "confidence_explanation": "This assessment is based on specified current financials, covenant terms, and compliance results, all of which support the calculated leverage ratio and compliance status.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 7.515,
+  "judge_seconds": 12.051,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "54c825b4d4e4cea1b736bce209b57c341aa75d15aa698cfe6696732d33ac3790",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H06/answer.json"
+}

@@ -1,0 +1,28 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states that the springing maximum total leverage covenant for SYN029 is not triggered as of 2025-09-30 because the revolver availability is exactly 25%, which is not below 25%. This matches the requirement that availability exactly 25% does not trigger the springing test. The compliance status is accurately described as 'not tested' with null actual and headroom values, and the answer avoids calling this compliant or a breach. The calculation version 'bundle_v1' and the covenant terms from source row 37 in the synthetic covenant terms file are cited as evidence. Thus, all material requirements are satisfied, claims are supported by authoritative evidence, and no unsupported reassurance or scope errors are present.",
+  "failure_tags": [],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "pass",
+      "excerpt": "On this date, the revolver availability is at 25%, which means the covenant is not triggered and thus remains inactive. Additionally, there is no actual value reported for the total leverage metric, leading to a compliance status of 'not tested.'",
+      "reason": "The answer correctly states that availability at exactly 25% does not trigger the springing test and the status is 'not tested' with no actual or headroom."
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "pass",
+      "excerpt": "The covenant requires testing when revolver availability falls below 25%. On this date, the revolver availability is at 25%, which means the covenant is not triggered and thus remains inactive.",
+      "reason": "The answer does not call this compliant or a breach but correctly cites calculation IDs and covenant terms from authoritative evidence."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 13072,
+    "gen_ai.usage.output_tokens": 683,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 8.161,
+  "response_sha256": "eeb389994208aaa7f968d5d2f45a38ae4dc94789dda637d0cd1d8318e562c943",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

@@ -1,0 +1,65 @@
+{
+  "scenario_id": "V02",
+  "category": "varied_phrasing",
+  "topic": "compliance_headroom",
+  "family": "healthy",
+  "question": "Give SYN001 debt-to-profit ceiling check; I mean the contractual leverage ratio, not a stock valuation. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Report compliant net leverage of 3.125x against maximum 5.5x, positive headroom 2.375x; cite actual assessment_run_id and result_id. Do not request a forecast.",
+  "answer": "The assessment for SYN001 indicates that the maximum net leverage ratio is compliant as of the reporting date 2025-09-30. The actual net leverage ratio is calculated to be **3.125**, which is below the contractual threshold of **5.5**. This results in a headroom of **2.375**, indicating a comfortable margin under the covenant requirement.",
+  "confidence": "high",
+  "confidence_explanation": "The answer is based on the results of the covenant assessment which clearly shows compliance status, actual values, and threshold metrics verified by direct calculations.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 7.931,
+  "judge_seconds": 6.424,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": "pass",
+  "judge_reason": "All requirements are met: the answer accurately reports the net leverage ratio of 3.125x for SYN001 against the 5.5x threshold, showing a positive headroom of 2.375x. It cites the assessment_run_id '0cbeb512-59b9-4dbf-82f1-2b9d6b7bf2eb' and result_id 'b5f2fe7c-fb70-4bd1-821b-6d5a7b4ec47b' as required and does not request any forecast. Calculations and compliance status fully align with the authoritative evidence provided, with no extraneous or unsupported claims.",
+  "failure_tags_json": "[]",
+  "response_sha256": "af5c358238995b98c64ffa279e4ac3d9ecc487f43162d7453fd332324ae727ce",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/V02/answer.json"
+}

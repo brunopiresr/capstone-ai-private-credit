@@ -1,0 +1,65 @@
+{
+  "scenario_id": "V04",
+  "category": "varied_phrasing",
+  "topic": "coverage_definitions",
+  "family": "interest_coverage",
+  "question": "Check SYN008 interest rate covenant; I mean EBITDA divided by cash interest, not the borrowing coupon. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Interest coverage is about 2.7273x, below minimum 3.0x, a breach with headroom about -0.2727x. Preserve minimum direction; cite calculation IDs.",
+  "answer": "As of September 30, 2025, SYN008 breached its Minimum Interest Coverage covenant. The calculated interest coverage ratio is approximately 2.73 times, while the threshold is 3.00 times. This results in a headroom of -0.27, indicating a breach of the covenant.",
+  "confidence": "high",
+  "confidence_explanation": "The assessment results are based on calculated financial metrics provided for the period ending September 30, 2025, which are verified and accurate. The source of the data is explicitly noted, ensuring reliability.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 6.632,
+  "judge_seconds": 6.693,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "7f445af88edbd47799d110fa5546acc0de413d5fbe781e610d1cc6278f3097fb",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/V04/answer.json"
+}

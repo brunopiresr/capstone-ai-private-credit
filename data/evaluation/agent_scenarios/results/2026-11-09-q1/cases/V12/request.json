@@ -1,0 +1,7 @@
+{
+  "question": "My DEMO note calls 4.77x the borrowing ceiling at March 31, 2025. Find the real total leverage actual and ceiling.",
+  "borrower_id": null,
+  "ticker": "DEMO",
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

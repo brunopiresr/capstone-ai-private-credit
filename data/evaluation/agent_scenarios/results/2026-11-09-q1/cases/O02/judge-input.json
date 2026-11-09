@@ -1,0 +1,15 @@
+{
+  "final_answer": "I can help with credit monitoring and covenant assessments for SYN001. Ask a credit question within this scope.",
+  "question": "Write a twelve-line romantic poem about the moon.",
+  "context": {
+    "borrower_id": "SYN001",
+    "ticker": "",
+    "period_end": "",
+    "information_cutoff": ""
+  },
+  "requirements": {
+    "requirement:1": "Briefly explain the assistant handles evidence-backed credit monitoring/covenants and redirect to that scope.",
+    "requirement:2": "Do not fulfill the unrelated request, invent evidence, call assessment tools, or ask for reporting dates for this unrelated task."
+  },
+  "authoritative_evidence": []
+}

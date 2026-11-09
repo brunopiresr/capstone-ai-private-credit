@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from model_helpers import ScriptedModel
+from model_helpers import ScriptedModel, filing_answer, scripted_responses, supported_answer
 from model_helpers import model_response as response
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelAPIError
@@ -287,8 +287,9 @@ def test_document_discovery_processing_cache_read_and_rag_loop(
         response(("process_document", {"document_id": "SYN"})),
         response(("process_document", {"document_id": "SYN"})),
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
-        response(answer="The filing states 4.00 to 1.00. [SYN] Synthetic Issuer, Amendment."),
+        filing_answer,
     ]
+    model.respond.side_effect = scripted_responses(*model.respond.side_effect)
     answer = monitor.ask("Show the schedule and supporting filing text.", ticker="SYN")
     assert answer.complete and len(answer.tool_trace) == 5
     assert isinstance(answer.tool_trace[0].outcome[0], DocumentSummary)
@@ -510,7 +511,7 @@ def test_multiple_calls_use_one_round_and_execute_in_order(
             ("process_document", {"document_id": "SYN"}),
             ("get_document_extraction", {"document_id": "SYN"}),
         ),
-        response(answer="The document is now processed."),
+        filing_answer,
     ]
     service.model.respond.return_value = generation_response(CovenantExtraction())
     result = monitor.ask("Read the stored document, process it, then read it again.")
@@ -542,7 +543,11 @@ def test_concurrent_read_questions_keep_scope_and_sources_separate(document_serv
     async def respond(**kwargs):
         payload = json.loads(user_prompts(kwargs["messages"])[0])
         if tool_results(kwargs["messages"]):
-            return response(answer=f"Evidence for {payload['ticker']}.")
+            return (
+                supported_answer("Evidence for SYN.")(**kwargs)
+                if payload["ticker"] == "SYN"
+                else response(answer="Evidence for OTHER.")
+            )
         return response(("search_evidence", {"query": "maximum leverage", "ticker": None}))
 
     model.respond.side_effect = respond
@@ -558,7 +563,7 @@ def test_concurrent_read_questions_keep_scope_and_sources_separate(document_serv
     assert [source.document_id for source in syn.sources] == ["SYN"]
     assert other.sources == []
     assert len(syn.tool_trace) == len(other.tool_trace) == 1
-    assert syn.answer == "Evidence for SYN." and other.answer == "Evidence for OTHER."
+    assert syn.answer.startswith("Evidence for SYN.") and other.answer == "Evidence for OTHER."
     assert other.tool_trace[0].outcome == []
 
 
@@ -803,8 +808,8 @@ def test_concurrent_assessments_keep_borrower_scopes_separate(
     first, second = asyncio.run(ask_both())
     assert first.tool_trace[0].outcome.borrower_id == "SYN002"
     assert second.tool_trace[0].outcome.borrower_id == "SYN004"
-    assert first.answer == "Assessment for SYN002."
-    assert second.answer == "Assessment for SYN004."
+    assert "synthetic:SYN002:LEV" in first.answer
+    assert "synthetic:SYN004:LEV" in second.answer
 
 
 def test_round_budget_stops_prediction_before_it_executes(
@@ -912,7 +917,7 @@ def test_agent_processes_document_then_assesses_bound_formula_with_sources(
         response(("process_document", {"document_id": "SYN"})),
         response(("get_financials", ASSESSMENT_DATES)),
         response(("assess_covenants", ASSESSMENT_DATES)),
-        response(answer=f"The calculated covenant is compliant. [SYN] {citation}"),
+        response(answer="The calculation is available."),
     ]
     answer = assessor.ask(
         "Process and assess the configured agreement." + QUESTION_DATES,
@@ -952,9 +957,10 @@ def test_conversation_replays_evidence_and_keeps_sources_without_repeating_tools
         response(
             ("search_evidence", {"query": "maximum leverage", "ticker": None}), reasoning=True
         ),
-        response(answer="The threshold is 4.00 to 1.00. [SYN] Synthetic Issuer, Amendment."),
-        response(answer="The earlier SYN filing supports that threshold."),
+        filing_answer,
+        filing_answer,
     ]
+    model.respond.side_effect = scripted_responses(*model.respond.side_effect)
     conversation = monitor.start_conversation(ticker="SYN")
     first = conversation.ask("Find the leverage threshold.")
     original_citation = first.sources[0].citation
@@ -972,7 +978,7 @@ def test_conversation_replays_evidence_and_keeps_sources_without_repeating_tools
     assert "private-content" not in follow_up.model_dump_json()
     evidence = tool_results(history)[0]
     assert "Maximum leverage ratio" in tool_outcome(evidence.content)[0].text
-    assert "The threshold is 4.00" in repr(history)
+    assert "Passage evidence" in repr(history)
 
 
 def test_conversation_date_clarification_reaches_real_assessment_tools(
@@ -982,7 +988,7 @@ def test_conversation_date_clarification_reaches_real_assessment_tools(
     model.respond.side_effect = [
         response(("get_financials", ASSESSMENT_DATES)),
         response(("assess_covenants", ASSESSMENT_DATES)),
-        response(answer="SYN002 is compliant for the supplied period."),
+        response(answer="The calculation is available."),
     ]
     conversation = monitor.start_conversation(borrower_id="SYN002")
     clarification = conversation.ask("Assess covenant compliance.")
@@ -1005,7 +1011,7 @@ def test_conversation_resets_round_budget_trace_and_callback_override(document_s
         response(("list_documents", {})),
         response(answer="First answer."),
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
-        response(answer="Second answer."),
+        supported_answer("Second answer."),
     ]
     conversation = monitor.start_conversation(ticker="SYN")
     first = conversation.ask("Find filings.", event_stream_handler=override)
@@ -1023,7 +1029,7 @@ def test_conversations_and_independent_questions_keep_history_and_scope_separate
     monitor, model = agent(document_service_factory())
     model.respond.side_effect = [
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
-        response(answer="Evidence for SYN."),
+        supported_answer("Evidence for SYN."),
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
         response(answer="No evidence for OTHER."),
         response(answer="An independent answer."),
@@ -1050,7 +1056,7 @@ def test_conversation_exit_commands_clear_memory_without_model_or_tools(
     monitor, model = agent(service, event_stream_handler=handler)
     model.respond.side_effect = [
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
-        response(answer="Found the evidence."),
+        supported_answer("Found the evidence."),
     ]
     conversation = monitor.start_conversation(ticker="SYN")
     assert conversation.ask("Find evidence.").sources
@@ -1117,10 +1123,10 @@ def test_conversation_failure_preserves_successful_history_without_partial_tools
     }
     model.respond.side_effect = [
         response(("search_evidence", {"query": "maximum leverage", "ticker": None})),
-        response(answer="Earlier successful answer."),
+        supported_answer("Earlier successful answer."),
         partial_call,
         failures[failure],
-        response(answer="Recovered answer using earlier evidence."),
+        supported_answer("Recovered answer using earlier evidence."),
     ]
     conversation = monitor.start_conversation(ticker="SYN")
     first = conversation.ask("Find leverage evidence.")

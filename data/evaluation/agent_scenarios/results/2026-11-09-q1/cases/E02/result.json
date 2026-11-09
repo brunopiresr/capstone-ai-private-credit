@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E02",
+  "category": "edge_case",
+  "topic": "compliance_headroom",
+  "family": "date_validation",
+  "question": "Assess SYN002. Reporting date: 2025-09-30.",
+  "expected_behavior": "Ask for the missing information cutoff before any tool calls or compliance conclusion; do not silently assume it equals the reporting date.",
+  "answer": "Please provide the information cutoff in YYYY-MM-DD format.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 0.048,
+  "judge_seconds": 3.703,
+  "tool_names_json": "[]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": "fail",
+  "judge_reason": "The answer simply asks for the information cutoff date but does not explicitly avoid silent assumption that it equals the reporting date. There is no evidence that the assistant took the required precaution before tool calls or conclusions, failing the requirement.",
+  "failure_tags_json": "[\"incomplete_answer\"]",
+  "response_sha256": "8712814c0d268e996c9422e87c900ec9093045d0e8c4e9d53ae7687bf3b76f51",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 0
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E02/answer.json"
+}

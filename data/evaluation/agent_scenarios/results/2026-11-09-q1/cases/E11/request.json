@@ -1,0 +1,7 @@
+{
+  "question": "Assess SYN035 interest coverage from the supplied inputs. Reporting date: 2025-06-30. Information cutoff: 2025-06-30.",
+  "borrower_id": "SYN035",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

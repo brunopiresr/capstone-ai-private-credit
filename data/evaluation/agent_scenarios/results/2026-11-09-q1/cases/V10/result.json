@@ -1,0 +1,65 @@
+{
+  "scenario_id": "V10",
+  "category": "varied_phrasing",
+  "topic": "risk_forecasts",
+  "family": "stub_forecast",
+  "question": "Give SYN002 next-quarter risk percentage. Is your confidence score the default probability? Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Configured stub supplies no next-quarter probability: report unavailable/unknown, not 0%. Distinguish current compliance (about 5.1923x versus 5.5x, headroom 0.3077x). Confidence measures evidence support, not breach probability. Cite calculation IDs.",
+  "answer": "The next-quarter risk percentage for SYN002 is not available due to the model being a stub, providing no forecast or risk probability. The prediction status indicates a compliance level with an actual leveraged value of 5.1923 against a threshold of 5.5, which confirms compliance, but there is no percentage risk provided.",
+  "confidence": "low",
+  "confidence_explanation": "The forecast is based on a stub model which does not yield any risk probability; thus, there is a significant lack of information to determine a reliable risk percentage.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 9.502,
+  "judge_seconds": 4.122,
+  "tool_names_json": "[\"get_financials\", \"predict_risk\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "e30c6d87ea0284b6d151f9160244b7afc81563148685602a5354e4eb6ee75ba7",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 7,
+      "denominator": 7,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/V10/answer.json"
+}

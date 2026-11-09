@@ -3,7 +3,7 @@ from pathlib import Path
 import monitoring_backend as backend_module
 import pytest
 from demo_models import QUESTION, REVIEW_ARGS, review_model, text_response
-from model_helpers import ScriptedModel, model_response
+from model_helpers import ScriptedModel, filing_answer, model_response
 from streamlit.testing.v1 import AppTest
 from user_events import UserEvents
 
@@ -79,14 +79,14 @@ def test_evidence_answer_progress_and_sources_survive_reruns(working_app):
     app, model, instances = working_app
     model.respond.side_effect = [
         model_response(("search_evidence", {"query": "maximum leverage", "ticker": "SYN"})),
-        model_response(answer="The local SYN agreement states maximum leverage of 4.0."),
+        filing_answer,
     ]
     app.chat_input[0].set_value("Find leverage evidence for SYN, with exact citations.").run()
     assert not app.exception, app.exception
     turn = app.session_state["monitoring_ui_messages"]["Evidence Search"][-1]["turn"]
     assert turn.finished and not turn.error
     assert len(app.chat_message) == 2
-    assert any("maximum leverage of 4.0" in item.value for item in app.markdown)
+    assert any("Maximum leverage ratio is 4.0" in item.value for item in app.markdown)
     assert any(item.label == "Sources" for item in app.expander)
     assert any("search_evidence" in item.value for item in app.markdown)
     assert not app.session_state["monitoring_ui_busy"]
@@ -163,7 +163,7 @@ def test_user_feedback_sources_and_followups_are_linked_without_rerun_duplicates
     assert event_records[-1]["sample_index"] == 0
     model.respond.side_effect = [
         model_response(("search_evidence", {"query": "maximum leverage", "ticker": "SYN"})),
-        model_response(answer="The SYN agreement states maximum leverage of 4.0."),
+        filing_answer,
     ]
     app.chat_input[0].set_value("Find leverage evidence for SYN.").run()
     assert not app.exception
@@ -194,7 +194,7 @@ def test_user_feedback_sources_and_followups_are_linked_without_rerun_duplicates
     next(item for item in app.selectbox if item.label.startswith("Next question")).select(
         "Clarification"
     ).run()
-    model.respond.side_effect = [model_response(answer="The limit is 4.0 times.")]
+    model.respond.side_effect = [filing_answer]
     app.chat_input[0].set_value("Explain that limit.").run()
     assert not app.exception
     followup = next(record for record in event_records if record["event_name"] == "user.follow_up")

@@ -1,0 +1,28 @@
+{
+  "label": "pass",
+  "reason": "All requirements are met: the answer accurately reports the net leverage ratio of 3.125x for SYN001 against the 5.5x threshold, showing a positive headroom of 2.375x. It cites the assessment_run_id '0cbeb512-59b9-4dbf-82f1-2b9d6b7bf2eb' and result_id 'b5f2fe7c-fb70-4bd1-821b-6d5a7b4ec47b' as required and does not request any forecast. Calculations and compliance status fully align with the authoritative evidence provided, with no extraneous or unsupported claims.",
+  "failure_tags": [],
+  "findings": [
+    {
+      "requirement_id": "requirement:1",
+      "verdict": "pass",
+      "excerpt": "actual net leverage ratio is calculated to be **3.125**, which is below the contractual threshold of **5.5**. This results in a headroom of **2.375**,",
+      "reason": "The answer presents the exact net leverage ratio, threshold, and headroom values as found in the authoritative evidence, citing relevant assessment_run_id and result_id."
+    },
+    {
+      "requirement_id": "requirement:2",
+      "verdict": "pass",
+      "excerpt": "The assessment for SYN001 indicates that the maximum net leverage ratio is compliant as of the reporting date 2025-09-30.",
+      "reason": "The answer does not request or mention a forecast, complying with the requirement not to forecast."
+    }
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 12413,
+    "gen_ai.usage.output_tokens": 481,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 6.424,
+  "response_sha256": "af5c358238995b98c64ffa279e4ac3d9ecc487f43162d7453fd332324ae727ce",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

@@ -1,0 +1,14 @@
+{
+  "final_answer": "Please supply an unambiguous valid reporting date in YYYY-MM-DD format.",
+  "question": "Assess SYN002. Reporting date 03/04/2025; information cutoff 2025-09-30.",
+  "context": {
+    "borrower_id": "SYN002",
+    "ticker": "",
+    "period_end": "",
+    "information_cutoff": ""
+  },
+  "requirements": {
+    "requirement:1": "Clarify whether 03/04/2025 means March 4 or April 3 before any tools; do not pick a locale or silently substitute a quarter-end."
+  },
+  "authoritative_evidence": []
+}

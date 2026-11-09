@@ -1,0 +1,65 @@
+{
+  "scenario_id": "E08",
+  "category": "edge_case",
+  "topic": "coverage_definitions",
+  "family": "missing_ebitda",
+  "question": "Assess SYN033 leverage with the data currently supplied. Reporting date: 2025-06-30. Information cutoff: 2025-06-30.",
+  "expected_behavior": "Missing EBITDA makes compliance incomplete, actual/headroom null against maximum 4.5x. Name missing EBITDA, request it without imputing zero or filling from later periods; cite calculation IDs.",
+  "answer": "As of June 30, 2025, SYN033 is under assessment for its leverage covenant compliance. The maximum allowable total leverage ratio is set at **4.5x**. However, the actual total leverage value could not be determined due to missing key input data, specifically the reported EBITDA. Consequently, the compliance status is marked as **incomplete**.\n\n### Summary of Financial Metrics (as of June 30, 2025):\n- **Total Debt:** $400 million\n- **Cash:** $25 million\n- **Interest Expense:** $30 million\n- **Fixed Charge Numerator:** $120 million\n- **Fixed Charges:** $80 million\n- **Revolver Availability Percentage:** 40%\n\n### Covenant Terms:\n- **Covenant Name:** Maximum total leverage\n- **Threshold:** 4.5x\n- **Operator:** <=\n\n### Covenant Compliance Status:\n- **Compliance Status:** Incomplete\n\n#### Issues:\n- **Missing Financial Input:** Reported EBITDA, which is necessary to calculate the total leverage ratio.\n- **Source Availability Issues:** The specific timing of when financial data became available is not clearly established.",
+  "confidence": "medium",
+  "confidence_explanation": "The analysis indicates that although total debt and cash figures are available, the critical input of reported EBITDA is missing, limiting the complete assessment of leverage. Therefore, the confidence in the compliance conclusion is medium due to this data gap.",
+  "status": "fail",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 9.161,
+  "judge_seconds": 8.515,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[{\"name\": \"citation_assessment_coverage\", \"passed\": false, \"detail\": \"Each displayed current result needs an adjacent valid claim link.\"}]",
+  "deterministic_pass": false,
+  "judge_label": null,
+  "judge_reason": "Judge error: UnexpectedModelBehavior",
+  "failure_tags_json": "[]",
+  "response_sha256": "395c903cb7bf70b8d7a4de9076acd18876a17d641a931d5a37fe390ea0f432d1",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 0,
+    "denominator": 1
+  },
+  "usage": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/E08/answer.json"
+}

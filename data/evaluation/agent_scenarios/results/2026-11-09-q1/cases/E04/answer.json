@@ -1,0 +1,9 @@
+{
+  "answer": "Please supply an unambiguous valid reporting date in YYYY-MM-DD format.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

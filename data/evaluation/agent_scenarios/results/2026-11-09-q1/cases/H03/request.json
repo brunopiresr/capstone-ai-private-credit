@@ -1,0 +1,7 @@
+{
+  "question": "Is SYN003 in breach of total leverage, and by how much? Reporting date: 2025-06-30. Information cutoff: 2025-06-30.",
+  "borrower_id": "SYN003",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

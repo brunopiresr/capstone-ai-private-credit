@@ -169,7 +169,8 @@ async def run_stream(
             prompt,
             message_history=history,
             conversation_id=session.session_id if session else None,
-            usage_limits=UsageLimits(request_limit=state.max_tool_rounds + 1),
+            usage=state.model_usage,
+            usage_limits=UsageLimits(request_limit=state.max_tool_rounds + 2),
         ) as run:
             try:
                 async for node in run:
@@ -195,15 +196,44 @@ async def run_stream(
                 # No further nodes execute and no provisional history is committed.
                 return
             assert run.result is not None
-            if state.policy:
-                state.policy.validate_final()
-            answer = state.answer(run.result.output)
+            try:
+                content = state.finalize(run.result.output)
+            except ValueError as exc:
+                if state.output_repairs:
+                    raise
+                state.output_repairs = 1
+                # A co-emitted final_result may precede service execution. Validate after
+                # all outcomes, then offer exactly one targeted repair with actual history.
+                repair = str(exc)
+            else:
+                repair = None
+                answer = state.answer(content)
             state.history = run.result.all_messages()
+        if repair:
+            async with aclosing(
+                run_stream(
+                    agent,
+                    "Repair the final output only: " + repair,
+                    state,
+                    state.history,
+                    tool_names=tool_names,
+                )
+            ) as repaired:
+                async for event in repaired:
+                    if event.kind == "run_end" and not event.answer.complete:
+                        state.history = _failure_history(history or [], prompt, event.answer)
+                    yield event
+            return
     except _ScopeStopped:
-        answer = state.answer(AnswerContent(
-            answer=state.policy.terminal_response, confidence="low",
-            confidence_explanation="The requested evidence is outside the configured issuer scope.",
-        ))
+        answer = state.answer(
+            AnswerContent(
+                answer=state.policy.terminal_response,
+                confidence="low",
+                schema_version="agent-answer-v2",
+                answer_kind="scope",
+                confidence_explanation="Evidence request is outside the configured issuer scope.",
+            )
+        )
         state.history = _failure_history(history or [], prompt, answer)
     except ValueError as exc:
         answer = state.answer(str(exc), "incomplete_answer")
@@ -215,7 +245,13 @@ async def run_stream(
         answer = state.answer("Processing stopped at the tool-round limit.", "tool_round_limit")
     except (ModelAPIError, UnexpectedModelBehavior) as exc:
         logger.error("Agent model failed", extra={"error_type": type(exc).__name__})
-        answer = state.answer(f"Agent model request/response failed: {exc}", "model_error")
+        code = (
+            "incomplete_answer"
+            if isinstance(exc, UnexpectedModelBehavior)
+            and (state.output_repairs or isinstance(exc.__cause__, ValidationError))
+            else "model_error"
+        )
+        answer = state.answer(f"Agent model request/response failed: {exc}", code)
     if history is not None and not answer.complete:
         state.history = _failure_history(history, prompt, answer)
     yield AgentEvent(kind="run_end", agent_name=name, answer=answer, error=answer.error)

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "completed",
+    "passed": false,
+    "detail": "model_error"
+  },
+  {
+    "name": "nonblank_answer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "tool_contract",
+    "passed": false,
+    "detail": "expected ['get_financials', 'assess_covenants'], got []"
+  },
+  {
+    "name": "assessment:ml_status",
+    "passed": false,
+    "detail": "expected 'disabled', got None"
+  }
+]
