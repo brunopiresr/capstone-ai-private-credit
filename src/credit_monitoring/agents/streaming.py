@@ -37,6 +37,10 @@ from credit_monitoring.observability.session import get_active_session
 logger = logging.getLogger(__name__)
 
 
+class _ScopeStopped(Exception):
+    pass
+
+
 async def _model_updates(
     stream: AgentStream[None, AnswerContent],
     name: str,
@@ -184,13 +188,25 @@ async def run_stream(
                                     event, (FunctionToolCallEvent, FunctionToolResultEvent)
                                 ):
                                     yield _tool_event(event, calls, state, tool_names, name)
+                                    if state.policy and state.policy.terminal_response:
+                                        raise _ScopeStopped
             except GeneratorExit:
                 # Close the graph normally when a UI stops consuming the generator.
                 # No further nodes execute and no provisional history is committed.
                 return
             assert run.result is not None
+            if state.policy:
+                state.policy.validate_final()
             answer = state.answer(run.result.output)
             state.history = run.result.all_messages()
+    except _ScopeStopped:
+        answer = state.answer(AnswerContent(
+            answer=state.policy.terminal_response, confidence="low",
+            confidence_explanation="The requested evidence is outside the configured issuer scope.",
+        ))
+        state.history = _failure_history(history or [], prompt, answer)
+    except ValueError as exc:
+        answer = state.answer(str(exc), "incomplete_answer")
     except ModelFailure as exc:
         logger.error("Agent execution failed", extra={"error_code": exc.code})
         answer = state.answer(str(exc), exc.code)

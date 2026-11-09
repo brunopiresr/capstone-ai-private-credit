@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from pydantic_ai.messages import ModelMessage
 
+from credit_monitoring.agents.request_policy import DispatchPolicy, RequestContext
 from credit_monitoring.agents.tools.sources import result_sources
 from credit_monitoring.domain.agent import (
     AgentAnswer,
@@ -30,6 +31,10 @@ class AgentRunState:
     trace: list[ToolExecution] = field(default_factory=list)
     sources: dict[tuple[str, str], SourceReference] = field(default_factory=dict)
     history: list[ModelMessage] = field(default_factory=list)
+    policy: DispatchPolicy | None = None
+    request: RequestContext | None = None
+    output_repairs: int = 0
+    has_retained_evidence: bool = False
 
     def record(
         self, name: str, call_id: str, raw_arguments: str, outcome: ToolOutcome

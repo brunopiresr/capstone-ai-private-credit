@@ -1,6 +1,7 @@
 """Borrower-scoped PydanticAI tools over the existing calculation and prediction workflow."""
 
 from datetime import date
+from typing import TYPE_CHECKING
 
 from pydantic_ai import Tool
 
@@ -13,15 +14,21 @@ from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.domain.tool_results import FinancialReview
 
+if TYPE_CHECKING:
+    from credit_monitoring.agents.request_policy import DispatchPolicy
+
 
 class AssessmentTools:
     """The application owns borrower scope, services, formulas, databases and model selection."""
 
-    def __init__(self, service: AssessmentService, *, borrower_id: str) -> None:
+    def __init__(
+        self, service: AssessmentService, *, borrower_id: str, policy: DispatchPolicy | None = None
+    ) -> None:
         if not borrower_id.strip():
             raise ValueError("An explicit borrower ID is required for assessment tools.")
         self.service = service
         self.borrower_id = borrower_id
+        self.policy = policy
 
     @property
     def tools(self) -> list[Tool]:
@@ -49,7 +56,10 @@ class AssessmentTools:
             Current metrics, earlier periods, provenance and availability issues.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        return self._financials(period, cutoff)
+        self._admit("get_financials", period, cutoff)
+        result = self._financials(period, cutoff)
+        self._succeeded("get_financials")
+        return result
 
     def assess_covenants(
         self,
@@ -73,9 +83,12 @@ class AssessmentTools:
             Verification covers structured results, not generated prose.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        return self._with_context(
+        self._admit("assess_covenants", period, cutoff)
+        result = self._with_context(
             self.service.assess(self.borrower_id, period, cutoff, ml_enabled=False)
         )
+        self._succeeded("assess_covenants")
+        return result
 
     def predict_risk(
         self,
@@ -102,9 +115,20 @@ class AssessmentTools:
             Verification covers structured results, not generated prose.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        return self._with_context(
+        self._admit("predict_risk", period, cutoff)
+        result = self._with_context(
             self.service.assess(self.borrower_id, period, cutoff, ml_enabled=True)
         )
+        self._succeeded("predict_risk")
+        return result
+
+    def _admit(self, tool: str, period: date, cutoff: date) -> None:
+        if self.policy:
+            self.policy.admit(tool, period, cutoff)
+
+    def _succeeded(self, tool: str) -> None:
+        if self.policy:
+            self.policy.succeeded(tool)
 
     @staticmethod
     def _with_context(assessment: RiskAssessment) -> RiskAssessment:

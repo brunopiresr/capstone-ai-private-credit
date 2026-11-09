@@ -100,10 +100,7 @@ def ask_about_assessment(
             + "\nEnd of saved analysis.\n"
         )
     return conversation.ask(
-        f"The analyst selected borrower {assessment.borrower_id}, reporting period "
-        f"{assessment.period_end.isoformat()}, and information cutoff "
-        f"{assessment.information_cutoff.isoformat()} for this review. "
-        "Use these dates for the review; ask the analyst to change the selection for other dates.\n"
-        f"{context}"
-        f"Question: {question}"
+        question,
+        selected_dates=(assessment.period_end, assessment.information_cutoff),
+        supplemental_context=context,
     )

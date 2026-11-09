@@ -40,7 +40,7 @@ def test_assessment_only_agent_requires_borrower_scope_and_has_no_document_tools
     with pytest.raises(ValueError, match="document service"):
         agent.start_conversation(borrower_id="SYN", ticker="SYN")
     conversation = agent.start_conversation(borrower_id="SYN")
-    assert conversation.ask("Summarize the assessment").complete
+    assert conversation.ask("Find evidence").complete
     assert {tool.name for tool in model.respond.call_args.kwargs["info"].function_tools} == {
         "get_financials",
         "assess_covenants",
@@ -54,7 +54,7 @@ def test_assessment_only_agent_requires_borrower_scope_and_has_no_document_tools
 def test_agent_sends_only_context_for_registered_tools(assessment_enabled):
     model = ScriptedModel()
     agent = CreditAssessmentAgent(service=Mock(), assessment_service=Mock(), model=model)
-    answer = agent.ask("Summarize evidence", borrower_id="SYN" if assessment_enabled else None)
+    answer = agent.ask("Find evidence", borrower_id="SYN" if assessment_enabled else None)
     assert answer.complete
     info = model.respond.call_args.kwargs["info"]
     assessment_names = {"get_financials", "assess_covenants", "predict_risk"}

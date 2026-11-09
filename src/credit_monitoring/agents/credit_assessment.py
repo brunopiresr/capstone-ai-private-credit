@@ -4,9 +4,10 @@ import asyncio
 import json
 from collections.abc import AsyncIterator
 from contextlib import aclosing
+from datetime import date
 
 from pydantic_ai import Agent, ModelRetry, RunContext, ToolOutput
-from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart, UserPromptPart
 from pydantic_ai.models import Model
 from pydantic_ai.models.instrumented import InstrumentationSettings
 
@@ -15,6 +16,12 @@ from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
 from credit_monitoring.agents.models import DEFAULT_MODEL, resolve_model
 from credit_monitoring.agents.prompts.credit_assessment import (
     build_credit_assessment_instructions,
+)
+from credit_monitoring.agents.request_policy import (
+    AnalystDate,
+    DispatchPolicy,
+    Intent,
+    resolve_request,
 )
 from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.streaming import run_stream
@@ -78,6 +85,11 @@ class CreditAssessmentAgent:
         return AgentConversation(self, ticker=ticker, borrower_id=borrower_id, session=session)
 
     def _validate_scope(self, ticker: str | None, borrower_id: str | None) -> None:
+        if borrower_id is not None:
+            if self.assessment_service is None:
+                raise ValueError("Configure an assessment_service before supplying a borrower ID.")
+            if not borrower_id.strip():
+                raise ValueError("An explicit borrower ID is required.")
         if self.service is None:
             if not borrower_id or not borrower_id.strip():
                 raise ValueError("Assessment-only conversations require an explicit borrower ID.")
@@ -157,17 +169,58 @@ class CreditAssessmentAgent:
         history: list[ModelMessage] | None = None,
         event_stream_handler: EventStreamHandler | None = None,
         session: SessionContext | None = None,
+        retained_dates: dict[str, AnalystDate] | None = None,
+        selected_dates: tuple[date, date] | None = None,
+        supplemental_context: str = "",
+        retained_intent: Intent | None = None,
     ) -> AsyncIterator[AgentEvent]:
         if not question.strip():
             raise ValueError("Question must not be empty.")
         self._validate_scope(ticker, borrower_id)
-        tools = DocumentTools(self.service, ticker=ticker).tools if self.service else []
+        handler = (
+            event_stream_handler if event_stream_handler is not None else self.event_stream_handler
+        )
+        state.request = resolve_request(
+            question,
+            borrower_id=borrower_id,
+            ticker=ticker,
+            retained=retained_dates,
+            selected_dates=selected_dates,
+            has_evidence=bool(state.sources) or state.has_retained_evidence,
+            retained_intent=retained_intent,
+        )
+        state.policy = DispatchPolicy(state.request)
+        if state.request.response:
+            answer = state.answer(
+                AnswerContent(
+                    answer=state.request.response,
+                    confidence="low",
+                    confidence_explanation="Request needs clarification or scope redirection.",
+                )
+            )
+            state.history = [
+                *(history or []),
+                ModelRequest(parts=[UserPromptPart(question)]),
+                ModelResponse(parts=[TextPart(answer.answer)]),
+            ]
+            event = AgentEvent(kind="run_end", agent_name=self.name, answer=answer)
+            if handler:
+                await handler(event.model_copy(deep=True))
+            yield event
+            return
+        tools = (
+            DocumentTools(self.service, ticker=ticker, policy=state.policy).tools
+            if self.service
+            else []
+        )
         if self.document_tool_names is not None:
             tools = [tool for tool in tools if tool.name in self.document_tool_names]
         if borrower_id is not None:
             if self.assessment_service is None:
                 raise ValueError("Configure an assessment_service before supplying a borrower ID.")
-            tools += AssessmentTools(self.assessment_service, borrower_id=borrower_id).tools
+            tools += AssessmentTools(
+                self.assessment_service, borrower_id=borrower_id, policy=state.policy
+            ).tools
         agent = Agent(
             resolve_model(self.model),
             name=self.name,
@@ -191,6 +244,19 @@ class CreditAssessmentAgent:
 
         @agent.output_validator
         async def validate_answer(ctx: RunContext, output: AnswerContent) -> AnswerContent:
+            if not ctx.partial_output:
+                try:
+                    # Exhaustive execution may still have accompanying service calls pending.
+                    pending = any(
+                        getattr(part, "tool_name", "final_result") != "final_result"
+                        and getattr(part, "tool_call_id", None)
+                        not in {item.call_id for item in state.trace}
+                        for part in ctx.messages[-1].parts
+                    )
+                    if not pending:
+                        state.policy.validate_final()
+                except ValueError as exc:
+                    raise ModelRetry(str(exc)) from exc
             if not ctx.partial_output and (
                 not output.answer.strip()
                 or output.confidence is None
@@ -201,10 +267,15 @@ class CreditAssessmentAgent:
                 )
             return output
 
-        handler = (
-            event_stream_handler if event_stream_handler is not None else self.event_stream_handler
+        prompt = json.dumps(
+            {
+                "question": question,
+                "ticker": ticker,
+                "borrower_id": borrower_id,
+                "validated_request": {"intent": state.request.intent, "dates": state.request.dates},
+                "supplemental_context": supplemental_context,
+            }
         )
-        prompt = json.dumps({"question": question, "ticker": ticker, "borrower_id": borrower_id})
         with (
             session_scope(session) as active_session,
             activity_scope("assessment_assistant", default=True),

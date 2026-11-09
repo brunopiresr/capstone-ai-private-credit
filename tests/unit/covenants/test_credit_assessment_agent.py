@@ -52,6 +52,7 @@ from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
 
 DATA = Path(__file__).resolve().parents[3] / "data" / "app" / "synthetic"
+QUESTION_DATES = " Reporting date: 2025-09-30. Information cutoff: 2025-09-30."
 ASSESSMENT_DATES = {"period_end": "2025-09-30", "information_cutoff": "2025-09-30"}
 
 
@@ -117,7 +118,7 @@ def test_progress_arrives_before_service_execution_and_keeps_trace(document_serv
     [
         ("unknown", {}, "unknown_tool"),
         ("get_document_extraction", "{broken json", "invalid_arguments"),
-        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "service_error"),
+        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "policy_rejection"),
     ],
 )
 def test_progress_reports_tool_errors_and_continues(
@@ -135,13 +136,9 @@ def test_progress_reports_tool_errors_and_continues(
     ]
     answer = asyncio.run(monitor.ask_async("Find evidence", ticker="SYN"))
     assert answer.complete
-    assert [event.kind for event in events if event.kind != "answer_update"] == [
-        "model_start",
-        "tool_call",
-        "tool_result",
-        "model_start",
-        "run_end",
-    ]
+    expected_events = ["model_start", "tool_call", "tool_result"]
+    expected_events += ["run_end"] if error == "policy_rejection" else ["model_start", "run_end"]
+    assert [event.kind for event in events if event.kind != "answer_update"] == expected_events
     assert events[2].outcome.code == error
     assert events[2].outcome == answer.tool_trace[0].outcome
 
@@ -327,7 +324,7 @@ def test_document_discovery_processing_cache_read_and_rag_loop(
         ("search_evidence", {"query": ""}, "invalid_arguments"),
         ("search_evidence", {"query": "leverage", "ctx": {}}, "invalid_arguments"),
         ("get_document_extraction", {"document_id": "UNKNOWN"}, "service_error"),
-        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "service_error"),
+        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "policy_rejection"),
     ],
 )
 def test_dispatch_errors_are_results_for_next_agent_round(
@@ -343,6 +340,10 @@ def test_dispatch_errors_are_results_for_next_agent_round(
     ]
     result = monitor.ask("Question", ticker="SYN")
     assert result.tool_trace[0].outcome.code == error
+    if error == "policy_rejection":
+        assert result.complete and "new scoped conversation" in result.answer
+        assert model.respond.call_count == 1
+        return
     history = model.respond.call_args_list[1].kwargs["messages"]
     assert (
         any(isinstance(p, RetryPromptPart) for p in parts(history))
@@ -596,15 +597,13 @@ def test_agent_calls_real_financial_calculation_and_prediction_services(
     assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
     model.respond.side_effect = [
         response(("get_financials", ASSESSMENT_DATES)),
-        response(("assess_covenants", ASSESSMENT_DATES)),
         response(("predict_risk", ASSESSMENT_DATES)),
         response(answer="Current covenant compliance is established; the stub has no forecast."),
     ]
-    answer = assessor.ask(
-        "Assess and forecast SYN002 for the supplied dates.", borrower_id="SYN002"
-    )
-    assert answer.complete and len(answer.tool_trace) == 3
-    financials, calculated, predicted = [item.outcome for item in answer.tool_trace]
+    answer = assessor.ask("Assess and forecast SYN002." + QUESTION_DATES, borrower_id="SYN002")
+    assert answer.complete and len(answer.tool_trace) == 2
+    financials, predicted = [item.outcome for item in answer.tool_trace]
+    calculated = predicted
     assert isinstance(financials, FinancialReview)
     assert isinstance(calculated, RiskAssessment) and isinstance(predicted, RiskAssessment)
     assert financials.period_end == date(2025, 9, 30)
@@ -613,7 +612,7 @@ def test_agent_calls_real_financial_calculation_and_prediction_services(
     assert calculated.results[0].actual_value == pytest.approx(135 / 26)
     assert calculated.results[0].headroom == pytest.approx(5.5 - 135 / 26)
     assert calculated.results[0].compliance_status == "compliant"
-    assert calculated.ml_status == "disabled" and calculated.prediction is None
+    assert calculated.ml_status == "stub"
     assert predicted.verification.is_valid
     assert predicted.ml_status == "stub"
     assert (
@@ -744,12 +743,13 @@ def test_prediction_model_failure_returns_calculations_to_agent(
     )
     assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
     model.respond.side_effect = [
+        response(("get_financials", ASSESSMENT_DATES)),
         response(("predict_risk", ASSESSMENT_DATES)),
         response(answer="Current compliance is available; the prediction model failed to load."),
     ]
-    result = assessor.ask("Assess and predict risk.", borrower_id="SYN002")
+    result = assessor.ask("Assess and predict risk." + QUESTION_DATES, borrower_id="SYN002")
     assert result.complete
-    data = result.tool_trace[0].outcome
+    data = result.tool_trace[-1].outcome
     assert data.ml_status == "failed"
     assert data.results[0].compliance_status == "compliant"
     assert data.prediction.breach_probability is None
@@ -785,16 +785,19 @@ def test_concurrent_assessments_keep_borrower_scopes_separate(
 
     async def respond(**kwargs):
         payload = json.loads(user_prompts(kwargs["messages"])[0])
-        if tool_results(kwargs["messages"]):
+        count = len(tool_results(kwargs["messages"]))
+        if count == 2:
             return response(answer=f"Assessment for {payload['borrower_id']}.")
-        return response(("assess_covenants", ASSESSMENT_DATES))
+        return response(
+            (("get_financials" if count == 0 else "assess_covenants"), ASSESSMENT_DATES)
+        )
 
     model.respond.side_effect = respond
 
     async def ask_both():
         return await asyncio.gather(
-            assessor.ask_async("Assess", borrower_id="SYN002"),
-            assessor.ask_async("Assess", borrower_id="SYN004"),
+            assessor.ask_async("Assess" + QUESTION_DATES, borrower_id="SYN002"),
+            assessor.ask_async("Assess" + QUESTION_DATES, borrower_id="SYN004"),
         )
 
     first, second = asyncio.run(ask_both())
@@ -814,7 +817,7 @@ def test_round_budget_stops_prediction_before_it_executes(
         response(("get_financials", ASSESSMENT_DATES)),
         response(("predict_risk", ASSESSMENT_DATES)),
     ]
-    result = assessor.ask("Predict risk", borrower_id="SYN002")
+    result = assessor.ask("Predict risk" + QUESTION_DATES, borrower_id="SYN002")
     assert result.error == "tool_round_limit" and len(result.tool_trace) == 1
     assert (
         agent_assessment_service.result_repository.get_history(
@@ -839,11 +842,14 @@ def test_prediction_tool_loads_actual_trained_baseline(
     )
     assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
     model.respond.side_effect = [
+        response(("get_financials", ASSESSMENT_DATES)),
         response(("predict_risk", ASSESSMENT_DATES)),
         response(answer="The synthetic baseline supplies a next-quarter prediction."),
     ]
-    answer = assessor.ask("Predict next-quarter breach risk.", borrower_id="SYN002")
-    data = answer.tool_trace[0].outcome
+    answer = assessor.ask(
+        "Predict next-quarter breach risk." + QUESTION_DATES, borrower_id="SYN002"
+    )
+    data = answer.tool_trace[-1].outcome
     assert answer.complete and data.ml_status == "complete"
     prediction = data.prediction
     assert 0 <= prediction.breach_probability <= 1
@@ -904,11 +910,14 @@ def test_agent_processes_document_then_assesses_bound_formula_with_sources(
     assessor, model = agent(document_service, assessment_service=agent_assessment_service)
     model.respond.side_effect = [
         response(("process_document", {"document_id": "SYN"})),
+        response(("get_financials", ASSESSMENT_DATES)),
         response(("assess_covenants", ASSESSMENT_DATES)),
         response(answer=f"The calculated covenant is compliant. [SYN] {citation}"),
     ]
     answer = assessor.ask(
-        "Process and assess the configured agreement.", ticker="SYN", borrower_id="SYN002"
+        "Process and assess the configured agreement." + QUESTION_DATES,
+        ticker="SYN",
+        borrower_id="SYN002",
     )
     assert answer.complete
     result = answer.tool_trace[-1].outcome.results[0]
@@ -971,7 +980,7 @@ def test_conversation_date_clarification_reaches_real_assessment_tools(
 ):
     monitor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
     model.respond.side_effect = [
-        response(answer="What reporting period and information cutoff should I use?"),
+        response(("get_financials", ASSESSMENT_DATES)),
         response(("assess_covenants", ASSESSMENT_DATES)),
         response(answer="SYN002 is compliant for the supplied period."),
     ]
@@ -981,7 +990,7 @@ def test_conversation_date_clarification_reaches_real_assessment_tools(
     answer = conversation.ask("Reporting period and information cutoff are both 2025-09-30.")
     request = model.respond.call_args_list[1].kwargs
     assert "Assess covenant compliance" in repr(request["messages"])
-    assert "What reporting period and information cutoff" in repr(request["messages"])
+    assert "Please provide the reporting date" in repr(request["messages"])
     assert "2025-09-30" in user_prompts(request["messages"])[-1]
     assert answer.tool_trace[0].arguments == ASSESSMENT_DATES
     assert answer.tool_trace[0].outcome.borrower_id == "SYN002"
@@ -1196,7 +1205,8 @@ def test_conversation_follow_up_cannot_switch_issuer_scope(document_service_fact
     conversation = monitor.start_conversation(ticker="OTHER")
     conversation.ask("What scope is configured?")
     answer = conversation.ask("Switch to SYN and process its filing.")
-    assert answer.tool_trace[0].outcome.code == "service_error"
+    assert answer.tool_trace == []
+    assert "new scoped conversation" in answer.answer
     assert answer.sources == []
     monitor.service.model.respond.assert_not_called()
     history = model.respond.call_args.kwargs["messages"]
@@ -1218,9 +1228,12 @@ def test_concurrent_conversations_keep_borrower_scope_and_follow_ups_separate(
         if payload["question"] == "Explain that result.":
             assert f"Assessment for {borrower}" in repr(kwargs["messages"])
             return response(answer=f"Explanation for {borrower}.")
-        if tool_results(kwargs["messages"]):
+        count = len(tool_results(kwargs["messages"]))
+        if count == 2:
             return response(answer=f"Assessment for {borrower}.")
-        return response(("assess_covenants", ASSESSMENT_DATES))
+        return response(
+            (("get_financials" if count == 0 else "assess_covenants"), ASSESSMENT_DATES)
+        )
 
     model.respond.side_effect = respond
 
@@ -1228,7 +1241,9 @@ def test_concurrent_conversations_keep_borrower_scope_and_follow_ups_separate(
         conversations = [
             monitor.start_conversation(borrower_id=borrower) for borrower in ("SYN002", "SYN004")
         ]
-        first = await asyncio.gather(*(chat.ask_async("Assess") for chat in conversations))
+        first = await asyncio.gather(
+            *(chat.ask_async("Assess" + QUESTION_DATES) for chat in conversations)
+        )
         second = await asyncio.gather(
             *(chat.ask_async("Explain that result.") for chat in conversations)
         )

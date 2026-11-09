@@ -4,11 +4,13 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 from copy import deepcopy
+from datetime import date
 from typing import TYPE_CHECKING
 
 from pydantic_ai.messages import ModelMessage
 
 from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
+from credit_monitoring.agents.request_policy import AnalystDate
 from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.domain.agent import AgentAnswer, SourceReference
 from credit_monitoring.observability import SessionContext
@@ -41,6 +43,9 @@ class AgentConversation:
         self._session = session if session is not None else get_active_session() or SessionContext()
         self._history: list[ModelMessage] = []
         self._sources: list[SourceReference] = []
+        self._dates: dict[str, AnalystDate] = {}
+        self._has_evidence = False
+        self._pending_intent = None
         self._closed = False
         self._in_progress = False
 
@@ -64,18 +69,30 @@ class AgentConversation:
         self._closed = True
         self._history.clear()
         self._sources.clear()
+        self._dates.clear()
+        self._has_evidence = False
+        self._pending_intent = None
 
     def ask(
         self,
         question: str,
         *,
         event_stream_handler: EventStreamHandler | None = None,
+        selected_dates: tuple[date, date] | None = None,
+        supplemental_context: str = "",
     ) -> AgentAnswer | None:
         """Ask synchronously; use await conversation.ask_async(...) in notebooks."""
         try:
             asyncio.get_running_loop()
         except RuntimeError:
-            return asyncio.run(self.ask_async(question, event_stream_handler=event_stream_handler))
+            return asyncio.run(
+                self.ask_async(
+                    question,
+                    event_stream_handler=event_stream_handler,
+                    selected_dates=selected_dates,
+                    supplemental_context=supplemental_context,
+                )
+            )
         raise RuntimeError(
             "An event loop is already running; use await conversation.ask_async(...)."
         )
@@ -85,11 +102,18 @@ class AgentConversation:
         question: str,
         *,
         event_stream_handler: EventStreamHandler | None = None,
+        selected_dates: tuple[date, date] | None = None,
+        supplemental_context: str = "",
     ) -> AgentAnswer | None:
         """Answer with prior context, or return None for a local closing command."""
         answer = None
         async with aclosing(
-            self.stream_async(question, event_stream_handler=event_stream_handler)
+            self.stream_async(
+                question,
+                event_stream_handler=event_stream_handler,
+                selected_dates=selected_dates,
+                supplemental_context=supplemental_context,
+            )
         ) as stream:
             async for event in stream:
                 if event.kind == "run_end":
@@ -101,6 +125,8 @@ class AgentConversation:
         question: str,
         *,
         event_stream_handler: EventStreamHandler | None = None,
+        selected_dates: tuple[date, date] | None = None,
+        supplemental_context: str = "",
     ) -> AsyncIterator[AgentEvent]:
         """Stream a turn; direct consumers must use contextlib.aclosing for early exits."""
         if self.closed:
@@ -113,6 +139,7 @@ class AgentConversation:
         self._in_progress = True
         state = AgentRunState(
             max_tool_rounds=self._agent.max_tool_rounds,
+            has_retained_evidence=self._has_evidence,
             sources={(s.document_id, s.citation): s.model_copy(deep=True) for s in self._sources},
         )
         try:
@@ -125,13 +152,39 @@ class AgentConversation:
                     event_stream_handler=event_stream_handler,
                     history=deepcopy(self._history),
                     session=self._session,
+                    retained_dates=dict(self._dates),
+                    retained_intent=self._pending_intent,
+                    selected_dates=selected_dates,
+                    supplemental_context=supplemental_context,
                 )
             ) as stream:
                 async for event in stream:
                     if event.kind == "run_end" and not self.closed:
                         self._history = deepcopy(state.history)
                         if event.answer.complete:
+                            self._has_evidence = (
+                                self._has_evidence
+                                or any(
+                                    hasattr(call.outcome, "assessment_run_id")
+                                    for call in event.answer.tool_trace
+                                )
+                                or bool(event.answer.sources)
+                            )
                             self._sources = [s.model_copy(deep=True) for s in event.answer.sources]
+                            if state.request:
+                                self._pending_intent = (
+                                    state.request.requested_intent
+                                    if state.request.intent == "clarification"
+                                    else None
+                                )
+                                self._dates = {
+                                    key: value
+                                    for key, value in (
+                                        ("reporting", state.request.reporting),
+                                        ("cutoff", state.request.cutoff),
+                                    )
+                                    if value
+                                }
                     yield event
         finally:
             self._in_progress = False

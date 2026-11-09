@@ -1,21 +1,34 @@
 """Reusable document methods wrapped as PydanticAI tools from signatures and docstrings."""
 
+from typing import TYPE_CHECKING
+
 from pydantic import StrictStr
 from pydantic_ai import Tool
 
 from credit_monitoring.agents.tools.common import (
     NonEmptyString,
+    TerminalPolicyError,
     domain_tool,
 )
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.domain.documents import RetrievedRecord
 from credit_monitoring.domain.processing import DocumentExtraction, DocumentSummary
 
+if TYPE_CHECKING:
+    from credit_monitoring.agents.request_policy import DispatchPolicy
+
 
 class DocumentTools:
-    def __init__(self, service: DocumentProcessingService, *, ticker: str | None = None) -> None:
+    def __init__(
+        self,
+        service: DocumentProcessingService,
+        *,
+        ticker: str | None = None,
+        policy: DispatchPolicy | None = None,
+    ) -> None:
         self.service = service
         self.ticker = ticker
+        self.policy = policy
 
     @property
     def tools(self) -> list[Tool]:
@@ -93,12 +106,27 @@ class DocumentTools:
         return self.service.process_document(document_id)
 
     def _resolve_ticker(self, requested: str | None) -> str | None:
+        self._guard()
         if self.ticker and requested not in (None, self.ticker):
-            raise ValueError("Tool ticker is outside the requested issuer scope.")
+            self._reject_scope()
         return self.ticker or requested
 
     def _check_document_scope(self, document_id: str) -> None:
+        self._guard()
         if self.ticker:
             record = self.service.catalog_record(document_id)
             if record.get("ticker") != self.ticker:
-                raise ValueError("Document is outside the requested issuer scope.")
+                self._reject_scope()
+
+    def _guard(self) -> None:
+        if self.policy and self.policy.terminal_response:
+            raise TerminalPolicyError(self.policy.terminal_response)
+
+    def _reject_scope(self) -> None:
+        if not self.policy:
+            raise ValueError("Document or ticker is outside the requested issuer scope.")
+        self.policy.terminal_response = (
+            f"This conversation is scoped to {self.ticker}. Start a new scoped conversation "
+            "to review another issuer."
+        )
+        raise TerminalPolicyError(self.policy.terminal_response)

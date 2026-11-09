@@ -33,12 +33,13 @@ class FinancialReview(ExtractionModel):
 class ToolFailure(ExtractionModel):
     """Recoverable dispatch or service failure, separate from successful domain results."""
 
-    code: Literal["invalid_arguments", "unknown_tool", "service_error"] = Field(
+    code: Literal["invalid_arguments", "unknown_tool", "service_error", "policy_rejection"] = Field(
         description="Recoverable dispatch or service failure category."
     )
     message: str = Field(
         description="Explanation from argument validation or the executed service."
     )
+    terminal: bool = False
 
 
 type ToolOutcome = (
