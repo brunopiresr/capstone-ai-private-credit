@@ -186,6 +186,36 @@ def test_later_information_requires_updated_cutoff_and_unsourced_claims_stay_ass
     assert result.snapshot.prompt_context()["additional_context"][0]["source"] is None
 
 
+def test_manager_cannot_sign_off_a_review_outside_the_visible_cutoff(manager):
+    service, _ = manager
+    submission = submitted(service, review=True)
+    request = service.request_analysis(
+        submission["submission_id"],
+        kind="context",
+        question="Assess later information.",
+        review_cutoff=date(2026, 1, 10),
+    )
+    review = service.run_requested_review(request)
+    service.accept_response(request)
+    with pytest.raises(ValueError, match="newer credit review"):
+        service.record_note(
+            submission["submission_id"],
+            comment="Reviewed the earlier analysis.",
+            recommendation="Maintain.",
+            reviewed=True,
+            review_cutoff=CUTOFF,
+        )
+    assert service.repository.notes("SYN001") == []
+    service.record_note(
+        submission["submission_id"],
+        comment="Reviewed the later analysis.",
+        recommendation="Monitor.",
+        reviewed=True,
+        review_cutoff=date(2026, 1, 10),
+    )
+    assert service.repository.notes("SYN001")[0]["payload"]["review_id"] == review.review_id
+
+
 def test_incomplete_requested_review_is_retained_and_only_retries_explicitly(manager):
     service, model = manager
     submission = submitted(service, review=True)

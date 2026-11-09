@@ -9,7 +9,7 @@ from unittest.mock import Mock
 import pytest
 from model_helpers import ScriptedModel, model_response
 from pydantic import ValidationError
-from pydantic_ai.messages import ModelRequest, UserPromptPart
+from pydantic_ai.messages import ModelRequest, RetryPromptPart, UserPromptPart
 
 from credit_monitoring.application.bootstrap import (
     create_assessment_service,
@@ -510,7 +510,18 @@ def test_reference_retry_can_repair_output_within_budget(assessment, model_set):
         attempts += 1
         response = perspective_reply(**kwargs)
         if attempts == 1:
-            response.parts[0].args["arguments"][0]["evidence_ids"] = ["unknown"]
+            response.parts[0].args["arguments"][0]["evidence_ids"] = ["verification"]
+        else:
+            feedback = [
+                part.content
+                for message in kwargs["messages"]
+                if isinstance(message, ModelRequest)
+                for part in message.parts
+                if isinstance(part, RetryPromptPart)
+            ]
+            assert any("Allowed evidence IDs:" in str(item) for item in feedback)
+            assert any("Use 'assessment' for verification" in str(item) for item in feedback)
+            response.parts[0].args["arguments"][0]["evidence_ids"] = ["assessment"]
         return response
 
     model_set[0].respond.side_effect = repair
@@ -518,7 +529,7 @@ def test_reference_retry_can_repair_output_within_budget(assessment, model_set):
     assert result.status == "complete"
     assert result.bullish.execution.requests == 2
     assert model_set[0].respond.call_count == 2
-    assert result.bullish.analysis.arguments[0].evidence_ids[0].startswith("result:")
+    assert result.bullish.analysis.arguments[0].evidence_ids == ("assessment",)
 
 
 def test_no_current_results_defers_without_selecting_another_borrower(model_set):

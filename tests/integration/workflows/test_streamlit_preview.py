@@ -68,3 +68,15 @@ def test_all_pages_render_without_services_and_borrower_list_filters(preview):
             assert any("No cases match" in item.value for item in app.info)
         if name == "Board report":
             assert any(button.label == "Generate report draft" for button in app.button)
+
+
+def test_workspace_configures_monitoring_after_loading_environment(preview, monkeypatch):
+    calls = []
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: calls.append("environment"))
+    monkeypatch.setattr(
+        "credit_monitoring.observability.configure_observability",
+        lambda: calls.append("observability"),
+    )
+    preview.run()
+    assert not preview.exception
+    assert calls[:2] == ["environment", "observability"]

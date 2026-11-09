@@ -8,7 +8,7 @@ import pytest
 from model_helpers import ScriptedModel, model_response
 from portfolio_helpers import portfolio_inputs, review_model
 from pydantic import ValidationError
-from pydantic_ai.messages import ModelRequest, UserPromptPart
+from pydantic_ai.messages import ModelRequest, RetryPromptPart, UserPromptPart
 
 from credit_monitoring.agents.follow_up_questions import (
     FollowUpQuestion,
@@ -160,6 +160,46 @@ def test_unknown_references_are_rejected(analysis, pointer):
     )
     with pytest.raises(ValueError, match="reference|Reference"):
         validate_questions(invalid, context)
+
+
+def test_invalid_trend_path_is_repaired_using_an_existing_finding(analysis):
+    _, assessment, review = analysis
+    context = analysis_context(assessment, review)
+    model = ScriptedModel()
+    attempts = 0
+
+    def respond(messages, info):
+        nonlocal attempts
+        attempts += 1
+        output = question_output(context)
+        reference = "/assessment/trends/0/headroom_change_qoq"
+        schema = json.dumps(info.output_tools[0].parameters_json_schema)
+        assert '"/assessment/trends"' in schema
+        assert reference not in schema
+        if attempts == 2:
+            feedback = [
+                part.content
+                for message in messages
+                if isinstance(message, ModelRequest)
+                for part in message.parts
+                if isinstance(part, RetryPromptPart)
+            ]
+            assert any("/assessment/trends" in str(item) for item in feedback)
+            reference = "/assessment/trends"
+        return model_response(
+            extraction=output.model_copy(
+                update={
+                    "questions": [
+                        output.questions[0].model_copy(update={"references": [reference]})
+                    ]
+                }
+            )
+        )
+
+    model.respond.side_effect = respond
+    output, usage = FollowUpQuestionAgent(model).generate(context)
+    assert output.questions[0].references == ["/assessment/trends"]
+    assert usage["requests"] == 2
 
 
 def test_output_rejects_duplicates_empty_text_and_more_than_three(analysis):

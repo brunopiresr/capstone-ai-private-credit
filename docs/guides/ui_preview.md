@@ -87,6 +87,10 @@ submitted snapshots remain frozen.
 4. Inspect and **Accept response**, then complete review. Open requests block completion;
    obsolete requests can be canceled with a recorded reason.
 
+The selected information cutoff also limits the credit reviews shown. If a supplementary
+review uses later information, advance **Information cutoff** and inspect that review
+before marking the case reviewed. Saving a comment keeps it linked to the visible review.
+
 ## Prepare a board report
 
 1. In **Board report**, choose dates and **Generate report draft**. The report includes

@@ -374,6 +374,7 @@ def test_failed_sections_resume_without_publishing_partial_facts(
     service.model.respond.reset_mock()
     service.model.respond.side_effect = None
     service.model.respond.return_value = generation_response(CovenantExtraction())
+    caplog.clear()
     caplog.set_level(logging.INFO, logger="credit_monitoring")
     resumed = service.process_document("SYN")
     assert resumed.status == "complete" and resumed.completed_sections == count

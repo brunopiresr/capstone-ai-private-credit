@@ -2,9 +2,10 @@
 
 import asyncio
 import json
-from typing import Annotated
+from collections import deque
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 from pydantic_ai import Agent, ModelRetry, RunContext, ToolOutput
 from pydantic_ai.models import Model
 from pydantic_ai.usage import UsageLimits
@@ -13,7 +14,7 @@ from credit_monitoring.agents.models import check_response, resolve_model
 from credit_monitoring.observability import session_scope
 from credit_monitoring.observability.activity import activity_scope
 
-PROMPT_VERSION = "follow-ups-v1"
+PROMPT_VERSION = "follow-ups-v3"
 INSTRUCTIONS = """Generate useful follow-up questions for an analyst from the supplied saved
 assessment and credit review. Write the actual questions yourself; there is no question bank.
 Read the calculations, headroom, verification, comparable trends and forecasts alongside
@@ -26,6 +27,10 @@ and assumptions from financial facts, current compliance from forecasts, and mis
 waived and inactive tests from breaches. A failed stage did not complete its analysis.
 Each question needs a short reason and one or more JSON-pointer references into the input
 assessment or review identifying its supporting findings. Copy the supplied run/review IDs.
+Copy reference keys exactly from the supplied JSON. The assessment's trends value is an
+object, not an array; cite /assessment/trends or an actual nested field. Do not guess metric
+field names. A reference may identify an existing finding object when discussing it as a whole.
+Choose references only from the allowed paths in the output schema.
 The answering assistant can explain these saved results; it cannot fetch new filings,
 compare arbitrary periods/borrowers, change contractual formulas or run hypothetical
 calculations. Keep questions answerable in that scope. Missing evidence can be discussed.
@@ -71,8 +76,11 @@ def validate_questions(output: FollowUpQuestions, context: dict) -> None:
             if not pointer.startswith(("/assessment/", "/review/")):
                 raise ValueError("Reference must identify an assessment or review finding.")
             value = context
+            nearest = ""
+            traversed = []
             try:
                 for part in pointer[1:].split("/"):
+                    traversed.append(part)
                     part = part.replace("~1", "/").replace("~0", "~")
                     if isinstance(value, list):
                         if not part.isdecimal():
@@ -80,10 +88,54 @@ def validate_questions(output: FollowUpQuestions, context: dict) -> None:
                         value = value[int(part)]
                     else:
                         value = value[part]
+                    if value is not None:
+                        nearest = "/" + "/".join(traversed)
                 if value is None:
                     raise ValueError("Reference points to an unavailable finding.")
             except (KeyError, TypeError, IndexError, ValueError) as error:
-                raise ValueError(f"Unknown or unavailable finding reference: {pointer}") from error
+                hint = (
+                    f" The nearest available finding is {nearest}."
+                    if nearest.startswith(("/assessment/", "/review/"))
+                    else ""
+                )
+                raise ValueError(
+                    f"Unknown or unavailable finding reference: {pointer}.{hint} "
+                    "Copy existing JSON keys exactly; do not invent fields or array indexes."
+                ) from error
+
+
+def grounded_output_type(context: dict) -> type[FollowUpQuestions]:
+    """Constrain generated references to real findings in this exact saved analysis."""
+    pending = deque((f"/{key}", context[key]) for key in ("assessment", "review"))
+    paths = []
+    # Breadth first retains both agent conclusions and calculations before detailed
+    # historical inputs. Parent findings remain usable when deeper paths exceed the cap.
+    while pending and len(paths) < 128:
+        parent, value = pending.popleft()
+        children = value.items() if isinstance(value, dict) else (
+            enumerate(value) if isinstance(value, list) else ()
+        )
+        for key, child in children:
+            if child is None:
+                continue
+            escaped = str(key).replace("~", "~0").replace("/", "~1")
+            path = f"{parent}/{escaped}"
+            if len(path) > 300:
+                continue
+            paths.append(path)
+            pending.append((path, child))
+            if len(paths) == 128:
+                break
+    question_type = create_model(
+        "GroundedFollowUpQuestion",
+        __base__=FollowUpQuestion,
+        references=(list[Literal[tuple(paths)]], Field(min_length=1, max_length=8)),
+    )
+    return create_model(
+        "GroundedFollowUpQuestions",
+        __base__=FollowUpQuestions,
+        questions=(list[question_type], Field(min_length=1, max_length=3)),
+    )
 
 
 class FollowUpQuestionAgent:
@@ -99,7 +151,9 @@ class FollowUpQuestionAgent:
                 resolve_model(self.model),
                 name="Analysis follow-up questions",
                 instructions=INSTRUCTIONS,
-                output_type=ToolOutput(FollowUpQuestions, name="final_result", strict=True),
+                output_type=ToolOutput(
+                    grounded_output_type(context), name="final_result", strict=True
+                ),
                 retries=1,
             )
 
@@ -121,7 +175,8 @@ class FollowUpQuestionAgent:
                 )
             check_response(result.response)
             usage = result.usage
-            return result.output, {
+            output = FollowUpQuestions.model_validate(result.output.model_dump())
+            return output, {
                 "requests": usage.requests,
                 "input_tokens": usage.input_tokens,
                 "output_tokens": usage.output_tokens,

@@ -120,6 +120,25 @@ def test_portfolio_opens_same_saved_borrower_and_refresh_retains_handoff(connect
     assert model.respond.call_count == 0
 
 
+def test_reopening_from_portfolio_uses_its_dates_and_latest_saved_version(connected):
+    app, model = connected
+    earlier = assess(app)
+    page(app, "Portfolio")
+    app.selectbox(key="portfolio_period").select("2025-12-31").run()
+    app.date_input(key="portfolio_cutoff").set_value(date(2025, 12, 31)).run()
+    app.selectbox(key="portfolio_borrower").select("SYN001").run()
+    click(app, "Run selected assessment")
+    expected = borrower_analysis.get_workflow().portfolio.repository.latest_assessment(
+        "SYN001", date(2025, 12, 31), date(2025, 12, 31)
+    )[0]
+    click(app, "Open borrower analysis")
+    assert app.selectbox(key="analysis_period").value == "2025-12-31"
+    assert app.date_input(key="analysis_cutoff").value == date(2025, 12, 31)
+    assert app.selectbox(key="analysis_version").value == expected.assessment_run_id
+    assert app.selectbox(key="analysis_version").value != earlier
+    assert model.respond.call_count == 0
+
+
 def test_revised_inputs_create_new_version_and_preserve_validation_and_old_report(connected):
     app, _ = connected
     rid = assess(app)

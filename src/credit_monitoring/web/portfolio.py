@@ -463,8 +463,16 @@ def render_portfolio_page() -> None:
     if st.button("Open borrower analysis", key="portfolio_open_analysis"):
         st.session_state._analysis_open_borrower = selected_id
         st.session_state.preview_selected_borrower = selected_id
-        st.session_state.pop("analysis_period", None)
-        st.session_state.pop("analysis_cutoff", None)
+        st.session_state.analysis_saved_selection = {
+            "borrower_id": selected_id,
+            "period": selected.period_end.isoformat() if selected.period_end else None,
+            "cutoff": cutoff,
+        }
+        for key in ("analysis_period", "analysis_cutoff", "analysis_version"):
+            st.session_state.pop(key, None)
+        st.session_state.pop("_analysis_next_run", None)
+        if selected.assessment:
+            st.session_state._analysis_next_run = selected.assessment.assessment_run_id
         st.session_state._preview_next_page = "Borrower analysis"
         st.rerun()
     credentials_available = bool(os.getenv("OPENAI_API_KEY", "").strip())

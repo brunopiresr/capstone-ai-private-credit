@@ -44,8 +44,13 @@ type ReviewOutput = PerspectiveAssessment | CreditRecommendation
 
 
 def _validate_references(references: tuple[str, ...], snapshot: ReviewSnapshot) -> None:
-    if unknown := set(references) - {item.evidence_id for item in snapshot.evidence}:
-        raise ValueError(f"Unknown evidence references: {sorted(unknown)}")
+    allowed = {item.evidence_id for item in snapshot.evidence}
+    if unknown := set(references) - allowed:
+        raise ValueError(
+            f"Unknown evidence references: {sorted(unknown)}. "
+            f"Copy exact IDs from the evidence registry. Allowed evidence IDs: {sorted(allowed)}. "
+            "Use 'assessment' for verification findings and general assessment limitations."
+        )
 
 
 def _validate_perspective(output: PerspectiveAssessment, snapshot: ReviewSnapshot) -> None:

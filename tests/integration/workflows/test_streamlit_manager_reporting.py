@@ -144,9 +144,39 @@ def test_manager_context_rerun_compares_versions_and_needs_response_acceptance(c
     click(app, "Mark reviewed")
     assert any("outstanding requests" in m.value for m in app.warning)
     click(app, "Accept response")
+    app.date_input(key="risk_cutoff").set_value(date(2026, 1, 10)).run()
     click(app, "Mark reviewed")
     assert get_manager().state(get_manager().repository.submission(first)) == "Reviewed"
     assert len(get_manager().portfolio.repository.assessment_history("SYN001")) == 1
+
+
+def test_risk_review_respects_cutoff_when_later_context_review_exists(connected):
+    app, _, first, _ = connected
+    manager = get_manager()
+    original = manager.current_review(manager.repository.submission(first))
+    request = manager.request_analysis(
+        first,
+        kind="context",
+        question="Assess later collection information.",
+        context="Later management update.",
+        available_at=date(2026, 1, 10),
+        review_cutoff=date(2026, 1, 10),
+    )
+    later = manager.run_requested_review(request)
+    manager.accept_response(request)
+    select_risk(app)
+    app.date_input(key="risk_cutoff").set_value(date(2025, 12, 31)).run()
+    captions = [item.value for item in app.caption if item.value.startswith("Review ")]
+    assert any(original.review_id in value for value in captions)
+    assert not any(later.review_id in value for value in captions), captions
+    app.text_area(key=f"risk_recommendation_{first}").set_value("Maintain monitoring.")
+    click(app, "Mark reviewed")
+    assert any("newer credit review" in item.value.lower() for item in app.warning)
+    assert manager.repository.notes("SYN001") == []
+    app.date_input(key="risk_cutoff").set_value(date(2026, 1, 10)).run()
+    assert any(later.review_id in item.value for item in app.caption)
+    click(app, "Mark reviewed")
+    assert manager.state(manager.repository.submission(first)) == "Reviewed"
 
 
 def test_correction_request_returns_to_analyst_and_back_to_manager(connected):

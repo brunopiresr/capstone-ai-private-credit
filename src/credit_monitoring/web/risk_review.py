@@ -165,7 +165,7 @@ def render_case(manager: ManagerWorkflow, borrower_id: str, period: date, cutoff
     )
     submission = lookup[sid]
     assessment = manager.assessment(submission)
-    current = manager.current_review(submission)
+    current = manager.current_review(submission, cutoff=cutoff)
     st.caption(
         f"Assessment {assessment.assessment_run_id} · Reporting period {assessment.period_end} · "
         f"Assessment cutoff {assessment.information_cutoff} · {manager.state(submission)}"
@@ -247,6 +247,7 @@ def render_case(manager: ManagerWorkflow, borrower_id: str, period: date, cutoff
                         reviewed=reviewed,
                         disposition=disposition,
                         resolve_ids=resolve if reviewed else [],
+                        review_cutoff=cutoff,
                     ),
                     "Manager review saved.",
                 )
@@ -259,6 +260,11 @@ def render_case(manager: ManagerWorkflow, borrower_id: str, period: date, cutoff
         render_evidence(assessment)
     with st.expander("Previous credit reviews and manager decisions"):
         for review in manager.portfolio.repository.review_history(assessment.assessment_run_id):
+            review_cutoff = (
+                review.snapshot.review_information_cutoff or review.snapshot.information_cutoff
+            )
+            if review_cutoff > cutoff:
+                continue
             st.caption(f"Review {review.review_id} · {review.created_at.isoformat()}")
             render_agent_result(review)
         for note in manager.repository.notes(borrower_id):

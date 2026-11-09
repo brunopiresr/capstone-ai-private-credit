@@ -133,8 +133,10 @@ class ManagerWorkflow:
         reviewed: bool = False,
         disposition: str = "Continue monitoring",
         resolve_ids: list[str] = (),
+        review_cutoff: date | None = None,
     ) -> str:
         submission = self.repository.submission(submission_id)
+        review = self.current_review(submission, cutoff=review_cutoff)
         if not comment.strip() and not recommendation.strip():
             raise ValueError("Add a manager observation or recommendation.")
         if disposition not in {
@@ -151,6 +153,12 @@ class ManagerWorkflow:
                     "Resolve outstanding requests, source changes and newer submissions "
                     "before completing review."
                 )
+            latest = self.current_review(submission)
+            if (review.review_id if review else None) != (latest.review_id if latest else None):
+                raise ValueError(
+                    "A newer credit review uses information after the selected cutoff. "
+                    "Update the cutoff and inspect that review before completing review."
+                )
         if resolve_ids:
             allowed = {f["flag_id"] for f in submission["payload"]["flags"]}
             if (
@@ -163,7 +171,6 @@ class ManagerWorkflow:
                 )
         if reviewed and disposition == "Resolve selected flags" and not resolve_ids:
             raise ValueError("Select the flags to resolve.")
-        review = self.current_review(submission)
         return self.repository.note(
             submission,
             {

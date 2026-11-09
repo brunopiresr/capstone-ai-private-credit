@@ -1,7 +1,10 @@
 """Connected Streamlit POC: analyst, documents, risk manager and board workflows."""
 
+import dotenv
 import streamlit as st
 
+from credit_monitoring.observability import configure_observability
+from credit_monitoring.paths import ROOT
 from credit_monitoring.web.preview_style import render_preview_style
 from credit_monitoring.web.source_watch import watch_application_sources
 from credit_monitoring.web.user_guide import remember_navigation, render_user_guide
@@ -54,6 +57,8 @@ def main() -> None:
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    dotenv.load_dotenv(ROOT / ".env")
+    configure_observability()
     if "_preview_next_page" in st.session_state:
         st.session_state.preview_page = st.session_state.pop("_preview_next_page")
     report_id = st.query_params.get("report_id")
