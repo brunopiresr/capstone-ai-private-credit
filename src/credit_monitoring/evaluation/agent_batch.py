@@ -375,9 +375,15 @@ async def evaluate_case(case, folder, args, judge, inputs):
         else [{"name": "completed", "passed": False, "detail": error}]
     )
     save_json(folder / "checks.json", checks)
-    grade = {"label": None, "reason": "No completed answer.", "failure_tags": []}
+    grade = {
+        "label": None,
+        "reason": "Deterministic smoke only."
+        if getattr(args, "skip_judge", False)
+        else "No completed answer.",
+        "failure_tags": [],
+    }
     judge_started = time.monotonic()
-    if answer and answer.complete and not answer.error:
+    if answer and answer.complete and not answer.error and not getattr(args, "skip_judge", False):
         try:
             packet = judge_packet(case, answer)
             save_json(folder / "judge-input.json", packet)
@@ -466,7 +472,7 @@ def summarize(results: list[dict]) -> dict:
             "Synthetic borrower inputs and fictional retrieval packet; no live SEC extraction.",
             "One fresh conversation per scenario; this is a baseline, not a holdout estimate.",
             "Pass requires completed execution, every deterministic check, and judge pass.",
-            "No measured cost: generation token usage is not exposed by the agent facade.",
+            "Provider usage is recorded when exposed; no estimated cost is reported.",
         ],
     }
 
@@ -561,7 +567,9 @@ async def run_batch(args, cases):
     summary["finished_at"] = datetime.now(UTC).isoformat()
     save_json(run / "summary.json", summary)
     print(json.dumps(summary["overall"]), flush=True)
-    return 0 if all(row["execution_complete"] for row in results) else 1
+    return (
+        0 if all(row["execution_complete"] and row["deterministic_pass"] for row in results) else 1
+    )
 
 
 def main(argv=None):
@@ -573,6 +581,7 @@ def main(argv=None):
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
+    parser.add_argument("--skip-judge", action="store_true", help="Deterministic POC smoke only.")
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--timeout", type=float, default=150)
     parser.add_argument("--judge-timeout", type=float, default=60)

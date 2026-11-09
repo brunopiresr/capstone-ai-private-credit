@@ -1,7 +1,9 @@
 # Agent quality improvement plan
 
-Prepared 9 November 2026. Status: proposed implementation; all work packages below
-are open. This document plans the work and does not claim agent fixes or new live runs.
+Prepared 9 November 2026. The user subsequently narrowed implementation to a simple
+POC. Request guards, evidence-backed answers and required financial summaries are
+implemented; the full measurement and ensemble campaign below remains a roadmap.
+See [implementation notes](agent_quality_implementation.md) for actual checks and limits.
 
 ## Objective and evidence
 

@@ -189,7 +189,9 @@ def test_existing_agent_tools_can_read_saved_assessment_without_recalculating(wo
     conversation = CreditAssessmentAgent(
         assessment_service=adapter, model=model
     ).start_conversation(borrower_id="SYN001")
-    answer = conversation.ask("Explain this saved assessment.")
+    answer = conversation.ask(
+        f"Assess the saved result. Reporting date: {PERIOD}. Information cutoff: {CUTOFF}."
+    )
     assert answer.complete
     assert [t.name for t in answer.tool_trace] == ["get_financials", "assess_covenants"]
     assert isinstance(answer.tool_trace[0].outcome, FinancialReview)

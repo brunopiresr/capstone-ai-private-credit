@@ -19,5 +19,7 @@ dist/
 /homework/evaluation/*/data/html/*.cleaned.html
 /data/evaluation/agent_scenarios/results/*/inputs/
 /data/evaluation/agent_scenarios/results/*/cases/*/runtime/
+# Exploratory failed schema capture: retain locally; version its manifest and summary.
+/data/evaluation/agent_scenarios/results/2026-11-09-q2/cases/
 data/app/credit_monitoring_dataset_bundle_fixed.zip
 data/app/README_DATA_PACKAGE.md

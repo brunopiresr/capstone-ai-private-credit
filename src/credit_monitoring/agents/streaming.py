@@ -30,7 +30,7 @@ from credit_monitoring.agents.events import AgentEvent
 from credit_monitoring.agents.models import ModelFailure, check_response
 from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.common import tool_outcome
-from credit_monitoring.domain.agent import AgentAnswer, AnswerContent
+from credit_monitoring.domain.agent import AgentAnswer, AnswerContent, AnswerDraft
 from credit_monitoring.domain.tool_results import ToolFailure
 from credit_monitoring.observability.session import get_active_session
 
@@ -42,7 +42,7 @@ class _ScopeStopped(Exception):
 
 
 async def _model_updates(
-    stream: AgentStream[None, AnswerContent],
+    stream: AgentStream[None, AnswerDraft],
     name: str,
 ) -> AsyncIterator[AgentEvent]:
     """Emit copied provisional answers; graph validation still decides completion."""
@@ -57,7 +57,11 @@ async def _model_updates(
                 yield AgentEvent(
                     kind="answer_update",
                     agent_name=name,
-                    output=output.model_copy(deep=True),
+                    output=AnswerContent(
+                        answer=output.answer,
+                        confidence=output.confidence,
+                        confidence_explanation=output.confidence_explanation,
+                    ),
                 )
         except UnexpectedModelBehavior as exc:
             # iter() continues into graph validation, where bounded output
@@ -147,7 +151,7 @@ def _failure_history(
 
 
 async def run_stream(
-    agent: Agent[None, AnswerContent],
+    agent: Agent[None, AnswerDraft],
     prompt: str,
     state: AgentRunState,
     history: list[ModelMessage] | None = None,
@@ -251,7 +255,12 @@ async def run_stream(
             and (state.output_repairs or isinstance(exc.__cause__, ValidationError))
             else "model_error"
         )
-        answer = state.answer(f"Agent model request/response failed: {exc}", code)
+        message = (
+            f"Incomplete answer: {state.last_output_error}"
+            if state.last_output_error
+            else (f"Agent model request/response failed: {exc}")
+        )
+        answer = state.answer(message, code)
     if history is not None and not answer.complete:
         state.history = _failure_history(history, prompt, answer)
     yield AgentEvent(kind="run_end", agent_name=name, answer=answer, error=answer.error)

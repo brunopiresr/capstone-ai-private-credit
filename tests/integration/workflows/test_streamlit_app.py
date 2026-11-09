@@ -208,11 +208,8 @@ def test_multiple_covenants_and_verification_errors_are_visible(working_app, mon
 def test_followups_use_real_tools_and_session_owned_conversations(working_app, monkeypatch):
     app, _, _ = working_app
     monkeypatch.setenv("OPENAI_API_KEY", "synthetic-test-key")
-    dates = {"period_end": "2025-09-30", "information_cutoff": "2025-09-30"}
     model = ScriptedModel()
     model.respond.side_effect = [
-        model_response(("get_financials", dates)),
-        model_response(("assess_covenants", dates)),
         model_response(answer="The calculated covenant is compliant."),
     ]
     conversations = []
@@ -230,9 +227,8 @@ def test_followups_use_real_tools_and_session_owned_conversations(working_app, m
     assert not app.exception
     answer = app.session_state["chat_messages"][-1]["answer"]
     assert answer.complete
-    assert [call.name for call in answer.tool_trace] == ["get_financials", "assess_covenants"]
-    assert answer.tool_trace[-1].outcome.borrower_id == "SYN002"
-    assert all(call.arguments == dates for call in answer.tool_trace)
+    assert answer.tool_trace == []
+    assert "SYN002" in answer.answer and answer.evidence
     assert "Early-warning quarter" not in answer.model_dump_json()
     first_request = model.respond.call_args_list[0].kwargs
     assert "2025-09-30" in str(first_request["messages"])
@@ -242,7 +238,7 @@ def test_followups_use_real_tools_and_session_owned_conversations(working_app, m
         "predict_risk",
     }
     assert app.session_state["active_assessment"] == assessment
-    assert any("Executed tools" in item.label for item in app.expander)
+    assert any("Citations used" in item.label for item in app.expander)
     session_id = conversations[0].session_id
     app.run()
     assert app.session_state["conversation"] is conversations[0]

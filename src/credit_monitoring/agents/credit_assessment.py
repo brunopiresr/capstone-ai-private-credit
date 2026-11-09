@@ -29,7 +29,7 @@ from credit_monitoring.agents.tools.assessment import AssessmentTools
 from credit_monitoring.agents.tools.documents import DocumentTools
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
-from credit_monitoring.domain.agent import AgentAnswer, AnswerContent
+from credit_monitoring.domain.agent import AgentAnswer, AnswerContent, AnswerDraft
 from credit_monitoring.observability import SessionContext, session_scope
 from credit_monitoring.observability.activity import activity_scope
 from credit_monitoring.observability.configuration import capture_content_enabled, span
@@ -229,7 +229,7 @@ class CreditAssessmentAgent:
             instructions=build_credit_assessment_instructions(
                 assessment_enabled=borrower_id is not None
             ),
-            output_type=ToolOutput(AnswerContent, name="final_result", strict=True),
+            output_type=ToolOutput(AnswerDraft, name="final_result", strict=True),
             tools=tools,
             end_strategy="exhaustive",
             retries={"tools": self.max_tool_rounds, "output": 1},
@@ -252,7 +252,7 @@ class CreditAssessmentAgent:
             )
 
         @agent.output_validator
-        async def validate_answer(ctx: RunContext, output: AnswerContent) -> AnswerContent:
+        async def validate_answer(ctx: RunContext, output: AnswerDraft) -> AnswerDraft:
             if not ctx.partial_output:
                 state.output_repairs = max(state.output_repairs, int(ctx.retry > 0))
                 try:
@@ -267,6 +267,7 @@ class CreditAssessmentAgent:
                         state.finalize(output)
                 except ValueError as exc:
                     state.output_repairs = min(1, state.output_repairs + 1)
+                    state.last_output_error = str(exc)
                     raise ModelRetry(str(exc)) from exc
             return output
 

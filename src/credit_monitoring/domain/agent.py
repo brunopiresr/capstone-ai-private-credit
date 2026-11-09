@@ -66,6 +66,32 @@ class MaterialClaim(ExtractionModel):
     limitations: list[str] = Field(default_factory=list)
 
 
+class EvidenceQuote(ExtractionModel):
+    evidence_id: str = Field(description="Exact ID from the executed evidence registry.")
+    text: str = Field(description="Exact short passage copied from that evidence.")
+
+
+class AnswerDraft(ExtractionModel):
+    """Small model contract; the application owns financial facts and citations."""
+
+    answer: str = Field(
+        default="", description="Brief explanation; financial facts render separately."
+    )
+    confidence: Literal["low", "medium", "high"] | None = Field(
+        default=None, description="Confidence in evidence support, independent of credit risk."
+    )
+    confidence_explanation: str = Field(default="", description="Evidence support and limitations.")
+    evidence_ids: list[str] = Field(
+        default_factory=list, description="Actual evidence used to explain."
+    )
+    quotes: list[EvidenceQuote] = Field(
+        default_factory=list, description="Material filing passages."
+    )
+    schema_version: Literal["agent-answer-v2"] | None = Field(
+        default=None, description="Optional version marker; the application versions final answers."
+    )
+
+
 class AnswerContent(ExtractionModel):
     """Generated content; defaults allow provisional streaming snapshots."""
 

@@ -193,7 +193,10 @@ def resolve_request(
         ]
         response = "Please provide the " + " and ".join(missing) + " in YYYY-MM-DD format."
     if not response and dates["cutoff"].value < dates["reporting"].value:
-        response = "Please provide an information cutoff on or after the reporting date."
+        response = (
+            "The information cutoff is before the reporting date. "
+            "Please provide an information cutoff on or after the reporting date."
+        )
     if intent == "clarification" and not response:
         response = (
             "Please clarify whether you want a covenant assessment, forecast or evidence lookup."

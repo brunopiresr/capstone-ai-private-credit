@@ -6,13 +6,14 @@ from dataclasses import dataclass, field
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.usage import RunUsage
 
-from credit_monitoring.agents.answer_contract import finalize_content
+from credit_monitoring.agents.answer_contract import draft_content, finalize_content
 from credit_monitoring.agents.evidence import EvidenceRegistry
 from credit_monitoring.agents.request_policy import DispatchPolicy, RequestContext
 from credit_monitoring.agents.tools.sources import result_sources
 from credit_monitoring.domain.agent import (
     AgentAnswer,
     AnswerContent,
+    AnswerDraft,
     SourceReference,
     ToolExecution,
 )
@@ -41,19 +42,26 @@ class AgentRunState:
     has_retained_evidence: bool = False
     evidence: EvidenceRegistry = field(default_factory=EvidenceRegistry)
     model_usage: RunUsage = field(default_factory=RunUsage)
+    last_output_error: str | None = None
+    retained_assessment_id: str | None = None
 
-    def finalize(self, content: AnswerContent) -> AnswerContent:
+    def finalize(self, content: AnswerContent | AnswerDraft) -> AnswerContent:
         if self.policy:
             self.policy.validate_final()
+        runs = {
+            call.outcome.assessment_run_id
+            for call in self.trace
+            if hasattr(call.outcome, "assessment_run_id")
+        }
+        if not runs and self.request.intent == "follow_up" and self.retained_assessment_id:
+            runs = {self.retained_assessment_id}
+        if isinstance(content, AnswerDraft):
+            content = draft_content(content, self.evidence, self.request, runs)
         return finalize_content(
             content,
             self.evidence,
             self.request,
-            {
-                call.outcome.assessment_run_id
-                for call in self.trace
-                if hasattr(call.outcome, "assessment_run_id")
-            },
+            runs,
         )
 
     def record(

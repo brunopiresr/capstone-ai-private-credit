@@ -26,6 +26,12 @@ future-information leakage, ignored caps, and an obsolete answer-key assertion.
 
 ## Run
 
+For a small POC check without semantic grading, add `--skip-judge --cases H01,H07,H08,H11,H15,H16,E04,B10,B11,B12`
+to the run command below. Missing semantic grades remain visible. The command exits
+nonzero if execution or a deterministic check fails. See the
+[POC implementation notes](../../../docs/project/agent_quality_implementation.md)
+for the implemented scope and deferred evaluation work.
+
 From the repository root, using the locked Python 3.14 environment:
 
 ```bash

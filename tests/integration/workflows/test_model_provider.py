@@ -159,8 +159,8 @@ def test_provider_receives_scoped_instructions_and_relocated_tool_guidance(
     assert answer.error == "model_incomplete" and answer.tool_trace == []
     assert len(requests) == 1
     payload = requests[0]
-    assert payload["instructions"] == build_credit_assessment_instructions(
-        assessment_enabled=assessment_enabled
+    assert payload["instructions"].startswith(
+        build_credit_assessment_instructions(assessment_enabled=assessment_enabled)
     )
     tools = {tool["name"]: tool for tool in payload["tools"]}
     assert "including unprocessed ones" in tools["list_documents"]["description"]

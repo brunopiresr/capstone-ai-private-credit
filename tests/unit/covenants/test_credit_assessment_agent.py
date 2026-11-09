@@ -1260,8 +1260,8 @@ def test_concurrent_conversations_keep_borrower_scope_and_follow_ups_separate(
         "SYN002",
         "SYN004",
     ]
-    assert [answer.answer for answer in second] == [
-        "Explanation for SYN002.",
-        "Explanation for SYN004.",
-    ]
+    assert all(
+        f"Explanation for {borrower}." in answer.answer
+        for answer, borrower in zip(second, ("SYN002", "SYN004"), strict=True)
+    )
     assert all(answer.tool_trace == [] for answer in second)

@@ -5,6 +5,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import date
 
+from credit_monitoring.agents.presentation import calculation_details
 from credit_monitoring.domain.agent import EvidenceEntry
 from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
 from credit_monitoring.domain.credit_review import CreditReviewResult
@@ -28,7 +29,7 @@ class EvidenceRegistry:
     def get(self, evidence_id: str) -> EvidenceEntry:
         if evidence_id not in self._entries:
             raise ValueError(
-                f"Unknown evidence ID: {evidence_id}. Use the executed evidence registry."
+                f"Unknown evidence ID: {evidence_id}. Available IDs: {list(self._entries)}"
             )
         return self._entries[evidence_id].model_copy(deep=True)
 
@@ -127,10 +128,12 @@ class EvidenceRegistry:
                             raise ValueError(
                                 "Calculation evidence has inconsistent identity or dates."
                             )
+                        calculation = result.model_dump(mode="json")
+                        calculation["presentation"] = calculation_details(calculation)
                         self._add(
                             f"calculation:{outcome.assessment_run_id}:{result.result_id}",
                             "calculation",
-                            result.model_dump(mode="json"),
+                            calculation,
                             f"assessment {outcome.assessment_run_id}, result {result.result_id}",
                             borrower_id,
                             period_end=str(result.period_end),

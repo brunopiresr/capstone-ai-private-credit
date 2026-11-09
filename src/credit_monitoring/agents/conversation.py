@@ -51,6 +51,7 @@ class AgentConversation:
         self._dates: dict[str, AnalystDate] = {}
         self._has_evidence = False
         self._pending_intent = None
+        self._assessment_id: str | None = None
         self._closed = False
         self._in_progress = False
 
@@ -78,6 +79,7 @@ class AgentConversation:
         self._dates.clear()
         self._has_evidence = False
         self._pending_intent = None
+        self._assessment_id = None
 
     def prime_evidence(
         self, assessment: RiskAssessment, review: CreditReviewResult | None = None
@@ -95,6 +97,7 @@ class AgentConversation:
                 assessment_run_id=assessment.assessment_run_id,
             )
         self._evidence = list(registry.entries)
+        self._assessment_id = assessment.assessment_run_id
         self._has_evidence = True
         sources = {(s.document_id, s.citation): s for s in self._sources}
         sources.update({(s.document_id, s.citation): s for s in result_sources(assessment)})
@@ -167,6 +170,7 @@ class AgentConversation:
         state = AgentRunState(
             max_tool_rounds=self._agent.max_tool_rounds,
             has_retained_evidence=self._has_evidence,
+            retained_assessment_id=self._assessment_id,
             sources={(s.document_id, s.citation): s.model_copy(deep=True) for s in self._sources},
         )
         state.evidence.retain(self._evidence)
@@ -190,6 +194,9 @@ class AgentConversation:
                     if event.kind == "run_end" and not self.closed:
                         self._history = deepcopy(state.history)
                         if event.answer.complete:
+                            for call in event.answer.tool_trace:
+                                if isinstance(call.outcome, RiskAssessment):
+                                    self._assessment_id = call.outcome.assessment_run_id
                             self._evidence = list(state.evidence.entries)
                             self._has_evidence = (
                                 self._has_evidence
