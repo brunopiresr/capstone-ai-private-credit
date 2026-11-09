@@ -42,16 +42,13 @@ def draft_content(
     """Keep generation small: select real passages; let application facts supply the core."""
     for key in draft.evidence_ids:
         registry.get(key)
+    references = list(dict.fromkeys(draft.evidence_ids))
     claims = [
-        MaterialClaim(
-            claim_id=f"quote:{i}",
-            kind="quote",
-            statement=quote.text,
-            evidence_ids=[quote.evidence_id],
-        )
-        for i, quote in enumerate(draft.quotes)
+        MaterialClaim(claim_id=f"quote:{key}:{i}", kind="quote", statement=text, evidence_ids=[key])
+        for key in references
+        if registry.get(key).kind == "filing"
+        for i, text in enumerate(passage_texts(registry.get(key).data))
     ]
-    references = list(dict.fromkeys([*draft.evidence_ids, *(q.evidence_id for q in draft.quotes)]))
     if not references and assessment_ids:
         references = [f"assessment:{run}" for run in sorted(assessment_ids)]
     text = draft.answer

@@ -138,6 +138,8 @@ def resolve_request(
             if forecast or (not fresh and retained_intent == "forecast")
             else "assessment"
         )
+    if intent in {"assessment", "forecast"} and re.search(r"\blatest\b", text):
+        dates.clear()
     both = re.search(
         r"reporting (?:date|period) and information cutoff (?:are )?both "
         r"(\d{4}-\d{2}-\d{2})",
@@ -240,4 +242,10 @@ class DispatchPolicy:
 
     def validate_final(self) -> None:
         if self.context.intent in {"assessment", "forecast"} and self.stage != "assessed":
-            raise ValueError("Execute the required financial read and assessment before answering.")
+            expected = "predict_risk" if self.context.intent == "forecast" else "assess_covenants"
+            next_tool = "get_financials" if self.stage == "ready" else expected
+            raise ValueError(
+                f"Call {next_tool} now with {self.context.dates}. "
+                "Missing current financials do not prevent an assessment; "
+                "the service returns the authoritative missing-evidence decision."
+            )

@@ -104,11 +104,6 @@ def model_response(
                             key for claim in (claims or []) for key in claim.get("evidence_ids", [])
                         )
                     ),
-                    "quotes": [
-                        {"evidence_id": claim["evidence_ids"][0], "text": claim["statement"]}
-                        for claim in (claims or [])
-                        if claim["kind"] == "quote"
-                    ],
                     "confidence": "medium",
                     "confidence_explanation": "Synthetic evidence and limitations.",
                 },

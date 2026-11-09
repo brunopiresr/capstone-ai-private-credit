@@ -223,6 +223,18 @@ class CreditAssessmentAgent:
             tools += AssessmentTools(
                 self.assessment_service, borrower_id=borrower_id, policy=state.policy
             ).tools
+
+        def model_settings(ctx: RunContext) -> dict:
+            settings = {"parallel_tool_calls": False}
+            if state.request.intent in {"assessment", "forecast"}:
+                if state.policy.stage == "ready":
+                    settings["tool_choice"] = ["get_financials"]
+                elif state.policy.stage == "financials":
+                    settings["tool_choice"] = [
+                        "predict_risk" if state.request.intent == "forecast" else "assess_covenants"
+                    ]
+            return settings
+
         agent = Agent(
             resolve_model(self.model),
             name=self.name,
@@ -233,7 +245,7 @@ class CreditAssessmentAgent:
             tools=tools,
             end_strategy="exhaustive",
             retries={"tools": self.max_tool_rounds, "output": 1},
-            model_settings={"parallel_tool_calls": False},
+            model_settings=model_settings,
         )
 
         @agent.instructions

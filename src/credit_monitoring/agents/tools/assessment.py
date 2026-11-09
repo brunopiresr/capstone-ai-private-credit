@@ -46,6 +46,10 @@ class AssessmentTools:
 
         Missing inputs and unknown availability remain explicit; no alternative
         reporting period is substituted.
+        Even when current is null, call assess_covenants next (or predict_risk for
+        a requested forecast) with these exact dates. The assessment service
+        returns the authoritative missing-evidence decision; a financial read alone
+        is not an assessment. Do not return final_result after only this read.
 
         Args:
             period_end: Analyst-supplied reporting date, YYYY-MM-DD.

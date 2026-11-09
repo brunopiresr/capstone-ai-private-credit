@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -186,16 +187,37 @@ class EvidenceRegistry:
                 if isinstance(record, RetrievedRecord):
                     if ticker and record.ticker not in (None, ticker):
                         raise ValueError("Retrieved evidence is outside the issuer scope.")
-                    data = record.model_dump(mode="json")
-                    identifier = hashlib.sha256(canonical(data).encode()).hexdigest()[:20]
-                    self._add(
-                        f"filing:{identifier}",
-                        "filing",
-                        data,
-                        f"{record.document_id}: {record.citation}",
-                        ticker=ticker or record.ticker,
-                        period_end=record.period_end,
-                    )
+                    cursor = 0
+                    for block in re.split(r"\n\s*\n", record.text):
+                        text = block.strip()
+                        start = record.text.find(text, cursor) if text else cursor
+                        cursor = start + len(text)
+                        if not text or all(line.startswith("#") for line in text.splitlines()):
+                            continue
+                        # Instruction-only source paragraphs remain in the raw trace, not
+                        # in the set of financial passages the answer may quote.
+                        if re.search(
+                            r"\bSYSTEM OVERRIDE\b|ignore (?:all |prior |previous )?instructions",
+                            text,
+                            re.I,
+                        ):
+                            continue
+                        data = record.model_dump(mode="json")
+                        data.update(
+                            text=text,
+                            excerpt_start=start,
+                            excerpt_end=cursor,
+                            excerpt_coordinate_system="returned_text",
+                        )
+                        identifier = hashlib.sha256(canonical(data).encode()).hexdigest()[:20]
+                        self._add(
+                            f"filing:{identifier}",
+                            "filing",
+                            data,
+                            f"{record.document_id}: {record.citation}",
+                            ticker=ticker or record.ticker,
+                            period_end=record.period_end,
+                        )
         elif isinstance(outcome, DocumentExtraction) and outcome.status == "complete":
             data = outcome.model_dump(mode="json")
             identifier = hashlib.sha256(canonical(data).encode()).hexdigest()[:20]

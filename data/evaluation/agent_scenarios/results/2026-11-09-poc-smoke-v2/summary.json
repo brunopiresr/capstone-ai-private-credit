@@ -1,0 +1,73 @@
+{
+  "overall": {
+    "total": 10,
+    "needs_review": 9,
+    "execution_error": 1,
+    "pass_rate": 0.0
+  },
+  "by_category": {
+    "breaking": {
+      "total": 3,
+      "needs_review": 2,
+      "execution_error": 1,
+      "pass_rate": 0.0
+    },
+    "edge_case": {
+      "total": 1,
+      "needs_review": 1,
+      "pass_rate": 0.0
+    },
+    "happy_path": {
+      "total": 6,
+      "needs_review": 6,
+      "pass_rate": 0.0
+    }
+  },
+  "by_topic": {
+    "amendments_waivers": {
+      "total": 1,
+      "needs_review": 1,
+      "pass_rate": 0.0
+    },
+    "compliance_headroom": {
+      "total": 3,
+      "needs_review": 2,
+      "execution_error": 1,
+      "pass_rate": 0.0
+    },
+    "evidence_retrieval": {
+      "total": 3,
+      "needs_review": 3,
+      "pass_rate": 0.0
+    },
+    "risk_forecasts": {
+      "total": 1,
+      "needs_review": 1,
+      "pass_rate": 0.0
+    },
+    "springing_tests": {
+      "total": 2,
+      "needs_review": 2,
+      "pass_rate": 0.0
+    }
+  },
+  "execution_complete": 9,
+  "deterministic_pass_count": 9,
+  "judge_labels": {
+    "unavailable": 10
+  },
+  "failed_check_names": {
+    "completed": 1,
+    "tool_contract": 1,
+    "assessment:ml_status": 1
+  },
+  "failure_tags": {},
+  "limitations": [
+    "Automated proxy judge, not human-rated or calibrated; same model may share biases.",
+    "Synthetic borrower inputs and fictional retrieval packet; no live SEC extraction.",
+    "One fresh conversation per scenario; this is a baseline, not a holdout estimate.",
+    "Pass requires completed execution, every deterministic check, and judge pass.",
+    "Provider usage is recorded when exposed; no estimated cost is reported."
+  ],
+  "finished_at": "2026-11-09T15:08:46.466389+00:00"
+}

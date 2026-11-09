@@ -112,6 +112,11 @@ def test_successful_missing_financials_still_admit_authoritative_abstention(scop
     assert answer.complete
     assert answer.tool_trace[0].outcome.current is None
     assert answer.tool_trace[1].outcome.results == []
+    choices = [
+        call.kwargs["info"].model_settings.get("tool_choice")
+        for call in model.respond.call_args_list
+    ]
+    assert choices == [["get_financials"], ["assess_covenants"], None]
 
 
 def test_changed_tool_dates_are_rejected_before_any_service_call(scoped_service):
@@ -141,6 +146,20 @@ def test_explicit_analyst_changes_replace_retained_dates():
     assert context.reporting.original_text == "reporting date: 2025-06-30"
 
 
+def test_latest_requires_dates_even_after_an_earlier_dated_assessment():
+    retained = {
+        key: AnalystDate(date(2025, 9, 30), "2025-09-30") for key in ("reporting", "cutoff")
+    }
+    context = resolve_request(
+        "Assess latest compliance",
+        borrower_id="SYN002",
+        ticker=None,
+        retained=retained,
+        has_evidence=True,
+    )
+    assert context.intent == "clarification" and context.dates == {}
+
+
 def test_terminal_scope_dispatch_is_traced_once_and_ends_usefully(document_service_factory):
     service = document_service_factory()
     original = service.search_evidence
@@ -166,9 +185,11 @@ def test_ui_dates_are_explicit_and_supplemental_analysis_cannot_supply_them(scop
 
 def test_forecast_intent_survives_date_clarification(scoped_service):
     model = ScriptedModel()
-    model.respond.side_effect = [model_response(("get_financials", DATES)),
-                                model_response(("predict_risk", DATES)),
-                                model_response(answer="No forecast from a stub.")]
+    model.respond.side_effect = [
+        model_response(("get_financials", DATES)),
+        model_response(("predict_risk", DATES)),
+        model_response(answer="No forecast from a stub."),
+    ]
     chat = CreditAssessmentAgent(assessment_service=scoped_service, model=model).start_conversation(
         borrower_id="SYN002"
     )

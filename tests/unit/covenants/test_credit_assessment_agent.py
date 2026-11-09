@@ -563,7 +563,7 @@ def test_concurrent_read_questions_keep_scope_and_sources_separate(document_serv
     assert [source.document_id for source in syn.sources] == ["SYN"]
     assert other.sources == []
     assert len(syn.tool_trace) == len(other.tool_trace) == 1
-    assert syn.answer.startswith("Evidence for SYN.") and other.answer == "Evidence for OTHER."
+    assert "Evidence for SYN." in syn.answer and other.answer == "Evidence for OTHER."
     assert other.tool_trace[0].outcome == []
 
 

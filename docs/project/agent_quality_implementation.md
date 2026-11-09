@@ -8,14 +8,16 @@ the full research, calibration or release campaign in the original plan.
 - Request context owns scope, analyst/UI dates and intent. Invalid or ambiguous dates
   stop before financial dispatch. Financial reads must succeed before one assessment
   or forecast; changed dates and repeated assessments cannot reach the service.
+  Each financial step also constrains the provider to the required next tool.
 - Conversation memory retains analyst dates and validated evidence separately.
   Selected saved assessments support follow-ups without recalculation and cannot
   establish analyst date intent. Scope rejections end with a useful next step.
 - The application builds financial facts and citations from executed or selected
   service results. The model has a small draft schema: explanation, confidence,
-  evidence IDs and exact filing quotations. It does not recreate financial tables.
-  Unknown references and nonmatching quotations get one repair, then an explicit
-  incomplete answer. Provisional streaming output never commits successful history.
+  and evidence IDs. It does not recreate financial tables or copy quotations.
+  Selected source paragraphs are copied by the application, with actual citations.
+  Unknown references get one repair, then an explicit incomplete answer.
+  Provisional streaming output never commits successful history.
 - Required summaries preserve each status, null, unit, comparison and result basis;
   disclose springing observations/triggers, selected terms, limited testing relief,
   missing inputs and forecast limitations. Forecast dates are labeled as-of dates.
