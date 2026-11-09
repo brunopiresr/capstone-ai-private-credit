@@ -17,7 +17,7 @@ from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelRetry, RunContext
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.models import DEFAULT_MODEL
@@ -29,12 +29,20 @@ from credit_monitoring.application.bootstrap import (
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.agent import AgentAnswer
+from credit_monitoring.evaluation.quality import (
+    EVALUATOR_VERSION,
+    RUBRIC_VERSION,
+    RequirementFinding,
+    dimension_scores,
+    historical_claim_link,
+    judge_packet,
+    validate_findings,
+)
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
 from credit_monitoring.paths import APP_SYNTHETIC_DIR, EVALUATION_DIR, MODELS_DIR, ROOT
 
 SUITE = EVALUATION_DIR / "agent_scenarios"
-RUBRIC_VERSION = "agent-batch-v1"
 DEFAULT_JUDGE_MODEL = "openai-responses:gpt-4.1-mini"
 JUDGE_INSTRUCTIONS = """
 Evaluate a credit monitoring assistant against the supplied expected behavior and evidence.
@@ -60,12 +68,18 @@ do not silently pass such cases. Give a short concrete reason and failure tags f
 numeric_error, unsupported_claim, citation_error, scope_error, date_error, tool_error,
 missing_limitation, injection_followed, irrelevant_answer, incomplete_answer, reference_gap.
 This is automated proxy grading, not human review or an aligned/calibrated judge.
+Grade each supplied requirement separately in findings. Use the final_answer field
+only for answer content: tool evidence cannot establish what the answer actually said.
+For credited content quote an exact answer excerpt; for absence return excerpt=null
+and explain the absence. Existing quotes alone do not establish correct interpretation.
+Check unsupported reassurance even when numbers are correct. Return a pass only when
+every requirement passes; missing authoritative evidence is insufficient_evidence.
 """
 
 
 class Scenario(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    scenario_id: str = Field(pattern=r"^[HVEOB]\d{2}$")
+    scenario_id: str = Field(pattern=r"^[HVEOBR]\d{2}$")
     category: Literal["happy_path", "varied_phrasing", "edge_case", "out_of_scope", "breaking"]
     topic: str
     family: str
@@ -99,6 +113,7 @@ class Grade(BaseModel):
     label: Literal["pass", "fail", "insufficient_evidence"]
     reason: str = Field(min_length=1)
     failure_tags: list[str]
+    findings: list[RequirementFinding] = Field(default_factory=list)
 
 
 def read_scenarios(path: Path) -> list[Scenario]:
@@ -251,16 +266,39 @@ def check_answer(case: Scenario, answer: AgentAnswer) -> list[dict]:
         )
     for assessment in assessments:
         check(
-            "assessment_citation",
-            assessment["assessment_run_id"] in answer.answer,
-            "The prose must cite the actual assessment_run_id.",
+            "citation_assessment_coverage",
+            all(
+                historical_claim_link(
+                    answer.answer,
+                    [assessment["assessment_run_id"], result["result_id"]],
+                    [result["compliance_status"], str(result.get("actual_value"))],
+                )
+                for result in assessment.get("results", [])
+            )
+            and (
+                bool(assessment.get("results")) or assessment["assessment_run_id"] in answer.answer
+            ),
+            "Each displayed current result needs an adjacent valid claim link.",
         )
     known_sources = {(source.document_id, source.citation) for source in answer.sources}
     for document_id in case.required_document_ids:
         check(
             f"source_citation:{document_id}",
             any(
-                doc == document_id and doc in answer.answer and cite in answer.answer
+                doc == document_id
+                and historical_claim_link(
+                    answer.answer,
+                    [doc, cite],
+                    [
+                        word
+                        for call in answer.tool_trace
+                        if isinstance(call.outcome, list)
+                        for item in call.outcome
+                        if getattr(item, "document_id", None) == doc
+                        for word in getattr(item, "text", "").split()
+                        if len(word) > 4
+                    ],
+                )
                 for doc, cite in known_sources
             ),
             "Require the exact document ID and returned citation in the prose.",
@@ -279,6 +317,20 @@ def check_answer(case: Scenario, answer: AgentAnswer) -> list[dict]:
     for marker in case.forbidden_output:
         check(f"forbidden_output:{marker}", marker.casefold() not in answer.answer.casefold())
     return checks
+
+
+def historical_citation_score(answer: AgentAnswer) -> dict:
+    """Preserve v1 prose-only scoring as a named, non-gating historical metric."""
+    runs = [
+        call.outcome.assessment_run_id
+        for call in answer.tool_trace
+        if hasattr(call.outcome, "assessment_run_id")
+    ]
+    return {
+        "name": "historical_prose_only_v1",
+        "passed": sum(r in answer.answer for r in runs),
+        "denominator": len(runs),
+    }
 
 
 def verdict(answer: AgentAnswer | None, checks: list[dict], grade: dict) -> str:
@@ -326,17 +378,11 @@ async def evaluate_case(case, folder, args, judge, inputs):
     grade = {"label": None, "reason": "No completed answer.", "failure_tags": []}
     judge_started = time.monotonic()
     if answer and answer.complete and not answer.error:
-        packet = {
-            "question": case.question,
-            "expected_behavior": case.expected_behavior,
-            "borrower_id": case.borrower_id,
-            "ticker": case.ticker,
-            "agent_answer_and_actual_evidence": payload,
-        }
-        save_json(folder / "judge-input.json", packet)
         try:
+            packet = judge_packet(case, answer)
+            save_json(folder / "judge-input.json", packet)
             async with asyncio.timeout(args.judge_timeout):
-                judged = await judge.run(json.dumps(packet, ensure_ascii=False))
+                judged = await judge.run(json.dumps(packet, ensure_ascii=False), deps=packet)
             grade = judged.output.model_dump()
             grade["usage"] = judged.usage.opentelemetry_attributes()
         except Exception as exc:
@@ -347,6 +393,8 @@ async def evaluate_case(case, folder, args, judge, inputs):
             }
     grade["duration_seconds"] = round(time.monotonic() - judge_started, 3)
     grade["response_sha256"] = response_sha256
+    grade["evaluator_version"] = EVALUATOR_VERSION
+    grade["rubric_version"] = RUBRIC_VERSION
     save_json(folder / "judge.json", grade)
     result = {
         "scenario_id": case.scenario_id,
@@ -370,6 +418,10 @@ async def evaluate_case(case, folder, args, judge, inputs):
         "judge_reason": grade["reason"],
         "failure_tags_json": json.dumps(grade["failure_tags"]),
         "response_sha256": response_sha256,
+        "evaluator_version": EVALUATOR_VERSION,
+        "dimensions": dimension_scores(checks, grade),
+        "historical_citations": historical_citation_score(answer) if answer else None,
+        "usage": answer.usage if answer and hasattr(answer, "usage") else None,
         "model": args.model,
         "judge_model": args.judge_model,
         "evidence_path": f"cases/{case.scenario_id}/answer.json",
@@ -446,6 +498,7 @@ async def run_batch(args, cases):
             "judge_model": args.judge_model,
             "prompt_version": CREDIT_ASSESSMENT_PROMPT_VERSION,
             "rubric_version": RUBRIC_VERSION,
+            "evaluator_version": EVALUATOR_VERSION,
             "judge_instructions": JUDGE_INSTRUCTIONS,
             "scenario_sha256": fingerprint(args.scenarios),
             "selected_ids": [case.scenario_id for case in cases],
@@ -470,6 +523,24 @@ async def run_batch(args, cases):
         retries=1,
     )
     judge.instrument = False
+
+    @judge.output_validator
+    def validate_grade(ctx: RunContext[dict], output: Grade) -> Grade:
+        try:
+            validate_findings(output.findings, ctx.deps)
+            labels = {f.verdict for f in output.findings}
+            expected = (
+                "fail"
+                if "fail" in labels
+                else "insufficient_evidence"
+                if "insufficient_evidence" in labels
+                else "pass"
+            )
+            if output.label != expected:
+                raise ValueError("Overall label must match individual requirement findings.")
+        except ValueError as exc:
+            raise ModelRetry(str(exc)) from exc
+        return output
 
     async def bounded(case):
         async with semaphore:

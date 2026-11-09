@@ -1,0 +1,2 @@
+document_id,company,ticker,document_type,source_url,document_date,period_end,notes
+RESERVE_2026,Reserve Issuer,RESERVE,update,https://example.invalid/reserve/2026,2026-06-30,2026-06-30,

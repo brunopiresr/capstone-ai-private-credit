@@ -1,0 +1,44 @@
+{
+  "status": "sealed; answers must not inform tuning",
+  "created_at": "2026-11-09",
+  "development_ids": 60,
+  "reserved_ids": [
+    "R01",
+    "R02",
+    "R03",
+    "R04",
+    "R05",
+    "R06",
+    "R07",
+    "R08",
+    "R09",
+    "R10",
+    "R11",
+    "R12",
+    "R13",
+    "R14",
+    "R15",
+    "R16",
+    "R17",
+    "R18",
+    "R19",
+    "R20"
+  ],
+  "families": [
+    "reserved_absent_measurement",
+    "reserved_announcement_timing",
+    "reserved_conditional_consent",
+    "reserved_early_period",
+    "reserved_liquidity_units",
+    "reserved_maturity",
+    "reserved_multi_period",
+    "reserved_restatement",
+    "reserved_unseen_basis",
+    "reserved_unseen_coverage"
+  ],
+  "files": {
+    "reserved.csv": "59abd6397afa73034a20858acb7e7ed0d7f17f9238497bd0eb8a0eeda69c2bd6",
+    "sources/RESERVE_2026.md": "63d04105f54adef1b3b406e1079531d95021911168d61e8a467be970c2e8c47c",
+    "sources/catalog.csv": "b028c5cd47b6e149dca90c373777ad33a7f2f17823b9cbe512d5c92dc0c5ff2a"
+  }
+}

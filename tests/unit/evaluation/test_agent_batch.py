@@ -192,7 +192,8 @@ async def test_batch_saves_actual_answers_judgments_and_execution_errors(tmp_pat
     assert await run_batch(args, cases) == 1
     with (args.output / "results.csv").open(newline="") as file:
         rows = {row["scenario_id"]: row for row in csv.DictReader(file)}
-    assert rows["O01"]["judge_label"] == "pass"
+    # A synthetic judge without per-requirement excerpts cannot earn a pass.
+    assert rows["O01"]["status"] == "needs_review"
     assert rows["O02"]["status"] == "execution_error"
     assert rows["O02"]["error"] == "TimeoutError"
     answer_path = args.output / "cases" / "O01" / "answer.json"
