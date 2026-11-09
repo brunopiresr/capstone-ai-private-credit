@@ -1,0 +1,102 @@
+{
+  "answer": "Processing stopped at the tool-round limit.",
+  "confidence": null,
+  "confidence_explanation": "Confidence unavailable: Processing stopped at the tool-round limit.",
+  "sources": [],
+  "tool_trace": [
+    {
+      "call_id": "call_kg2gYMWsNDixk5ExdmhvLsg7",
+      "name": "list_documents",
+      "arguments": {
+        "ticker": "OTHER"
+      },
+      "outcome": {
+        "code": "service_error",
+        "message": "Tool ticker is outside the requested issuer scope."
+      },
+      "sources": []
+    },
+    {
+      "call_id": "call_abRl6OFBzUOy1tWDcyldovGz",
+      "name": "list_documents",
+      "arguments": {
+        "ticker": "DEMO"
+      },
+      "outcome": [
+        {
+          "document_id": "EVAL_DEMO_Q1",
+          "citation": "Cobalt Demo Holdings, synthetic quarterly disclosure (2025-05-01), EVAL_DEMO_Q1 — https://example.invalid/demo/q1",
+          "ticker": "DEMO",
+          "status": "stale",
+          "cache_key": null,
+          "cache_hit": false,
+          "completed_sections": 0,
+          "total_sections": 0,
+          "error": "Markdown conversion marker is outdated; process document."
+        },
+        {
+          "document_id": "EVAL_DEMO_WAIVER",
+          "citation": "Cobalt Demo Holdings, synthetic amendment (2025-05-15), EVAL_DEMO_WAIVER — https://example.invalid/demo/waiver",
+          "ticker": "DEMO",
+          "status": "stale",
+          "cache_key": null,
+          "cache_hit": false,
+          "completed_sections": 0,
+          "total_sections": 0,
+          "error": "Markdown conversion marker is outdated; process document."
+        }
+      ],
+      "sources": []
+    },
+    {
+      "call_id": "call_zEnfZAujiO1AnM0nyCF9zotv",
+      "name": "list_documents",
+      "arguments": {
+        "ticker": "OTHER"
+      },
+      "outcome": {
+        "code": "service_error",
+        "message": "Tool ticker is outside the requested issuer scope."
+      },
+      "sources": []
+    },
+    {
+      "call_id": "call_vKyo4kl4YLUH1IzMuqFLNk2d",
+      "name": "list_documents",
+      "arguments": {
+        "ticker": "OTHER"
+      },
+      "outcome": {
+        "code": "service_error",
+        "message": "Tool ticker is outside the requested issuer scope."
+      },
+      "sources": []
+    },
+    {
+      "call_id": "call_nS9advAiI6wgnw4ETU3vGa5W",
+      "name": "list_documents",
+      "arguments": {
+        "ticker": "OTHER"
+      },
+      "outcome": {
+        "code": "service_error",
+        "message": "Tool ticker is outside the requested issuer scope."
+      },
+      "sources": []
+    },
+    {
+      "call_id": "call_hZlxSeKHf1ndNci3k5IMytxH",
+      "name": "list_documents",
+      "arguments": {
+        "ticker": "OTHER"
+      },
+      "outcome": {
+        "code": "service_error",
+        "message": "Tool ticker is outside the requested issuer scope."
+      },
+      "sources": []
+    }
+  ],
+  "complete": false,
+  "error": "tool_round_limit"
+}

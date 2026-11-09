@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states that the leverage compliance for SYN033 as of 2025-06-30 is incomplete due to missing EBITDA data. It does not impute zero or fill in EBITDA from other periods. The maximum leverage threshold of 4.5x is cited with calculation ID 'bundle_v1'. The report clearly identifies the missing EBITDA as the reason for incomplete compliance and provides detailed evidence from the tool trace, including source files and rows. The answer aligns fully with the expected behavior without unsupported claims or reference gaps.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 4644,
+    "gen_ai.usage.output_tokens": 117,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.193,
+  "response_sha256": "ca4cf27d8a9d7874ce9b51dc89aa9b26185afa6c3c50a38b72682c71782a8509"
+}

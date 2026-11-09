@@ -1,0 +1,9 @@
+{
+  "answer": "Both the reporting date and the information cutoff must be provided for an accurate assessment. Please supply both dates, and I will proceed with the evaluation.",
+  "confidence": "low",
+  "confidence_explanation": "The request did not include the necessary inputs for the assessment.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

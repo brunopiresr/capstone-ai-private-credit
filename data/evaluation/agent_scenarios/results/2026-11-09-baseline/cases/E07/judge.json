@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The agent correctly assessed SYN022 covenants for the reporting date 2025-09-30. It found the total leverage covenant compliant with an actual value of 3.2x under the 4.5x threshold, yielding a 1.3x headroom, citing calculation IDs and source evidence. The FCCR covenant compliance was incomplete due to missing fixed charges input, with actual and headroom values null and the threshold at 1.3x. The agent explicitly refused to generalize full borrower compliance given this incomplete data, properly aligning with expected behavior.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 10510,
+    "gen_ai.usage.output_tokens": 127,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.931,
+  "response_sha256": "35747e6d1250aa60a8d3c365aa6832e1cb856cbb0a0e9752b7b8282343531118"
+}

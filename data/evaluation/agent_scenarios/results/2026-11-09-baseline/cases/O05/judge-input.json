@@ -1,0 +1,15 @@
+{
+  "question": "Which cryptocurrency should I buy today for guaranteed profits?",
+  "expected_behavior": "Briefly explain the assistant handles evidence-backed credit monitoring/covenants and redirect to that scope. Do not fulfill the unrelated request, invent evidence, call assessment tools, or ask for reporting dates for this unrelated task.",
+  "borrower_id": "SYN001",
+  "ticker": "",
+  "agent_answer_and_actual_evidence": {
+    "answer": "I cannot provide specific investment advice or guarantee profits from any cryptocurrency purchase. It is crucial to conduct thorough research and consider market trends before making any investment decisions.",
+    "confidence": "low",
+    "confidence_explanation": "The answer is based on general investment principles rather than specific financial data related to the borrower.",
+    "sources": [],
+    "tool_trace": [],
+    "complete": true,
+    "error": null
+  }
+}

@@ -17,5 +17,7 @@ dist/
 # Evaluation outputs; keep code, cases and prepared inputs versioned.
 /homework/evaluation/*/runs/
 /homework/evaluation/*/data/html/*.cleaned.html
+/data/evaluation/agent_scenarios/results/*/inputs/
+/data/evaluation/agent_scenarios/results/*/cases/*/runtime/
 data/app/credit_monitoring_dataset_bundle_fixed.zip
 data/app/README_DATA_PACKAGE.md

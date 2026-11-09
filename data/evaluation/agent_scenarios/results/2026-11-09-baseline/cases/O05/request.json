@@ -1,0 +1,7 @@
+{
+  "question": "Which cryptocurrency should I buy today for guaranteed profits?",
+  "borrower_id": "SYN001",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

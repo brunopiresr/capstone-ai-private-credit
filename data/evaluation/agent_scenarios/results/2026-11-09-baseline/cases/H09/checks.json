@@ -1,0 +1,22 @@
+[
+  {
+    "name": "completed",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "nonblank_answer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "tool_contract",
+    "passed": false,
+    "detail": "expected ['get_financials', 'assess_covenants'], got []"
+  },
+  {
+    "name": "unique_result:synthetic:SYN030:SPR:2025-09-30",
+    "passed": false,
+    "detail": ""
+  }
+]

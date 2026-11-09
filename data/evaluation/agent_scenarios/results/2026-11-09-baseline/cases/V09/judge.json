@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly reports SYN002's current net leverage compliance status with precise calculations (5.1923x versus 5.5x threshold, headroom 0.3077x) citing calculation version v1 and covenant details. It appropriately discloses that the configured predictor is a stub and thus no next-quarter breach probability is available or known, not assuming zero risk. Confidence is reasonably explained as medium due to lack of quantitative forecast. All claims align with captured tool evidence and expected behavior without unsupported statements or scope errors.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6802,
+    "gen_ai.usage.output_tokens": 118,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.798,
+  "response_sha256": "ab41596c426061ba8827ed5d0aa0d9d2d1d0bd1d2d6227a8bcaabc7917a6379d"
+}

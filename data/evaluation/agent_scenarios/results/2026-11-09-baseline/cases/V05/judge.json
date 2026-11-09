@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states that the springing covenant for SYN029 is inactive because revolver availability is exactly at 25%, not below it, as per the springing trigger condition. The status is correctly identified as 'not tested' with null actual and headroom values. The agent properly did not call this a compliance or breach issue. The calculation version 'bundle_v1' and covenant details are cited in the tool trace evidence, fulfilling the requirement to cite calculation IDs. The reporting date and information cutoff are respected, and no unsupported claims or missing limitations are present.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6336,
+    "gen_ai.usage.output_tokens": 125,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.108,
+  "response_sha256": "6098bc8398398add78e80746566ab4fd9ce13822d701a68e1128a7a139d1cbfe"
+}

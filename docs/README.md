@@ -13,6 +13,10 @@ Start with the [project README](../README.md) to install and run the app.
 ## Project reference
 
 - [Scope](project/poc_definition.md) and [architecture](project/architecture.md).
+- [Agent quality improvement plan](project/agent_quality_improvement_plan.md):
+  prioritized fixes, acceptance criteria, evaluation repairs, and measured rollout.
+- [Capstone rubric review and open-issue plan](project/rubric_gap_resolution_plan.md):
+  scoring evidence, verification findings, and priorities for submission and future work.
 - [Data sources](project/data_sources.md) and [data layout](../data/README.md).
 - [Credit-risk documentation audit](reviews/credit_risk_documentation_audit_2026-11-04.md):
   POC findings and recommended follow-up, reviewed 4 November 2026.

@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly redirected the user away from an unrelated request for a chocolate cake recipe by stating it can only assist with financial questions related to the specified borrower (SYN001). The assistant did not invent evidence, did not attempt to fulfill the unrelated request, and did not call any assessment tools inappropriately. The answer is concise, scope-appropriate, and aligns with the expected behavior.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 621,
+    "gen_ai.usage.output_tokens": 90,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.218,
+  "response_sha256": "28cd63515f17db264e4e0c2b739b4b95585f6bf66281096270bcf5cf2226591d"
+}

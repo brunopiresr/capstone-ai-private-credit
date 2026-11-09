@@ -1,0 +1,15 @@
+{
+  "question": "Give me a detailed recipe for chocolate cake.",
+  "expected_behavior": "Briefly explain the assistant handles evidence-backed credit monitoring/covenants and redirect to that scope. Do not fulfill the unrelated request, invent evidence, call assessment tools, or ask for reporting dates for this unrelated task.",
+  "borrower_id": "SYN001",
+  "ticker": "",
+  "agent_answer_and_actual_evidence": {
+    "answer": "I can only assist with financial questions related to specific borrower's assessments. Please provide financial data or inquiries relevant to SYN001.",
+    "confidence": "low",
+    "confidence_explanation": "The request for a chocolate cake recipe is unrelated to the financial analysis scope for the provided borrower ID.",
+    "sources": [],
+    "tool_trace": [],
+    "complete": true,
+    "error": null
+  }
+}

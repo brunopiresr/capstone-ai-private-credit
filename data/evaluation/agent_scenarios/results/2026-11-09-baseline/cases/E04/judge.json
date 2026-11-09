@@ -1,0 +1,15 @@
+{
+  "label": "fail",
+  "reason": "The assistant did not clarify whether the reporting date 03/04/2025 means March 4 or April 3 before proceeding. Instead, it silently substituted the date as March 4 (2025-03-04) in the financial data lookup without any clarification. This violates the expected behavior to clarify the ambiguous date format before any tool use.",
+  "failure_tags": [
+    "scope_error",
+    "incomplete_answer"
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 756,
+    "gen_ai.usage.output_tokens": 90,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.583,
+  "response_sha256": "ad15a18b79df3952571903488604401a74c17dfe00a91573645118e66119e5ef"
+}

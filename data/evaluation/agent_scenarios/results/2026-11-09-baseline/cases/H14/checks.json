@@ -1,0 +1,57 @@
+[
+  {
+    "name": "completed",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "nonblank_answer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "tool_contract",
+    "passed": true,
+    "detail": "expected ['get_financials', 'predict_risk'], got ['get_financials', 'predict_risk']"
+  },
+  {
+    "name": "dates:get_financials",
+    "passed": true,
+    "detail": "{'period_end': '2025-09-30', 'information_cutoff': '2025-09-30'}"
+  },
+  {
+    "name": "borrower:get_financials",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "dates:predict_risk",
+    "passed": true,
+    "detail": "{'period_end': '2025-09-30', 'information_cutoff': '2025-09-30'}"
+  },
+  {
+    "name": "borrower:predict_risk",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "assessment:ml_status",
+    "passed": true,
+    "detail": "expected 'complete', got 'complete'"
+  },
+  {
+    "name": "assessment:prediction.model_name",
+    "passed": true,
+    "detail": "expected 'logistic_regression', got 'logistic_regression'"
+  },
+  {
+    "name": "assessment:prediction.horizon_quarters",
+    "passed": true,
+    "detail": "expected 1, got 1"
+  },
+  {
+    "name": "assessment_citation",
+    "passed": false,
+    "detail": "The prose must cite the actual assessment_run_id."
+  }
+]

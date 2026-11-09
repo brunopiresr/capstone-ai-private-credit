@@ -72,3 +72,9 @@ make lint
 
 See [evaluation](docs/homework/evaluation.md) for optional ML, live, and judge checks.
 Offline tests check behavior; they do not measure live answer quality.
+
+The [60-scenario live evaluation](data/evaluation/agent_scenarios/README.md) includes
+the scenario CSV, saved answers and traces, and a report of the observed failures.
+
+See the [capstone rubric review and open-issue plan](docs/project/rubric_gap_resolution_plan.md)
+for current evidence, verification findings, and prioritized follow-up work.

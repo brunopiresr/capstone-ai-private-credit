@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The response reports the next-quarter logistic regression breach probability (0.0019) for borrower SYN016 as of the specified date 2025-09-30, with model details including name (logistic_regression), version (v1), and snapshot_id. It distinguishes the forecast from current compliance status by showing the actual leverage vs threshold and compliance status. The answer explicitly acknowledges the model is trained on synthetic borrower histories and notes unknown source availability dates, thus disclosing model limitations and reliability concerns. No guarantees or invented claims are made. Assessment run ID and snapshot ID are cited, meeting all material requirements of expected behavior.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 7076,
+    "gen_ai.usage.output_tokens": 137,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.03,
+  "response_sha256": "55e80e3eac862452afb4bcb1ee1aba5c72caaf4a0ce8ae575575bce069c6b133"
+}

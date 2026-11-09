@@ -1,0 +1,7 @@
+{
+  "question": "Assess SYN001 at the exact period requested; do not substitute an earlier record. Reporting date: 2030-03-31. Information cutoff: 2030-03-31.",
+  "borrower_id": "SYN001",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

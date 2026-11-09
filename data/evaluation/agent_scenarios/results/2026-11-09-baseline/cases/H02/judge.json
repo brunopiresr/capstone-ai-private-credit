@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly reports current compliance with net leverage at 5.1923x versus a threshold of 5.5x, and positive headroom at about 0.3077x. It also accurately describes the deteriorating trend in historical headroom with quarterly tradeoffs and cites the relevant calculation IDs and covenant details without inventing forecasts or implying absence of risk. The answer is clear, accurate, and supported by the tool trace evidence including detailed covenant assessment and financials. Minor information availability date warnings do not impact substantive correctness.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6290,
+    "gen_ai.usage.output_tokens": 119,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.873,
+  "response_sha256": "d94c52c72845b4d951fea06aa68e14a184f92b00d883aed11bd333f792a2706e"
+}

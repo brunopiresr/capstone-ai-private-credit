@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly identifies that zero EBITDA as the denominator invalidates leverage ratio calculation, citing the leverage covenant threshold of 4.5x. It reports null actual leverage and headroom, compliance status as 'incomplete', and explains the zero EBITDA issue. Calculation IDs and covenant terms are cited from the tool evidence (calculation_version 'bundle_v1' and covenant term row 43). The answer respects the reporting date (2025-03-31) and information cutoff (2025-03-31). No unsupported claims or errors detected.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2964,
+    "gen_ai.usage.output_tokens": 122,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.846,
+  "response_sha256": "3a7b7ec8487f0ef2953665df803e07a871ad00d3a0d5a095c88a723e092cc97b"
+}

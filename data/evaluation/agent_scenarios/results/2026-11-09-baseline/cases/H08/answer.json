@@ -1,0 +1,590 @@
+{
+  "answer": "As of the reporting date of 2025-09-30, the springing test for SYN029 is **not tested** because the compliance status indicates that the actual value needed for the assessment is unavailable. The covenants are structured to test total leverage, which has a threshold of **4.0 x** under the condition of below **25% availability**. However, since the actual leverage ratio has not been calculated or reported due to untested status, compliance cannot be determined. Therefore, SYN029 currently remains compliant as it is not in breach. The testing condition is inactive at this time, with previous periods showing similar instances of being untested.",
+  "confidence": "medium",
+  "confidence_explanation": "The assessment results indicate testing status as inactive and lack actual reported values, leading to a medium confidence level due to material limitations in how compliance can be verified.",
+  "sources": [],
+  "tool_trace": [
+    {
+      "call_id": "call_poIqjHvpMQSWQLjWXAUuCRuY",
+      "name": "get_financials",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "borrower_id": "SYN029",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "current": {
+          "borrower_id": "SYN029",
+          "period_end": "2025-09-30",
+          "metrics": {
+            "total_debt": 500.0,
+            "cash": 25.0,
+            "reported_ebitda": 100.0,
+            "eligible_addbacks": 0.0,
+            "cash_interest": null,
+            "capex": null,
+            "cash_taxes": null,
+            "scheduled_principal": null,
+            "rent": null,
+            "revolver_availability_pct": 25.0,
+            "acquired_ebitda": 0.0,
+            "synergy_addback": 0.0,
+            "financials_debt": null,
+            "compliance_certificate_debt": null,
+            "interest_expense": 30.0,
+            "fixed_charge_numerator": 120.0,
+            "fixed_charges": 80.0
+          },
+          "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+          "source_row": 122,
+          "loaded_at": "2026-11-09T13:35:48.815Z",
+          "available_at": null,
+          "currency": "USD",
+          "scale": "millions",
+          "debt_source_status": "RECONCILED"
+        },
+        "history": [
+          {
+            "borrower_id": "SYN029",
+            "period_end": "2025-03-31",
+            "metrics": {
+              "total_debt": 500.0,
+              "cash": 25.0,
+              "reported_ebitda": 100.0,
+              "eligible_addbacks": 0.0,
+              "cash_interest": null,
+              "capex": null,
+              "cash_taxes": null,
+              "scheduled_principal": null,
+              "rent": null,
+              "revolver_availability_pct": 30.0,
+              "acquired_ebitda": 0.0,
+              "synergy_addback": 0.0,
+              "financials_debt": null,
+              "compliance_certificate_debt": null,
+              "interest_expense": 30.0,
+              "fixed_charge_numerator": 120.0,
+              "fixed_charges": 80.0
+            },
+            "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+            "source_row": 120,
+            "loaded_at": "2026-11-09T13:35:48.815Z",
+            "available_at": null,
+            "currency": "USD",
+            "scale": "millions",
+            "debt_source_status": "RECONCILED"
+          },
+          {
+            "borrower_id": "SYN029",
+            "period_end": "2025-06-30",
+            "metrics": {
+              "total_debt": 500.0,
+              "cash": 25.0,
+              "reported_ebitda": 100.0,
+              "eligible_addbacks": 0.0,
+              "cash_interest": null,
+              "capex": null,
+              "cash_taxes": null,
+              "scheduled_principal": null,
+              "rent": null,
+              "revolver_availability_pct": 26.0,
+              "acquired_ebitda": 0.0,
+              "synergy_addback": 0.0,
+              "financials_debt": null,
+              "compliance_certificate_debt": null,
+              "interest_expense": 30.0,
+              "fixed_charge_numerator": 120.0,
+              "fixed_charges": 80.0
+            },
+            "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+            "source_row": 121,
+            "loaded_at": "2026-11-09T13:35:48.815Z",
+            "available_at": null,
+            "currency": "USD",
+            "scale": "millions",
+            "debt_source_status": "RECONCILED"
+          }
+        ],
+        "issues": [
+          "Source availability dates are unknown; load times are not publication dates."
+        ]
+      },
+      "sources": []
+    },
+    {
+      "call_id": "call_dqGQSrwjkrq8bPETCzSBXBWL",
+      "name": "assess_covenants",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "assessment_run_id": "c23414b6-4433-4410-befe-271514123499",
+        "borrower_id": "SYN029",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "results": [
+          {
+            "result_id": "b2d18434-3ffd-45ae-9684-4d5a16b9105f",
+            "assessment_run_id": "c23414b6-4433-4410-befe-271514123499",
+            "borrower_id": "SYN029",
+            "agreement_id": "synthetic:SYN029",
+            "covenant_id": "synthetic:SYN029:SPR",
+            "covenant_version": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd",
+            "covenant_type": "total_leverage",
+            "period_end": "2025-09-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": null,
+            "threshold": 4.0,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": null,
+            "compliance_status": "not_tested",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN029",
+              "agreement_id": "synthetic:SYN029",
+              "covenant_id": "synthetic:SYN029:SPR",
+              "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+              "covenant_type": "total_leverage",
+              "covenant_version": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd",
+              "period_end": "2025-09-30",
+              "threshold": 4.0,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "total_leverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "inactive",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 37,
+                  "source_values": {
+                    "borrower_id": "SYN029",
+                    "covenant_id": "SPR",
+                    "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "TOTAL_LEVERAGE",
+                    "operator": "<=",
+                    "threshold": "4.0",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": "25"
+                  },
+                  "source_hash": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN029",
+                "period_end": "2025-09-30",
+                "metrics": {
+                  "total_debt": 500.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 25.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": 80.0
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 122,
+                "loaded_at": "2026-11-09T13:35:48.815Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "unavailable"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                "source_row": 37,
+                "source_values": {
+                  "borrower_id": "SYN029",
+                  "covenant_id": "SPR",
+                  "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "TOTAL_LEVERAGE",
+                  "operator": "<=",
+                  "threshold": "4.0",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": "25"
+                },
+                "source_hash": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T13:35:51.730435Z"
+          }
+        ],
+        "history": [
+          {
+            "result_id": "8b248286-92af-45e2-9a27-b4fad9fcc802",
+            "assessment_run_id": "c23414b6-4433-4410-befe-271514123499",
+            "borrower_id": "SYN029",
+            "agreement_id": "synthetic:SYN029",
+            "covenant_id": "synthetic:SYN029:SPR",
+            "covenant_version": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd",
+            "covenant_type": "total_leverage",
+            "period_end": "2025-03-31",
+            "information_cutoff": "2025-09-30",
+            "actual_value": null,
+            "threshold": 4.0,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": null,
+            "compliance_status": "not_tested",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN029",
+              "agreement_id": "synthetic:SYN029",
+              "covenant_id": "synthetic:SYN029:SPR",
+              "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+              "covenant_type": "total_leverage",
+              "covenant_version": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd",
+              "period_end": "2025-03-31",
+              "threshold": 4.0,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "total_leverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "inactive",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 37,
+                  "source_values": {
+                    "borrower_id": "SYN029",
+                    "covenant_id": "SPR",
+                    "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "TOTAL_LEVERAGE",
+                    "operator": "<=",
+                    "threshold": "4.0",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": "25"
+                  },
+                  "source_hash": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN029",
+                "period_end": "2025-03-31",
+                "metrics": {
+                  "total_debt": 500.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 30.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": 80.0
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 120,
+                "loaded_at": "2026-11-09T13:35:48.815Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "unavailable"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                "source_row": 37,
+                "source_values": {
+                  "borrower_id": "SYN029",
+                  "covenant_id": "SPR",
+                  "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "TOTAL_LEVERAGE",
+                  "operator": "<=",
+                  "threshold": "4.0",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": "25"
+                },
+                "source_hash": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T13:35:51.729892Z"
+          },
+          {
+            "result_id": "fdb278c1-4516-4431-b7ad-dae7ed7dcb7f",
+            "assessment_run_id": "c23414b6-4433-4410-befe-271514123499",
+            "borrower_id": "SYN029",
+            "agreement_id": "synthetic:SYN029",
+            "covenant_id": "synthetic:SYN029:SPR",
+            "covenant_version": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd",
+            "covenant_type": "total_leverage",
+            "period_end": "2025-06-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": null,
+            "threshold": 4.0,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": null,
+            "compliance_status": "not_tested",
+            "calculation_version": "bundle_v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN029",
+              "agreement_id": "synthetic:SYN029",
+              "covenant_id": "synthetic:SYN029:SPR",
+              "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+              "covenant_type": "total_leverage",
+              "covenant_version": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd",
+              "period_end": "2025-06-30",
+              "threshold": 4.0,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "total_leverage",
+              "calculation_contract": "bundle_v1",
+              "measurement_basis": "Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "inactive",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 37,
+                  "source_values": {
+                    "borrower_id": "SYN029",
+                    "covenant_id": "SPR",
+                    "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+                    "effective_start": "2025-03-31",
+                    "effective_end": "2026-06-30",
+                    "metric_formula": "TOTAL_LEVERAGE",
+                    "operator": "<=",
+                    "threshold": "4.0",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "bundle_v1",
+                    "waived_periods": "[]",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": "25"
+                  },
+                  "source_hash": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN029",
+                "period_end": "2025-06-30",
+                "metrics": {
+                  "total_debt": 500.0,
+                  "cash": 25.0,
+                  "reported_ebitda": 100.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": 26.0,
+                  "acquired_ebitda": 0.0,
+                  "synergy_addback": 0.0,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": 30.0,
+                  "fixed_charge_numerator": 120.0,
+                  "fixed_charges": 80.0
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 121,
+                "loaded_at": "2026-11-09T13:35:48.815Z",
+                "available_at": null,
+                "currency": "USD",
+                "scale": "millions",
+                "debt_source_status": "RECONCILED"
+              },
+              "result_basis": "unavailable"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                "source_row": 37,
+                "source_values": {
+                  "borrower_id": "SYN029",
+                  "covenant_id": "SPR",
+                  "covenant_name": "Springing maximum total leverage, tested below 25% availability",
+                  "effective_start": "2025-03-31",
+                  "effective_end": "2026-06-30",
+                  "metric_formula": "TOTAL_LEVERAGE",
+                  "operator": "<=",
+                  "threshold": "4.0",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "bundle_v1",
+                  "waived_periods": "[]",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": "25"
+                },
+                "source_hash": "1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T13:35:51.730212Z"
+          }
+        ],
+        "trends": {
+          "borrower_id": "SYN029",
+          "period_end": "2025-09-30",
+          "information_cutoff": "2025-09-30",
+          "feature_schema_version": "v1",
+          "covenants": [
+            {
+              "covenant_id": "synthetic:SYN029:SPR",
+              "covenant_type": "total_leverage",
+              "actual_value": null,
+              "threshold": 4.0,
+              "headroom": null,
+              "compliance_status": "not_tested",
+              "metric_change_qoq": null,
+              "headroom_change_qoq": null,
+              "threshold_change_qoq": 0.0,
+              "basis_changed": false,
+              "previous_breach": null,
+              "previous_waiver": false
+            }
+          ],
+          "reported_ebitda_growth_qoq": 0.0,
+          "reported_ebitda_growth_yoy": null,
+          "total_debt_growth_qoq": 0.0,
+          "total_debt_growth_yoy": null,
+          "liquidity": null,
+          "liquidity_change_qoq": null,
+          "information_availability_known": false
+        },
+        "feature_snapshot": null,
+        "prediction": null,
+        "ml_status": "disabled",
+        "narrative": "synthetic:SYN029:SPR: not_tested; unavailable actual unavailable.",
+        "issues": [
+          "Source availability dates are unknown; point-in-time forecast reliability is not established."
+        ],
+        "verification": {
+          "is_valid": true,
+          "issues": [
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[0]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[1]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[2]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            }
+          ]
+        }
+      },
+      "sources": []
+    }
+  ],
+  "complete": true,
+  "error": null
+}

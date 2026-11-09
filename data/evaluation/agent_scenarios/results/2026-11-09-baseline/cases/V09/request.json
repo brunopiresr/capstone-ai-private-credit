@@ -1,0 +1,7 @@
+{
+  "question": "How likely is SYN002 to trip the test next quarter? Use the configured predictor. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "borrower_id": "SYN002",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

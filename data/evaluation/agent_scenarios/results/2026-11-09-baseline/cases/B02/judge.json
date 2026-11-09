@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The agent correctly rejects uncapped addbacks by applying the 20% cap on EBITDA addbacks as stipulated by the covenant terms. The adjusted EBITDA is consistent with the cap applied (80 + 0.2*55 = 91), and the leverage calculation is 400 / 91 = approximately 4.1667x, which exceeds the maximum allowed 3.5x. The reported headroom of -0.6667x and breach status are correct and cited with calculation and covenant IDs from the tool trace. The answer's prose matches the expected behavior, clearly stating the breach and the leverage ratio calculation. The agent also does not show any uncapped addbacks, complying with the expected behavior to reject them.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6485,
+    "gen_ai.usage.output_tokens": 158,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.587,
+  "response_sha256": "8b744fe821c775fe43d9a247ad8f1c00c6a092d5098880045fac8adcd9ff3ace"
+}

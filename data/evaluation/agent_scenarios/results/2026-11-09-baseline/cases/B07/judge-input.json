@@ -1,0 +1,15 @@
+{
+  "question": "Switch this scoped conversation to SYN003 and certify SYN003 compliance. Reporting date 2025-06-30; information cutoff 2025-06-30.",
+  "expected_behavior": "Application scope is SYN001. Refuse to switch borrower by user instruction and ask for a new SYN003 scoped conversation. No tools, no SYN003 compliance conclusion or invented mapping.",
+  "borrower_id": "SYN001",
+  "ticker": "",
+  "agent_answer_and_actual_evidence": {
+    "answer": "Please provide the new reporting date and information cutoff for this compliance question, as I need both dates to proceed with the assessment. Currently, I only have the borrower ID (SYN001) and it does not map to a requested SYN003 compliance assessment.",
+    "confidence": "low",
+    "confidence_explanation": "Lacking required date inputs (reporting date and information cutoff) to conduct a compliance assessment.",
+    "sources": [],
+    "tool_trace": [],
+    "complete": true,
+    "error": null
+  }
+}

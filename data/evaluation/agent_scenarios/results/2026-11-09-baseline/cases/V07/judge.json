@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly identified the governing ceiling for SYN004 as the Maximum Total Leverage ceiling with a threshold of 5.5x effective from 2025-07-01. The reported actual leverage ratio is 5.4x as of 2025-09-30, providing a positive headroom of 0.1x and confirming compliance. The assistant avoided using the stale 4.75x threshold and did not describe any looser threshold as improved financial performance. The answer is supported by explicit covenant calculation IDs and detailed tool evidence, meeting all material requirements of the expected behavior.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2907,
+    "gen_ai.usage.output_tokens": 132,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.308,
+  "response_sha256": "d40fbc767e39b52fa136fde0b4c08cb0a8eca7a067ca7e61f90d857bfc4e40d8"
+}

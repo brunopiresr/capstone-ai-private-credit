@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly identified the compliance status as incomplete due to conflicting debt sources and explained the issue of material source conflict without selecting a convenient debt source. The threshold of 4.25x and calculation details were cited. The assistant refrained from issuing definitive compliance until the conflicts are reconciled, per the expected behavior. The reasoning references the relevant calculation and notes the need for reconciliation before conclusion, consistent with the evaluation criterion.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2986,
+    "gen_ai.usage.output_tokens": 96,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.885,
+  "response_sha256": "1dbb08c4a252792c32f5055ef24d1754e865e71b0aaed3e0a60d08ec7001b51a"
+}

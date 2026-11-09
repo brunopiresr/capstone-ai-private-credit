@@ -1,0 +1,7 @@
+{
+  "question": "Give SYN001 debt-to-profit ceiling check; I mean the contractual leverage ratio, not a stock valuation. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "borrower_id": "SYN001",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

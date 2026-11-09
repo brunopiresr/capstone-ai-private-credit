@@ -1,0 +1,22 @@
+[
+  {
+    "name": "completed",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "nonblank_answer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "tool_contract",
+    "passed": false,
+    "detail": "expected [], got ['get_financials']"
+  },
+  {
+    "name": "tool_success:get_financials",
+    "passed": false,
+    "detail": "invalid_arguments"
+  }
+]

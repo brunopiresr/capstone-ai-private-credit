@@ -1,0 +1,7 @@
+{
+  "question": "Assess SYN036 springing covenant when trigger data is missing. Reporting date: 2025-06-30. Information cutoff: 2025-06-30.",
+  "borrower_id": "SYN036",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

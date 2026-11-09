@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly applied the contractual cash netting cap of 50 million USD, calculated net leverage as 4.0x, compared it against the maximum threshold of 3.8x, and identified a breach with headroom of -0.2x. The assessment is consistent with the evidence including calculation version and covenant details, which cite the relevant calculation ID (bundle_v1) and covenant version. The reporting date and information cutoff are preserved in the evaluation. The assistant's prose accurately and clearly communicates the compliance breach and cites the specific covenant name and cash netting cap, satisfying the expected behavior fully.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6325,
+    "gen_ai.usage.output_tokens": 135,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.416,
+  "response_sha256": "68bdd5be29522a134e1a16ad0a20fedbb70a2af6c984da0f3623eccbe76d0466"
+}

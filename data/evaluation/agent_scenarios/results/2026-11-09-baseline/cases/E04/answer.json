@@ -1,0 +1,29 @@
+{
+  "answer": "No financial inputs are available for SYN002 for the requested reporting date of 03/04/2025.",
+  "confidence": "low",
+  "confidence_explanation": "There are no financial metrics available for the specified reporting date, which limits the ability to perform a compliance assessment.",
+  "sources": [],
+  "tool_trace": [
+    {
+      "call_id": "call_PdT3ImjaZ9N6heUaFAFgBjaR",
+      "name": "get_financials",
+      "arguments": {
+        "period_end": "2025-03-04",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-04",
+        "information_cutoff": "2025-09-30",
+        "current": null,
+        "history": [],
+        "issues": [
+          "No financial inputs are available for the requested reporting date."
+        ]
+      },
+      "sources": []
+    }
+  ],
+  "complete": true,
+  "error": null
+}

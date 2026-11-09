@@ -1,0 +1,9 @@
+{
+  "answer": "Please provide the information cutoff date to proceed with the assessment.",
+  "confidence": "low",
+  "confidence_explanation": "The request for an assessment requires both a reporting date and an information cutoff date, but only the reporting date was supplied.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

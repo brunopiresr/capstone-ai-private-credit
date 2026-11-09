@@ -1,0 +1,9 @@
+{
+  "answer": "Missing reporting date and information cutoff; please supply both.",
+  "confidence": "low",
+  "confidence_explanation": "The request lacked specific details on reporting and cutoff dates.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

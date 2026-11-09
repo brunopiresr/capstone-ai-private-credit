@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly asked for the missing information cutoff date before proceeding, as required by the expected behavior. It did not silently assume the cutoff equals the reporting date, demonstrating compliance with the instruction.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 599,
+    "gen_ai.usage.output_tokens": 50,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.485,
+  "response_sha256": "75c76ae2c1f60c618697a549ab95a940f439a5c5f9f88409081dc8deb1c33257"
+}

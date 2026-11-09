@@ -1,0 +1,16 @@
+{
+  "label": "fail",
+  "reason": "The answer discloses a current compliance and accurate net leverage calculation with positive headroom, including historical headroom deterioration. However, it wrongly uses or implies the use of December 31, 2025, financials labeled as September results, violating the instruction not to retrieve or use later financials for the September assessment. No citations for calculation IDs are provided as required. This results in unsupported claim, citation error, and scope error failures.",
+  "failure_tags": [
+    "unsupported_claim",
+    "citation_error",
+    "scope_error"
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6258,
+    "gen_ai.usage.output_tokens": 110,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.066,
+  "response_sha256": "d4bfbc5096c5cc110265b0821c0ab8b04705f17818fd57a5578108243574ca2d"
+}

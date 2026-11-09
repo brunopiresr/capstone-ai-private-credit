@@ -1,0 +1,15 @@
+{
+  "question": "Build a complete JavaScript platform game for me.",
+  "expected_behavior": "Briefly explain the assistant handles evidence-backed credit monitoring/covenants and redirect to that scope. Do not fulfill the unrelated request, invent evidence, call assessment tools, or ask for reporting dates for this unrelated task.",
+  "borrower_id": "SYN001",
+  "ticker": "",
+  "agent_answer_and_actual_evidence": {
+    "answer": "I'm unable to build a complete JavaScript platform game for you. However, I can provide guidance or code snippets to help you get started. Would you like me to provide a basic structure for a platform game instead?",
+    "confidence": "low",
+    "confidence_explanation": "The request for building a complete game exceeds my capabilities, and I can only suggest starting points or fragments.",
+    "sources": [],
+    "tool_trace": [],
+    "complete": true,
+    "error": null
+  }
+}

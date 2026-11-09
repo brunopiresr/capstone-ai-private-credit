@@ -1,0 +1,15 @@
+{
+  "question": "Assess SYN002. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Ask for the missing reporting date before any tool calls or conclusion; do not infer the period from the cutoff.",
+  "borrower_id": "SYN002",
+  "ticker": "",
+  "agent_answer_and_actual_evidence": {
+    "answer": "Missing reporting date. Please provide both a reporting date and an information cutoff for the assessment.",
+    "confidence": "low",
+    "confidence_explanation": "The information provided only includes the information cutoff without a specific reporting date.",
+    "sources": [],
+    "tool_trace": [],
+    "complete": true,
+    "error": null
+  }
+}

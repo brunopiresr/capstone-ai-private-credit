@@ -1,0 +1,16 @@
+{
+  "label": "fail",
+  "reason": "The answer incorrectly states reported EBITDA as 25.0 instead of 5, which contradicts the expected behavior. The leverage calculation given (3.75) is inconsistent and conflicts with the final leverage of 5.0 claimed. Important citation IDs from the tool trace are not included in the answer. This causes unsupported_claim and numeric_error failures. Also, the answer's leverage ratio calculation formula contradicts the expected formula 'covenant EBITDA = reported EBITDA (5) + allowed addbacks (5) = 30' and 'total leverage = 150 / 30 = 5.0'.",
+  "failure_tags": [
+    "numeric_error",
+    "unsupported_claim",
+    "citation_error"
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 3115,
+    "gen_ai.usage.output_tokens": 144,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.286,
+  "response_sha256": "0134bcc5f2f1a8397533fa45ccc438e27f45f66373338b721a6b6862fd94cd89"
+}

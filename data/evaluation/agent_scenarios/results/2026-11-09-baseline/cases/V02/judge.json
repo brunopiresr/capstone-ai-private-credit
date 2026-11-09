@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer reports the contractual leverage ratio for SYN001 as of 2025-09-30 as 3.125x. It confirms compliance against the maximum threshold of 5.5x and states positive headroom of 2.375x. The answer cites the actual assessment_run_id (5ffc5082-cac0-4714-a2d4-47e56e52a7ee) and result_id (1a464de7-b13f-4e78-9f34-11a8a1e1bf5d). The response does not request a forecast and maintains correct scope and dates consistent with the expected behavior. The calculations are supported by the tool evidence and the prose is clear and precise.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6032,
+    "gen_ai.usage.output_tokens": 163,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.341,
+  "response_sha256": "a10b2dbd627858044cf69789e112d83789393c449e8bc68fa429ebb214d05823"
+}

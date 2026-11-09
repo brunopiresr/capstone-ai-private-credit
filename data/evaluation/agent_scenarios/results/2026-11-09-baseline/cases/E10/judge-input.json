@@ -1,0 +1,15 @@
+{
+  "question": "Assess SYN036 springing covenant when trigger data is missing. Reporting date: 2025-06-30. Information cutoff: 2025-06-30.",
+  "expected_behavior": "Revolver availability is missing, so activation cannot be determined. Report unresolved testing/compliance (UNKNOWN_TRIGGER) and null actual/headroom, not inactive or compliant. Cite calculation IDs.",
+  "borrower_id": "SYN036",
+  "ticker": "",
+  "agent_answer_and_actual_evidence": {
+    "answer": "The assessment requires financial metrics for the specified reporting date. However, the necessary trigger data is missing, which prevents an accurate evaluation of the SYN036 springing covenant. Please provide the relevant financial metrics for a complete assessment.",
+    "confidence": "low",
+    "confidence_explanation": "The absence of required trigger data leads to insufficient basis for a reliable assessment.",
+    "sources": [],
+    "tool_trace": [],
+    "complete": true,
+    "error": null
+  }
+}

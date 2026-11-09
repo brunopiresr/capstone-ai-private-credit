@@ -1,0 +1,139 @@
+{
+  "overall": {
+    "total": 60,
+    "fail": 50,
+    "pass": 9,
+    "execution_error": 1,
+    "pass_rate": 0.15
+  },
+  "by_category": {
+    "breaking": {
+      "total": 12,
+      "fail": 10,
+      "pass": 1,
+      "execution_error": 1,
+      "pass_rate": 0.0833
+    },
+    "edge_case": {
+      "total": 12,
+      "pass": 3,
+      "fail": 9,
+      "pass_rate": 0.25
+    },
+    "happy_path": {
+      "total": 18,
+      "fail": 18,
+      "pass_rate": 0.0
+    },
+    "out_of_scope": {
+      "total": 6,
+      "pass": 5,
+      "fail": 1,
+      "pass_rate": 0.8333
+    },
+    "varied_phrasing": {
+      "total": 12,
+      "fail": 12,
+      "pass_rate": 0.0
+    }
+  },
+  "by_topic": {
+    "amendments_waivers": {
+      "total": 6,
+      "fail": 6,
+      "pass_rate": 0.0
+    },
+    "compliance_headroom": {
+      "total": 16,
+      "fail": 12,
+      "pass": 4,
+      "pass_rate": 0.25
+    },
+    "cooking": {
+      "total": 1,
+      "pass": 1,
+      "pass_rate": 1.0
+    },
+    "coverage_definitions": {
+      "total": 11,
+      "fail": 11,
+      "pass_rate": 0.0
+    },
+    "creative_writing": {
+      "total": 1,
+      "fail": 1,
+      "pass_rate": 0.0
+    },
+    "evidence_retrieval": {
+      "total": 9,
+      "fail": 8,
+      "execution_error": 1,
+      "pass_rate": 0.0
+    },
+    "general_programming": {
+      "total": 1,
+      "pass": 1,
+      "pass_rate": 1.0
+    },
+    "medical": {
+      "total": 1,
+      "pass": 1,
+      "pass_rate": 1.0
+    },
+    "risk_forecasts": {
+      "total": 5,
+      "fail": 5,
+      "pass_rate": 0.0
+    },
+    "springing_tests": {
+      "total": 7,
+      "fail": 7,
+      "pass_rate": 0.0
+    },
+    "trading": {
+      "total": 1,
+      "pass": 1,
+      "pass_rate": 1.0
+    },
+    "weather": {
+      "total": 1,
+      "pass": 1,
+      "pass_rate": 1.0
+    }
+  },
+  "execution_complete": 59,
+  "deterministic_pass_count": 10,
+  "judge_labels": {
+    "pass": 54,
+    "fail": 5,
+    "unavailable": 1
+  },
+  "failed_check_names": {
+    "assessment_citation": 36,
+    "tool_contract": 6,
+    "unique_result:synthetic:SYN030:SPR:2025-09-30": 1,
+    "source_citation:EVAL_DEMO_Q1": 7,
+    "source_citation:EVAL_DEMO_WAIVER": 1,
+    "tool_success:get_financials": 1,
+    "unique_result:synthetic:SYN036:SPR:2025-06-30": 1,
+    "completed": 1,
+    "tool_success:list_documents": 5,
+    "assessment:ml_status": 1
+  },
+  "failure_tags": {
+    "numeric_error": 1,
+    "unsupported_claim": 3,
+    "citation_error": 2,
+    "scope_error": 3,
+    "incomplete_answer": 2,
+    "irrelevant_answer": 1
+  },
+  "limitations": [
+    "Automated proxy judge, not human-rated or calibrated; same model may share biases.",
+    "Synthetic borrower inputs and fictional retrieval packet; no live SEC extraction.",
+    "One fresh conversation per scenario; this is a baseline, not a holdout estimate.",
+    "Pass requires completed execution, every deterministic check, and judge pass.",
+    "No measured cost: generation token usage is not exposed by the agent facade."
+  ],
+  "finished_at": "2026-11-09T13:37:34.128331+00:00"
+}

@@ -1,0 +1,15 @@
+{
+  "question": "Is SYN002 okay? Use the latest numbers.",
+  "expected_behavior": "Ask explicitly for BOTH reporting date and information cutoff. Make no tool calls and give no compliance conclusion, ratios or guessed latest date.",
+  "borrower_id": "SYN002",
+  "ticker": "",
+  "agent_answer_and_actual_evidence": {
+    "answer": "Missing reporting date and information cutoff. Please provide both dates for a compliance assessment.",
+    "confidence": "low",
+    "confidence_explanation": "No dates were supplied to retrieve financial metrics and conduct the assessment.",
+    "sources": [],
+    "tool_trace": [],
+    "complete": true,
+    "error": null
+  }
+}

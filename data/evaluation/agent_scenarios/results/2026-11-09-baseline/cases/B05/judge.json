@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly identifies that the Fixed Charge Coverage Ratio (FCCR) assessment for SYN010 on 2025-09-30 is incomplete due to missing financial inputs. It correctly notes the threshold of 1.15x activated by availability below 25%, does not treat the old 1.10x ratio as evidence, and does not issue a breach conclusion. The answer aligns with the provided tool trace and evidence, including proper citation of calculation IDs and acknowledgment of incomplete compliance status.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 4462,
+    "gen_ai.usage.output_tokens": 110,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.846,
+  "response_sha256": "aecf01b09e055c3f71c2b7165320e652944b877bd074a1d8a8d47f8d5c3ed7a4"
+}

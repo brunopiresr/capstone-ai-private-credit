@@ -1,0 +1,15 @@
+{
+  "question": "Assess SYN030 springing test despite missing calculation inputs. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "The springing test is inactive at observed availability at or above 25%. Missing calculation inputs do not turn this into active incomplete testing. Report not_tested, null actual/headroom; cite calculation IDs.",
+  "borrower_id": "SYN030",
+  "ticker": "",
+  "agent_answer_and_actual_evidence": {
+    "answer": "Both the reporting date and the information cutoff must be provided for an accurate assessment. Please supply both dates, and I will proceed with the evaluation.",
+    "confidence": "low",
+    "confidence_explanation": "The request did not include the necessary inputs for the assessment.",
+    "sources": [],
+    "tool_trace": [],
+    "complete": true,
+    "error": null
+  }
+}

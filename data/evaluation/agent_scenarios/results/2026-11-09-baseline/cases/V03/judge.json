@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states that SYN008 cannot comfortably cover its interest as the interest coverage ratio is approximately 2.73, below the minimum required 3.0, indicating a breach. The headroom is accurately reported as about -0.27. The answer preserves the minimum direction (>= 3.0) and aligns with the calculation outputs (actual value 2.7273x, headroom -0.2727x) cited from the tool evidence with covenant IDs and calculation version provided. No unsupported claims or scope errors are present.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2867,
+    "gen_ai.usage.output_tokens": 122,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.137,
+  "response_sha256": "f8c7d65b58840600cdd8390709a480f3b5feddbe04009f5a38a07bc7b9797eaf"
+}

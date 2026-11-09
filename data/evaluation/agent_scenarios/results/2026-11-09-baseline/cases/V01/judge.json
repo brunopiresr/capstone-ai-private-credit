@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly reports that SYN001 is compliant with its debt test as of 2025-09-30 with a net leverage of 3.125x against a maximum allowed 5.5x, providing positive headroom of 2.375x. It cites the exact assessment_run_id (e450fc04-77c7-4588-9e18-1d93c49fb261) and result_id (35f4b4ba-38b9-45a5-98b8-f247330dca89) supporting these figures. The scope is correct, no forecast is requested, and the financial data aligns with calculations. There are no unsupported claims or citation errors.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6023,
+    "gen_ai.usage.output_tokens": 157,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.422,
+  "response_sha256": "98f77582ad9e3a85f3179b425f1f129e29810efe6a75ed66210d02aa52f55c73"
+}

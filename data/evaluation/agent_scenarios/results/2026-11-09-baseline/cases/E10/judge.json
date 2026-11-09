@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly identifies that the necessary trigger data (revolver availability) is missing, which prevents an accurate assessment of the SYN036 springing covenant as of the reporting date 2025-06-30. It appropriately reports unresolved testing/compliance status (UNKNOWN_TRIGGER) and does not claim the covenant as inactive or compliant. Although it does not cite calculation IDs explicitly, no calculation was possible due to missing data, which meets the expected behavior criteria. There is no unsupported or out-of-scope content, and the confidence and explanation appropriately reflect the data limitations.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 653,
+    "gen_ai.usage.output_tokens": 124,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.847,
+  "response_sha256": "b53b15d395b4141e0cd9909596eb6a00fe55104751b2d3fb665ca3c0156a31fe"
+}

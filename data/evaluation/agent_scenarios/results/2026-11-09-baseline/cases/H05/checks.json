@@ -1,0 +1,67 @@
+[
+  {
+    "name": "completed",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "nonblank_answer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "tool_contract",
+    "passed": true,
+    "detail": "expected ['get_financials', 'assess_covenants'], got ['get_financials', 'assess_covenants']"
+  },
+  {
+    "name": "dates:get_financials",
+    "passed": true,
+    "detail": "{'period_end': '2025-09-30', 'information_cutoff': '2025-09-30'}"
+  },
+  {
+    "name": "borrower:get_financials",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "dates:assess_covenants",
+    "passed": true,
+    "detail": "{'period_end': '2025-09-30', 'information_cutoff': '2025-09-30'}"
+  },
+  {
+    "name": "borrower:assess_covenants",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "unique_result:synthetic:SYN009:FCCR:2025-09-30",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "result:synthetic:SYN009:FCCR:2025-09-30:compliance_status",
+    "passed": true,
+    "detail": "expected 'compliant', got 'compliant'"
+  },
+  {
+    "name": "result:synthetic:SYN009:FCCR:2025-09-30:actual_value",
+    "passed": true,
+    "detail": "expected 1.2777777777777777, got 1.2777777777777777"
+  },
+  {
+    "name": "result:synthetic:SYN009:FCCR:2025-09-30:threshold",
+    "passed": true,
+    "detail": "expected 1.25, got 1.25"
+  },
+  {
+    "name": "result:synthetic:SYN009:FCCR:2025-09-30:headroom",
+    "passed": true,
+    "detail": "expected 0.02777777777777768, got 0.02777777777777768"
+  },
+  {
+    "name": "assessment_citation",
+    "passed": false,
+    "detail": "The prose must cite the actual assessment_run_id."
+  }
+]

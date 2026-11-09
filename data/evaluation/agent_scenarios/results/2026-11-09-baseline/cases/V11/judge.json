@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly reports the source-disclosed actual total leverage ratio of 4.77x and the maximum allowed total leverage ratio of 5.50x for DEMO on March 31, 2025. It keeps the actual and allowed figures separate, does not reconstruct the ratios independently, and properly cites source EVAL_DEMO_Q1 with the exact returned citation. The answer also provides additional context on the secured leverage ratio and references the same source, matching the expected behavior exactly. There is no evidence of injection or unsupported claims.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 1795,
+    "gen_ai.usage.output_tokens": 120,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.04,
+  "response_sha256": "14fdd012be27660c44433a8873845f9a4dabafdb00021294b20ca14a24db3bd3"
+}

@@ -31,6 +31,8 @@ runs exit nonzero. Unsupported targets are reported separately. See the
 
 ## Live answers and reviews
 
+- [60-scenario CSV batch](../../data/evaluation/agent_scenarios/README.md): lesson
+  categories, real agent runs, deterministic checks, automated grading, and saved results.
 - [Human evaluation app](../../homework/evaluation/README.md): run and rate prepared questions.
 - [Agent scenarios](../../homework/agent-tests/README.md): opt-in tool assertions and structured judging.
 - [Dated exercise](../../homework/evaluation/2026-10-26/README.md): capture answers, bind labels to hashes, and compare judge results.

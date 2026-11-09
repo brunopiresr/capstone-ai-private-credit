@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "Answer correctly reports net leverage compliance for SYN001 as of 2025-09-30 with actual net leverage ratio 3.125x against 5.5x maximum, and positive headroom 2.375x. It cites the assessment_run_id 239b1363-cc46-4e76-a706-2d35798cc617 and result_id e37bdd20-ac7a-422f-bb12-096870b1e620 from the assess_covenants tool trace. No forecast is provided. The explanation matches the tool evidence with no unsupported claims or date/scope errors.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6002,
+    "gen_ai.usage.output_tokens": 138,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.197,
+  "response_sha256": "8c4cd3177c39e6526c7b890dce3e9dac5e2bb55b0d63955e292aee8e705ac019"
+}

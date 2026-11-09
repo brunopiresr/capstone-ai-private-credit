@@ -1,0 +1,647 @@
+{
+  "answer": "SYN002 is currently compliant with a net leverage ratio of 5.1923, against a threshold of 5.5, indicating that it is not expected to trip the test next quarter. However, the configured predictor is a stub and does not provide a probability forecast for any future covenant breaches. Thus, while current compliance is assured, future risk cannot be quantified.",
+  "confidence": "medium",
+  "confidence_explanation": "The answer is based on calculated compliance metrics, but the failure of the model to provide a quantitative risk forecast introduces uncertainty regarding future deterioration.",
+  "sources": [],
+  "tool_trace": [
+    {
+      "call_id": "call_xTSvQeb7oc853YzwTbTMlAFW",
+      "name": "get_financials",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "current": {
+          "borrower_id": "SYN002",
+          "period_end": "2025-09-30",
+          "metrics": {
+            "total_debt": 145.0,
+            "cash": 10.0,
+            "reported_ebitda": 26.0,
+            "eligible_addbacks": 0.0,
+            "cash_interest": null,
+            "capex": null,
+            "cash_taxes": null,
+            "scheduled_principal": null,
+            "rent": null,
+            "revolver_availability_pct": null,
+            "acquired_ebitda": null,
+            "synergy_addback": null,
+            "financials_debt": null,
+            "compliance_certificate_debt": null,
+            "interest_expense": null,
+            "fixed_charge_numerator": null,
+            "fixed_charges": null
+          },
+          "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+          "source_row": 7,
+          "loaded_at": "2026-11-09T13:36:29.866Z",
+          "available_at": null,
+          "currency": null,
+          "scale": null,
+          "debt_source_status": null
+        },
+        "history": [
+          {
+            "borrower_id": "SYN002",
+            "period_end": "2025-03-31",
+            "metrics": {
+              "total_debt": 135.0,
+              "cash": 10.0,
+              "reported_ebitda": 30.0,
+              "eligible_addbacks": 0.0,
+              "cash_interest": null,
+              "capex": null,
+              "cash_taxes": null,
+              "scheduled_principal": null,
+              "rent": null,
+              "revolver_availability_pct": null,
+              "acquired_ebitda": null,
+              "synergy_addback": null,
+              "financials_debt": null,
+              "compliance_certificate_debt": null,
+              "interest_expense": null,
+              "fixed_charge_numerator": null,
+              "fixed_charges": null
+            },
+            "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+            "source_row": 5,
+            "loaded_at": "2026-11-09T13:36:29.866Z",
+            "available_at": null,
+            "currency": null,
+            "scale": null,
+            "debt_source_status": null
+          },
+          {
+            "borrower_id": "SYN002",
+            "period_end": "2025-06-30",
+            "metrics": {
+              "total_debt": 140.0,
+              "cash": 10.0,
+              "reported_ebitda": 28.0,
+              "eligible_addbacks": 0.0,
+              "cash_interest": null,
+              "capex": null,
+              "cash_taxes": null,
+              "scheduled_principal": null,
+              "rent": null,
+              "revolver_availability_pct": null,
+              "acquired_ebitda": null,
+              "synergy_addback": null,
+              "financials_debt": null,
+              "compliance_certificate_debt": null,
+              "interest_expense": null,
+              "fixed_charge_numerator": null,
+              "fixed_charges": null
+            },
+            "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+            "source_row": 6,
+            "loaded_at": "2026-11-09T13:36:29.866Z",
+            "available_at": null,
+            "currency": null,
+            "scale": null,
+            "debt_source_status": null
+          }
+        ],
+        "issues": [
+          "Source availability dates are unknown; load times are not publication dates."
+        ]
+      },
+      "sources": []
+    },
+    {
+      "call_id": "call_lyF4b5FlPlHsUBDaCAUzrCst",
+      "name": "predict_risk",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "assessment_run_id": "3b0ad0fb-6230-4749-bad4-e406a40dc235",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "results": [
+          {
+            "result_id": "38f494ec-7a19-4bcb-a0c6-c1edca88a802",
+            "assessment_run_id": "3b0ad0fb-6230-4749-bad4-e406a40dc235",
+            "borrower_id": "SYN002",
+            "agreement_id": "synthetic:SYN002",
+            "covenant_id": "synthetic:SYN002:LEV",
+            "covenant_version": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7",
+            "covenant_type": "net_leverage",
+            "period_end": "2025-09-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": 5.1923076923076925,
+            "threshold": 5.5,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": 0.3076923076923075,
+            "compliance_status": "compliant",
+            "calculation_version": "v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN002",
+              "agreement_id": "synthetic:SYN002",
+              "covenant_id": "synthetic:SYN002:LEV",
+              "covenant_name": "Maximum Net Leverage",
+              "covenant_type": "net_leverage",
+              "covenant_version": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7",
+              "period_end": "2025-09-30",
+              "threshold": 5.5,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "net_leverage",
+              "calculation_contract": "legacy_v1",
+              "measurement_basis": "synthetic contractual inputs",
+              "cash_netting_cap": 15.0,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 3,
+                  "source_values": {
+                    "borrower_id": "SYN002",
+                    "covenant_id": "LEV",
+                    "covenant_name": "Maximum Net Leverage",
+                    "effective_start": "2025-01-01",
+                    "effective_end": "",
+                    "metric_formula": "(total_debt - min(cash,15)) / adjusted_ebitda",
+                    "operator": "<=",
+                    "threshold": "5.5",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "cash netting capped at 15",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "",
+                    "waived_periods": "",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN002",
+                "period_end": "2025-09-30",
+                "metrics": {
+                  "total_debt": 145.0,
+                  "cash": 10.0,
+                  "reported_ebitda": 26.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": null,
+                  "acquired_ebitda": null,
+                  "synergy_addback": null,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": null,
+                  "fixed_charge_numerator": null,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 7,
+                "loaded_at": "2026-11-09T13:36:29.866Z",
+                "available_at": null,
+                "currency": null,
+                "scale": null,
+                "debt_source_status": null
+              },
+              "result_basis": "calculated"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                "source_row": 3,
+                "source_values": {
+                  "borrower_id": "SYN002",
+                  "covenant_id": "LEV",
+                  "covenant_name": "Maximum Net Leverage",
+                  "effective_start": "2025-01-01",
+                  "effective_end": "",
+                  "metric_formula": "(total_debt - min(cash,15)) / adjusted_ebitda",
+                  "operator": "<=",
+                  "threshold": "5.5",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "cash netting capped at 15",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "",
+                  "waived_periods": "",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T13:36:33.099284Z"
+          }
+        ],
+        "history": [
+          {
+            "result_id": "ea5220b5-e0c7-4da0-9b19-e09d1074d253",
+            "assessment_run_id": "3b0ad0fb-6230-4749-bad4-e406a40dc235",
+            "borrower_id": "SYN002",
+            "agreement_id": "synthetic:SYN002",
+            "covenant_id": "synthetic:SYN002:LEV",
+            "covenant_version": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7",
+            "covenant_type": "net_leverage",
+            "period_end": "2025-03-31",
+            "information_cutoff": "2025-09-30",
+            "actual_value": 4.166666666666667,
+            "threshold": 5.5,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": 1.333333333333333,
+            "compliance_status": "compliant",
+            "calculation_version": "v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN002",
+              "agreement_id": "synthetic:SYN002",
+              "covenant_id": "synthetic:SYN002:LEV",
+              "covenant_name": "Maximum Net Leverage",
+              "covenant_type": "net_leverage",
+              "covenant_version": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7",
+              "period_end": "2025-03-31",
+              "threshold": 5.5,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "net_leverage",
+              "calculation_contract": "legacy_v1",
+              "measurement_basis": "synthetic contractual inputs",
+              "cash_netting_cap": 15.0,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 3,
+                  "source_values": {
+                    "borrower_id": "SYN002",
+                    "covenant_id": "LEV",
+                    "covenant_name": "Maximum Net Leverage",
+                    "effective_start": "2025-01-01",
+                    "effective_end": "",
+                    "metric_formula": "(total_debt - min(cash,15)) / adjusted_ebitda",
+                    "operator": "<=",
+                    "threshold": "5.5",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "cash netting capped at 15",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "",
+                    "waived_periods": "",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN002",
+                "period_end": "2025-03-31",
+                "metrics": {
+                  "total_debt": 135.0,
+                  "cash": 10.0,
+                  "reported_ebitda": 30.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": null,
+                  "acquired_ebitda": null,
+                  "synergy_addback": null,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": null,
+                  "fixed_charge_numerator": null,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 5,
+                "loaded_at": "2026-11-09T13:36:29.866Z",
+                "available_at": null,
+                "currency": null,
+                "scale": null,
+                "debt_source_status": null
+              },
+              "result_basis": "calculated"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                "source_row": 3,
+                "source_values": {
+                  "borrower_id": "SYN002",
+                  "covenant_id": "LEV",
+                  "covenant_name": "Maximum Net Leverage",
+                  "effective_start": "2025-01-01",
+                  "effective_end": "",
+                  "metric_formula": "(total_debt - min(cash,15)) / adjusted_ebitda",
+                  "operator": "<=",
+                  "threshold": "5.5",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "cash netting capped at 15",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "",
+                  "waived_periods": "",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T13:36:33.098842Z"
+          },
+          {
+            "result_id": "282eb4db-c677-4c64-8939-cc22e2486828",
+            "assessment_run_id": "3b0ad0fb-6230-4749-bad4-e406a40dc235",
+            "borrower_id": "SYN002",
+            "agreement_id": "synthetic:SYN002",
+            "covenant_id": "synthetic:SYN002:LEV",
+            "covenant_version": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7",
+            "covenant_type": "net_leverage",
+            "period_end": "2025-06-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": 4.642857142857143,
+            "threshold": 5.5,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": 0.8571428571428568,
+            "compliance_status": "compliant",
+            "calculation_version": "v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN002",
+              "agreement_id": "synthetic:SYN002",
+              "covenant_id": "synthetic:SYN002:LEV",
+              "covenant_name": "Maximum Net Leverage",
+              "covenant_type": "net_leverage",
+              "covenant_version": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7",
+              "period_end": "2025-06-30",
+              "threshold": 5.5,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "net_leverage",
+              "calculation_contract": "legacy_v1",
+              "measurement_basis": "synthetic contractual inputs",
+              "cash_netting_cap": 15.0,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "active",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 3,
+                  "source_values": {
+                    "borrower_id": "SYN002",
+                    "covenant_id": "LEV",
+                    "covenant_name": "Maximum Net Leverage",
+                    "effective_start": "2025-01-01",
+                    "effective_end": "",
+                    "metric_formula": "(total_debt - min(cash,15)) / adjusted_ebitda",
+                    "operator": "<=",
+                    "threshold": "5.5",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "cash netting capped at 15",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "none",
+                    "calculation_contract": "",
+                    "waived_periods": "",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN002",
+                "period_end": "2025-06-30",
+                "metrics": {
+                  "total_debt": 140.0,
+                  "cash": 10.0,
+                  "reported_ebitda": 28.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": null,
+                  "acquired_ebitda": null,
+                  "synergy_addback": null,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": null,
+                  "fixed_charge_numerator": null,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 6,
+                "loaded_at": "2026-11-09T13:36:29.866Z",
+                "available_at": null,
+                "currency": null,
+                "scale": null,
+                "debt_source_status": null
+              },
+              "result_basis": "calculated"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-baseline/inputs/synthetic_covenant_terms.csv",
+                "source_row": 3,
+                "source_values": {
+                  "borrower_id": "SYN002",
+                  "covenant_id": "LEV",
+                  "covenant_name": "Maximum Net Leverage",
+                  "effective_start": "2025-01-01",
+                  "effective_end": "",
+                  "metric_formula": "(total_debt - min(cash,15)) / adjusted_ebitda",
+                  "operator": "<=",
+                  "threshold": "5.5",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "cash netting capped at 15",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "none",
+                  "calculation_contract": "",
+                  "waived_periods": "",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "70fcb3978414cfba2546dd9df8d0333ba3e90275e87d16a47ff2a4ac55c4c0c7"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T13:36:33.099102Z"
+          }
+        ],
+        "trends": {
+          "borrower_id": "SYN002",
+          "period_end": "2025-09-30",
+          "information_cutoff": "2025-09-30",
+          "feature_schema_version": "v1",
+          "covenants": [
+            {
+              "covenant_id": "synthetic:SYN002:LEV",
+              "covenant_type": "net_leverage",
+              "actual_value": 5.1923076923076925,
+              "threshold": 5.5,
+              "headroom": 0.3076923076923075,
+              "compliance_status": "compliant",
+              "metric_change_qoq": 0.5494505494505493,
+              "headroom_change_qoq": -0.5494505494505493,
+              "threshold_change_qoq": 0.0,
+              "basis_changed": false,
+              "previous_breach": false,
+              "previous_waiver": false
+            }
+          ],
+          "reported_ebitda_growth_qoq": -0.07142857142857142,
+          "reported_ebitda_growth_yoy": null,
+          "total_debt_growth_qoq": 0.03571428571428571,
+          "total_debt_growth_yoy": null,
+          "liquidity": null,
+          "liquidity_change_qoq": null,
+          "information_availability_known": false
+        },
+        "feature_snapshot": {
+          "snapshot_id": "62ddb074-80e9-48ce-b4e6-a29113957790",
+          "assessment_run_id": "3b0ad0fb-6230-4749-bad4-e406a40dc235",
+          "features": {
+            "borrower_id": "SYN002",
+            "period_end": "2025-09-30",
+            "information_cutoff": "2025-09-30",
+            "feature_schema_version": "v1",
+            "covenants": [
+              {
+                "covenant_id": "synthetic:SYN002:LEV",
+                "covenant_type": "net_leverage",
+                "actual_value": 5.1923076923076925,
+                "threshold": 5.5,
+                "headroom": 0.3076923076923075,
+                "compliance_status": "compliant",
+                "metric_change_qoq": 0.5494505494505493,
+                "headroom_change_qoq": -0.5494505494505493,
+                "threshold_change_qoq": 0.0,
+                "basis_changed": false,
+                "previous_breach": false,
+                "previous_waiver": false
+              }
+            ],
+            "reported_ebitda_growth_qoq": -0.07142857142857142,
+            "reported_ebitda_growth_yoy": null,
+            "total_debt_growth_qoq": 0.03571428571428571,
+            "total_debt_growth_yoy": null,
+            "liquidity": null,
+            "liquidity_change_qoq": null,
+            "information_availability_known": false
+          },
+          "source_result_ids": [
+            "ea5220b5-e0c7-4da0-9b19-e09d1074d253",
+            "282eb4db-c677-4c64-8939-cc22e2486828",
+            "38f494ec-7a19-4bcb-a0c6-c1edca88a802"
+          ],
+          "created_at": "2026-11-09T13:36:33.105688Z"
+        },
+        "prediction": {
+          "prediction_id": "920b71ec-f248-44fe-b937-e20cd362cf4f",
+          "borrower_id": "SYN002",
+          "period_end": "2025-09-30",
+          "snapshot_id": "62ddb074-80e9-48ce-b4e6-a29113957790",
+          "model_name": "stub",
+          "model_version": "v1",
+          "model_artifact_hash": null,
+          "prediction_target": "any_covenant_breach",
+          "horizon_quarters": 1,
+          "prediction_status": "stub",
+          "breach_probability": null,
+          "deterioration_probability": null,
+          "anomaly_score": null,
+          "risk_level": "unknown",
+          "top_drivers": [],
+          "error": null,
+          "generated_at": "2026-11-09T13:36:33.109515Z"
+        },
+        "ml_status": "stub",
+        "narrative": "synthetic:SYN002:LEV: compliant; calculated actual 5.1923. The ML integration stub provides no forecast or risk probability.",
+        "issues": [
+          "The configured model is a stub; no forecast or risk probability is available.",
+          "Source availability dates are unknown; point-in-time forecast reliability is not established."
+        ],
+        "verification": {
+          "is_valid": true,
+          "issues": [
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[0]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[1]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            },
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[2]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            }
+          ]
+        }
+      },
+      "sources": []
+    }
+  ],
+  "complete": true,
+  "error": null
+}

@@ -1,0 +1,9 @@
+{
+  "answer": "Please provide the new reporting date and information cutoff for this compliance question, as I need both dates to proceed with the assessment. Currently, I only have the borrower ID (SYN001) and it does not map to a requested SYN003 compliance assessment.",
+  "confidence": "low",
+  "confidence_explanation": "Lacking required date inputs (reporting date and information cutoff) to conduct a compliance assessment.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

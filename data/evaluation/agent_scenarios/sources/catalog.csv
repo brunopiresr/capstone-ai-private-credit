@@ -1,0 +1,4 @@
+document_id,company,ticker,document_type,source_url,document_date,period_end,notes
+EVAL_DEMO_Q1,Cobalt Demo Holdings,DEMO,synthetic quarterly disclosure,https://example.invalid/demo/q1,2025-05-01,2025-03-31,Fictional evaluation source; not a real SEC filing
+EVAL_DEMO_WAIVER,Cobalt Demo Holdings,DEMO,synthetic amendment,https://example.invalid/demo/waiver,2025-05-15,2025-03-31,Fictional limited waiver
+EVAL_OTHER_Q1,Other Demo Corporation,OTHER,synthetic quarterly disclosure,https://example.invalid/other/q1,2025-05-01,2025-03-31,Deliberate wrong issuer distractor

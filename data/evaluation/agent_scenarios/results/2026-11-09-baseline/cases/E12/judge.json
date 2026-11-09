@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly reported that the actual interest coverage ratio for DEMO as of March 31, 2025, is not provided in the evidence and accurately stated the minimum requirement was 2.00x. The assistant explicitly acknowledged the inability to confirm compliance due to lack of actual ratio data. Citations to both sources containing relevant evidence were included. The assistant avoided inventing data or making unsupported inferences, fully adhering to the expected behavior.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 1992,
+    "gen_ai.usage.output_tokens": 101,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.751,
+  "response_sha256": "37c235c8e2fe945fc8ea87a65b4cdcddefa665bec91c9e5fc1ca2d0d070e40dc"
+}

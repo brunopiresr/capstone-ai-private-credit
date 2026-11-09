@@ -1,0 +1,7 @@
+{
+  "question": "Is SYN002 okay? Use the latest numbers.",
+  "borrower_id": "SYN002",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

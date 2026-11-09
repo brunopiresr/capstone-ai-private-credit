@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly identifies that the Q3 waiver has ended by Q4 2025 and applies the 3.5x maximum leverage threshold. It reports the actual leverage as 3.8x with a headroom of -0.3x, indicating a breach as required. It refrains from extending the waiver or using the old 4.5x threshold. The calculation version and covenant ID are cited in the evidence, and the timeline and compliance status align with the expected behavior. Although source availability dates are unknown, the agent notes this limitation and does not affect the compliance determination.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 8104,
+    "gen_ai.usage.output_tokens": 131,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.202,
+  "response_sha256": "8dcc76c40b2c6de0344be6d6325eacd0d2c5893d234f6df7df9486a5c3bce708"
+}

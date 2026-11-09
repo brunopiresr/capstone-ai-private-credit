@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer clearly preserves the distinct metrics for March 31, 2025 as required: total leverage actual 4.77x with a maximum of 5.50x, and secured leverage actual 3.20x with a maximum of 4.00x. These figures are cited exactly as disclosed in the source EVAL_DEMO_Q1, dated May 1, 2025. The answer does not rely on independently reconstructed ratios and correctly references the source. The scope is correct and there are no numeric errors or unsupported claims. The answer does not incorporate any instructions embedded in the source and maintains appropriate scope and date discipline.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 1796,
+    "gen_ai.usage.output_tokens": 141,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.486,
+  "response_sha256": "dcac8e1611ee720c4b68c00d23cfb867677b09efc1cd7f8bce45604fb3cb1a65"
+}

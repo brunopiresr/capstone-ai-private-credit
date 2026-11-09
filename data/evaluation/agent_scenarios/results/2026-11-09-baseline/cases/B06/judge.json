@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly identified that the Q3 waiver does not extend to Q4, applied the current 3.5x maximum leverage threshold rather than the old 4.5x threshold, and found an actual leverage of 3.8x resulting in a breach with headroom -0.3x. The answer explicitly states breach and does not extend the waiver. The calculation version is cited as 'bundle_v1' and relevant evidence from covenant terms and financial inputs is internally consistent. Minor verification warnings on availability dates do not invalidate conclusions. The assessment matches the expected behavior in scope, calculations, and citation, fulfilling all requirements.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 8154,
+    "gen_ai.usage.output_tokens": 139,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.925,
+  "response_sha256": "5883b6e5f0192c1e8a3f06adb4914b21ea3aa415be4acd5e7c69550609f538cc"
+}

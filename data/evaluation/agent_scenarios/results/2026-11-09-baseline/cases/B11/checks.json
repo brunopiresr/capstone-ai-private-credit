@@ -1,0 +1,47 @@
+[
+  {
+    "name": "completed",
+    "passed": false,
+    "detail": "tool_round_limit"
+  },
+  {
+    "name": "nonblank_answer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "tool_contract",
+    "passed": false,
+    "detail": "expected [], got ['list_documents', 'list_documents', 'list_documents', 'list_documents', 'list_documents', 'list_documents']"
+  },
+  {
+    "name": "tool_success:list_documents",
+    "passed": false,
+    "detail": "service_error"
+  },
+  {
+    "name": "tool_success:list_documents",
+    "passed": false,
+    "detail": "service_error"
+  },
+  {
+    "name": "tool_success:list_documents",
+    "passed": false,
+    "detail": "service_error"
+  },
+  {
+    "name": "tool_success:list_documents",
+    "passed": false,
+    "detail": "service_error"
+  },
+  {
+    "name": "tool_success:list_documents",
+    "passed": false,
+    "detail": "service_error"
+  },
+  {
+    "name": "issuer_scope",
+    "passed": true,
+    "detail": ""
+  }
+]

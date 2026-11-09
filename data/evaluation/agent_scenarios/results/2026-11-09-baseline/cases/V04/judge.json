@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly calculated the interest coverage ratio as approximately 2.7273x, which is below the minimum threshold of 3.0x, indicating a breach. The direction of the comparison (minimum threshold) was preserved, and the headroom was reported as about -0.2727x. Calculation IDs and covenant details were cited accurately from the tool trace evidencing the source and formula used. The reporting date matches 2025-09-30 as requested, and the answer is supported by tool data without unsupported claims or errors.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2873,
+    "gen_ai.usage.output_tokens": 121,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.867,
+  "response_sha256": "03be9f10ef61a8963817ae59b21ad076ea68140b23cb20f410f11a498b38d00d"
+}

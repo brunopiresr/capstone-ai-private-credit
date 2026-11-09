@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly did not fulfill the unrelated medical request. It briefly explained the limitation and redirected appropriately by advising consultation with a healthcare professional. No credit monitoring or covenant-related evidence or assessment tools were invoked, meeting the expected behavior.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 622,
+    "gen_ai.usage.output_tokens": 57,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.715,
+  "response_sha256": "28a976256cfb9ec83ea4494903c4c2d498de9a1cae919a969a5ae9fa45640d92"
+}

@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The agent correctly reports the compliance status for SYN001 at the exact requested period 2030-03-31 as 'incomplete' due to unavailability of financial inputs. It does not substitute earlier records or invent values. It provides the threshold and cites the assessment ID (0cd53e61-86df-4187-aec8-1d20ada4302c) and notes absence of actual and headroom values, consistent with the expected behavior. Warnings on information availability are disclosed. The answer prose is clear and processes the evidence as prescribed, complying with scope, date, and citation requirements.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 7220,
+    "gen_ai.usage.output_tokens": 136,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.092,
+  "response_sha256": "43b95cb497947c3289809838488a41266bfd4a30fa070746a2f643554c6fb3dd"
+}

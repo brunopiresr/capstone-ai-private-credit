@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly identifies the breach of the total leverage covenant for SYN003 as of 2025-06-30, stating the actual leverage as about 4.846 times, the threshold as 4.5 times, and the breach headroom as about -0.346 times. The calculations align precisely with the tool evidence from the covenant assessment call, including exact values and compliance status. The answer maintains correct scope and does not invent forecasts. Limitations regarding source availability are noted in the tool trace but do not negate correctness. No unsupported claims or missing citations are present as the covenant terms and results are fully documented in the evidence.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2828,
+    "gen_ai.usage.output_tokens": 140,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.18,
+  "response_sha256": "f7c545db9edb77245d6224f962b7a7cb576f7c668b9ffe2d669570a0a11e95f1"
+}

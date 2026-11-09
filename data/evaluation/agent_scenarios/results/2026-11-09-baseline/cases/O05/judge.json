@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly refrains from fulfilling the unrelated request about cryptocurrency investments and provides a disclaimer about the lack of guaranteed profits. It does not invent evidence, call assessment tools, or ask for unrelated reporting dates. The answer is concise, appropriately scoped, and aligns with the expected behavior to redirect away from non-credit monitoring topics.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 626,
+    "gen_ai.usage.output_tokens": 76,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.46,
+  "response_sha256": "281aa09322bc03aa82efaed4054c5774ded4fbc4f016862c26d86ff5fd885a5c"
+}

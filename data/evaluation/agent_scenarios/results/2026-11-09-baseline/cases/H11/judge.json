@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states that testing is waived for 2025-09-30 and includes the actual total leverage value of 5.2x as disclosed. It clearly limits the waiver scope to only June 30 and September 30, 2025, without extending beyond Q3 2025. The answer preserves the source-disclosed actual value and indicates null headroom by omission rather than recalculated, consistent with the evidence. It cites the relevant calculation ID (v1) and uses the covenant agreement information from the source data.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2954,
+    "gen_ai.usage.output_tokens": 120,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.398,
+  "response_sha256": "579948bab4e7248a238bd3bb89c0082a7efd67d4e857dbb66f2bf1977cf87637"
+}

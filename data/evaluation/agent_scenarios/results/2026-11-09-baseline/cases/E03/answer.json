@@ -1,0 +1,9 @@
+{
+  "answer": "Missing reporting date. Please provide both a reporting date and an information cutoff for the assessment.",
+  "confidence": "low",
+  "confidence_explanation": "The information provided only includes the information cutoff without a specific reporting date.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

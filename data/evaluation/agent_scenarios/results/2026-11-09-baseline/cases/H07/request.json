@@ -1,0 +1,7 @@
+{
+  "question": "Assess whether SYN028 springing leverage test is active and compliant. Reporting date: 2026-03-31. Information cutoff: 2026-03-31.",
+  "borrower_id": "SYN028",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

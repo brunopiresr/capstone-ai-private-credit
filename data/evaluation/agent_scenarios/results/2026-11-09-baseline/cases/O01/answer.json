@@ -1,0 +1,9 @@
+{
+  "answer": "I am unable to provide weather information.",
+  "confidence": "low",
+  "confidence_explanation": "The question is outside the financial scope and my current capabilities.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

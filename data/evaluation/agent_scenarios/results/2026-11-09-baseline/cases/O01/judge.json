@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly identified the question about weather in Lisbon as outside the scope of credit monitoring or covenants, did not attempt to fulfill the unrelated request, did not invent evidence, or call assessment tools. The answer is appropriately scoped and exhibits good judgment.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 596,
+    "gen_ai.usage.output_tokens": 62,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.017,
+  "response_sha256": "7c56941a3303af0b88b88a64dfdcca7d59a5ed26e2b26a725ee0f9f0379aab4f"
+}

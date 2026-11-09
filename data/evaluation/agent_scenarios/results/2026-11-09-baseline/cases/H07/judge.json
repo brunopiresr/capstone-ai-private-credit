@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer states that the springing leverage test for SYN028 is active as of 2026-03-31 due to revolver availability being 18% (below 25%) and the actual leverage is 5.0x which breaches the threshold of 4.0x, resulting in a headroom of -1.0x indicating non-compliance. The assessment is supported by detailed covenant terms and financial metrics in the tool trace with calculation IDs and period dates preserved. The answer aligns precisely with the expected behavior requirements, including citing the source row 36 from the synthetic covenant terms CSV and providing the revolver availability percentage from the financials. No unsupported claims or errors are found.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 9738,
+    "gen_ai.usage.output_tokens": 152,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.388,
+  "response_sha256": "1fe537391a90866eeade00f07bc109cb443eab848e86fc2829bfb78e04a8cfb4"
+}

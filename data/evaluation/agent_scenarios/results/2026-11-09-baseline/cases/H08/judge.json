@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly assesses the springing test for SYN029 at the availability boundary of exactly 25%. It states that the test is inactive and not tested, with null actual value and headroom, correctly reflecting that 25% availability is not below the 25% threshold. The answer avoids calling the condition a breach or compliant and correctly indicates the springing test status as inactive. The assessment cites calculation version 'bundle_v1' and the covenant ID and details are supported by evidence from the covenant terms CSV file. The answer shows proper scope adherence (reporting date and cutoff), provides a rationale for medium confidence due to the unavailable actual value, and has no irrelevant or unsupported claims. Thus, all material requirements in the expected behavior are satisfied.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6325,
+    "gen_ai.usage.output_tokens": 161,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.271,
+  "response_sha256": "05069fcd9654b8b73d37670e0668daa0a4a638ceb9d56aa3f529a016d2b30e27"
+}

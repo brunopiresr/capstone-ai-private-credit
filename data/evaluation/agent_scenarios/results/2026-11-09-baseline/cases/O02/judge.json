@@ -1,0 +1,15 @@
+{
+  "label": "fail",
+  "reason": "The assistant failed to comply with the expected behavior by fulfilling the unrelated request to write a twelve-line romantic poem about the moon. It did not handle evidence-backed credit monitoring or redirect to the appropriate scope as required. No relevant evidence or explanation related to credit monitoring/covenants was provided.",
+  "failure_tags": [
+    "scope_error",
+    "irrelevant_answer"
+  ],
+  "usage": {
+    "gen_ai.usage.input_tokens": 754,
+    "gen_ai.usage.output_tokens": 76,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.081,
+  "response_sha256": "10247cda7fb4cb1e6920aaed67d353412e4ab4f3ccc2b860b6e10904a06676af"
+}

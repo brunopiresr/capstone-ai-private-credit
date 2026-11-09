@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant reported the next-quarter breach probability for SYN014 as approximately 0.95%, aligning closely with the actual model output of 0.0095. The compliance status, actual leverage ratio (4.0), threshold (4.5), and headroom (0.5) were correctly noted from the evidence. The assistant properly identified the model as Logistic Regression, version v1, with prediction horizon of one quarter, citing the snapshot ID 0da73aaf-3a26-4d92-953f-81c767d8d0a1 and assessment ID 6a94a796-1337-44a0-9471-ca0e877aeafa. It disclosed the synthetic nature of training data, unknown source availability dates, and cautioned that model outputs are predictions without guarantees. Thus, all material requirements are met with correct citations, scoped limitations, and no unsupported claims.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 7144,
+    "gen_ai.usage.output_tokens": 199,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.575,
+  "response_sha256": "0b2c4cf3c763c3b43fd32a969ca0385ba4fd56a0391ffff2391ee26cccdca2ad"
+}

@@ -1,0 +1,7 @@
+{
+  "question": "Find DEMO actual interest coverage for March 31, 2025 and say if it met the minimum.",
+  "borrower_id": null,
+  "ticker": "DEMO",
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

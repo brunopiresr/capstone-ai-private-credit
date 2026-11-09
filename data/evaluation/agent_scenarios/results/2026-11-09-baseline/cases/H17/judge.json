@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states that the interest coverage default for December 31, 2024 is waived, excluding March 31, 2025 and later quarters. It correctly reports the March 31, 2025 minimum interest coverage ratio as 2.00x and acknowledges that the actual ratio is not provided. The answer cites the source EVAL_DEMO_WAIVER exactly as required. No unsupported claims or date errors are present. The limitations in data are disclosed, and the scope is respected.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 1788,
+    "gen_ai.usage.output_tokens": 113,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.993,
+  "response_sha256": "ba73afec2ff2939b895be2aa25b5fa57e553f81397792ab52cf655d428e980d2"
+}

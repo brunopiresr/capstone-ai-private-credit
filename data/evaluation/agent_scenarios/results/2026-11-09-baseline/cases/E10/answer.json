@@ -1,0 +1,9 @@
+{
+  "answer": "The assessment requires financial metrics for the specified reporting date. However, the necessary trigger data is missing, which prevents an accurate evaluation of the SYN036 springing covenant. Please provide the relevant financial metrics for a complete assessment.",
+  "confidence": "low",
+  "confidence_explanation": "The absence of required trigger data leads to insufficient basis for a reliable assessment.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

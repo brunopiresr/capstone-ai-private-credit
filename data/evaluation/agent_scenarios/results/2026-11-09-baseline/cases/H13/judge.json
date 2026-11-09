@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states that the next-quarter breach probability is unavailable (not 0%) due to the configured model being a stub and provides no forecast, fulfilling the requirement. The compliance is accurately described with the actual net leverage 5.1923x versus threshold 5.5x, headroom 0.3077x, and status compliant, consistent with the calculation evidence. The confidence explanation properly reflects the model stub status. The answer distinguishes current compliance from future risk and no unsupported claims or citation errors are present.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 6839,
+    "gen_ai.usage.output_tokens": 117,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.167,
+  "response_sha256": "13f4ed95e1e5949c34868fcbefec66b1af1b836b08ea5de83f1a07fb990fe3a0"
+}

@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The agent correctly identifies that the interest coverage ratio for SYN035 as of 2025-06-30 is incomplete due to missing cash interest expense data. It properly states that compliance cannot be determined without this input, in line with the expected behavior. The answer cites calculation version 'bundle_v1' and covenant details including threshold 2.5x and flags compliance as incomplete with null actual values and headroom. No unauthorized imputations or inferences were made, and the missing interest data is disclosed clearly with reference to corresponding source rows.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 4558,
+    "gen_ai.usage.output_tokens": 120,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.76,
+  "response_sha256": "f825cbe7ded075e61e2158691327d91bc401d82a4d0d8b22419fec4954ac4d14"
+}

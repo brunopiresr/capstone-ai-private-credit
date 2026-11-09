@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly states the interest coverage ratio is approximately 2.73x, which is below the minimum threshold of 3.0x, indicating a breach with a headroom of approximately -0.27x. The minimum direction (>= 3.0x) is preserved. The calculation ID (v1) and covenant ID (synthetic:SYN008:ICR) are cited in the tool trace from the covenant assessment call. The numeric values and date (2025-09-30) match exactly the evidence. There are no unsupported claims or missing limitations.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2865,
+    "gen_ai.usage.output_tokens": 129,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 2.429,
+  "response_sha256": "12a0e3bdcecf6f819d291560b9a6ebe840891a456b008e36b93a4107f9142a05"
+}

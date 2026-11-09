@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The answer correctly identifies that testing is waived for SYN005 for the quarters ending June 30, 2025, and September 30, 2025, and that this means no pass or fail determination can be made. It preserves the actual leverage ratio of 5.2x as provided by the tool evidence without recalculating it independently and notes the null headroom. The waiver is cited appropriately with calculation and covenant IDs. The answer aligns with the expected behavior without extending the waiver beyond Q3 2025 and does not overstate the compliance result.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 2951,
+    "gen_ai.usage.output_tokens": 125,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.908,
+  "response_sha256": "f9e89abdfaf39e98088cad526cc47f010696e16d3409cdac0679239c8dada0b1"
+}

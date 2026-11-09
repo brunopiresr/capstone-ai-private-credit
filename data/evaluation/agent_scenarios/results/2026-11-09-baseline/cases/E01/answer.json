@@ -1,0 +1,9 @@
+{
+  "answer": "Missing reporting date and information cutoff. Please provide both dates for a compliance assessment.",
+  "confidence": "low",
+  "confidence_explanation": "No dates were supplied to retrieve financial metrics and conduct the assessment.",
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

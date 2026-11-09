@@ -1,0 +1,12 @@
+{
+  "label": "pass",
+  "reason": "The assistant correctly identifies that there are missing reporting date and information cutoff details, demonstrating that no assessment can be made without these essential inputs. The response does not invent any financial metrics, covenant terms, ratios, or certificates for SYN999, as required by the expected behavior. No unsupported claims or fabricated data are present, and the assistant appropriately refrains from making an assessment given the absence of financial data and mapped covenant inputs. The response is within scope and does not violate any constraints.",
+  "failure_tags": [],
+  "usage": {
+    "gen_ai.usage.input_tokens": 632,
+    "gen_ai.usage.output_tokens": 108,
+    "gen_ai.usage.details.reasoning_tokens": 0
+  },
+  "duration_seconds": 1.895,
+  "response_sha256": "2123b9482efe67b4e680e419fb31d3eb5d7f88cd75d4401003d54a96a5b4749b"
+}

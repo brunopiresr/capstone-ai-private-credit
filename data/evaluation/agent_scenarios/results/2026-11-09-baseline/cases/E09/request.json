@@ -1,0 +1,7 @@
+{
+  "question": "Assess SYN034 leverage when EBITDA is zero. Reporting date: 2025-03-31. Information cutoff: 2025-03-31.",
+  "borrower_id": "SYN034",
+  "ticker": null,
+  "model": "openai-responses:gpt-4o-mini",
+  "risk_model": "stub"
+}

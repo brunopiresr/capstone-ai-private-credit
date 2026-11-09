@@ -1,0 +1,67 @@
+[
+  {
+    "name": "completed",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "nonblank_answer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "tool_contract",
+    "passed": true,
+    "detail": "expected ['get_financials', 'assess_covenants'], got ['get_financials', 'assess_covenants']"
+  },
+  {
+    "name": "dates:get_financials",
+    "passed": true,
+    "detail": "{'period_end': '2025-06-30', 'information_cutoff': '2025-06-30'}"
+  },
+  {
+    "name": "borrower:get_financials",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "dates:assess_covenants",
+    "passed": true,
+    "detail": "{'period_end': '2025-06-30', 'information_cutoff': '2025-06-30'}"
+  },
+  {
+    "name": "borrower:assess_covenants",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "unique_result:synthetic:SYN003:LEV:2025-06-30",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "result:synthetic:SYN003:LEV:2025-06-30:compliance_status",
+    "passed": true,
+    "detail": "expected 'breach', got 'breach'"
+  },
+  {
+    "name": "result:synthetic:SYN003:LEV:2025-06-30:actual_value",
+    "passed": true,
+    "detail": "expected 4.846153846153846, got 4.846153846153846"
+  },
+  {
+    "name": "result:synthetic:SYN003:LEV:2025-06-30:threshold",
+    "passed": true,
+    "detail": "expected 4.5, got 4.5"
+  },
+  {
+    "name": "result:synthetic:SYN003:LEV:2025-06-30:headroom",
+    "passed": true,
+    "detail": "expected -0.3461538461538458, got -0.3461538461538458"
+  },
+  {
+    "name": "assessment_citation",
+    "passed": false,
+    "detail": "The prose must cite the actual assessment_run_id."
+  }
+]
