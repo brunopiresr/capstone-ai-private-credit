@@ -1,0 +1,18 @@
+{
+  "answer": "Please supply an unambiguous valid reporting date in YYYY-MM-DD format.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "schema_version": "agent-answer-v2",
+  "answer_kind": "clarification",
+  "claims": [],
+  "evidence": [],
+  "usage": {
+    "requests": 0,
+    "input_tokens": null,
+    "output_tokens": null
+  },
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

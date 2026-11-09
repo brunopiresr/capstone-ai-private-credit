@@ -1,0 +1,18 @@
+{
+  "answer": "This conversation is scoped to DEMO. Start a new scoped conversation to review another borrower or issuer.",
+  "confidence": "low",
+  "confidence_explanation": "Request needs clarification or scope redirection.",
+  "schema_version": "agent-answer-v2",
+  "answer_kind": "scope",
+  "claims": [],
+  "evidence": [],
+  "usage": {
+    "requests": 0,
+    "input_tokens": null,
+    "output_tokens": null
+  },
+  "sources": [],
+  "tool_trace": [],
+  "complete": true,
+  "error": null
+}

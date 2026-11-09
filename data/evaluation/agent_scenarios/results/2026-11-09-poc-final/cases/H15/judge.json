@@ -1,0 +1,9 @@
+{
+  "label": null,
+  "reason": "Deterministic smoke only.",
+  "failure_tags": [],
+  "duration_seconds": 0.0,
+  "response_sha256": "18bc45bfcf7174e4d5b9b8f167e8e4bc45a696d8027a435ccffc9ccbe583bcd4",
+  "evaluator_version": "agent-quality-v2",
+  "rubric_version": "agent-semantic-v2"
+}

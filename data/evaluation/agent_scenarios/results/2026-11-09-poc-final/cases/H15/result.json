@@ -1,0 +1,69 @@
+{
+  "scenario_id": "H15",
+  "category": "happy_path",
+  "topic": "risk_forecasts",
+  "family": "logistic_forecast_SYN014",
+  "question": "Forecast SYN014 next-quarter breach probability and explain model limitations. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Report the actual configured Logistic Regression next-quarter probability and one-quarter horizon from predict_risk, with model name/version and snapshot_id. Distinguish forecast from current compliance and disclose synthetic training and unknown source availability: real-world and point-in-time predictive reliability are not established. Do not guarantee outcomes; cite assessment IDs.",
+  "answer": "Assessment scope: SYN014; reporting date 2025-09-30; information cutoff 2025-09-30. [assessment baf12436-a020-44a0-82ba-ff06cc4175fc]\n\nSYN014, 2025-09-30 — Issues: The Logistic Regression baseline was trained and evaluated on synthetic borrower histories, not real credit outcomes.; Source availability dates are unknown; point-in-time forecast reliability is not established. [assessment baf12436-a020-44a0-82ba-ff06cc4175fc]\n\nSYN014, 2025-09-30 — Verified results: True [assessment baf12436-a020-44a0-82ba-ff06cc4175fc]\n\nSYN014, 2025-09-30 — Verification notes: [{\"code\": \"information_availability_unknown\", \"message\": \"Reporting dates do not establish when these inputs became available.\", \"path\": \"results[0]\", \"severity\": \"warning\"}, {\"code\": \"information_availability_unknown\", \"message\": \"Reporting dates do not establish when these inputs became available.\", \"path\": \"results[1]\", \"severity\": \"warning\"}, {\"code\": \"information_availability_unknown\", \"message\": \"Reporting dates do not establish when these inputs became available.\", \"path\": \"results[2]\", \"severity\": \"warning\"}] [assessment baf12436-a020-44a0-82ba-ff06cc4175fc]\n\nSYN014, 2025-09-30 — Forecast availability: complete [assessment baf12436-a020-44a0-82ba-ff06cc4175fc]\n\nMaximum total leverage (synthetic:SYN014:LEV) — 2025-09-30: Actual 4; Threshold 4.5; Operator <=; Unit x; Headroom 0.5; Status compliant; Basis calculated; Issues none reported; Terms version c79af8c3dafb0c58d4c1328ce55ee7aee26537e7e28be3555ef42f3246fc0b33; Testing status active; Measurement basis Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps; Addback rule none; Cash netting rule none; Effective end 2026-06-30; Effective start 2025-03-31; Testing condition quarterly; Waived periods []; Waiver or special rule none [assessment baf12436-a020-44a0-82ba-ff06cc4175fc, result 346ce067-0d76-4166-bd91-818d0e076eea]\n\nMaximum total leverage (synthetic:SYN014:LEV) — 2025-03-31: Actual 5.3; Threshold 4.5; Operator <=; Unit x; Headroom -0.8; Status breach; Basis calculated; Issues none reported; Terms version c79af8c3dafb0c58d4c1328ce55ee7aee26537e7e28be3555ef42f3246fc0b33; Testing status active; Measurement basis Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps [assessment baf12436-a020-44a0-82ba-ff06cc4175fc, result d1694304-98ce-44da-a1f2-a3898f9893b3]\n\nMaximum total leverage (synthetic:SYN014:LEV) — 2025-06-30: Actual 4.6; Threshold 4.5; Operator <=; Unit x; Headroom -0.1; Status breach; Basis calculated; Issues none reported; Terms version c79af8c3dafb0c58d4c1328ce55ee7aee26537e7e28be3555ef42f3246fc0b33; Testing status active; Measurement basis Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps [assessment baf12436-a020-44a0-82ba-ff06cc4175fc, result 3861ab47-aa54-43ba-9e0d-7b54eac26492]\n\nForecast as of 2025-09-30, next-quarter horizon. Target period end is not supplied; no fiscal calendar is inferred.: Model name logistic_regression; Model version v1; Prediction status complete; Reporting date 2025-09-30; Horizon quarters 1; Snapshot id 280b6e30-0c7c-4cef-8fa8-b3a4d7ea1bbf; Breach probability 0.0095094164; Error null (unavailable) [assessment baf12436-a020-44a0-82ba-ff06cc4175fc, prediction 5ce8d0a2-3ac7-466f-b7e0-744710750a07]\n\nResults apply individually to each covenant and period. A passing ratio does not establish overall borrower compliance or sound credit management. Structured verification covers service results, not generated interpretation. Evidence confidence is distinct from breach probability.",
+  "confidence": "medium",
+  "confidence_explanation": "The confidence in the evidence is medium due to reliance on synthetic data for model validation, which may not fully capture real-world borrower behaviors and outcomes.",
+  "status": "needs_review",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 14.236,
+  "judge_seconds": 0.0,
+  "tool_names_json": "[\"get_financials\", \"predict_risk\"]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": null,
+  "judge_reason": "Deterministic smoke only.",
+  "failure_tags_json": "[]",
+  "response_sha256": "18bc45bfcf7174e4d5b9b8f167e8e4bc45a696d8027a435ccffc9ccbe583bcd4",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 3,
+      "denominator": 3,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 1,
+    "denominator": 1
+  },
+  "usage": {
+    "requests": 3,
+    "input_tokens": 19061,
+    "output_tokens": 253
+  },
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H15/answer.json"
+}

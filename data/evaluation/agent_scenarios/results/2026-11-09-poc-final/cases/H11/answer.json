@@ -1,0 +1,873 @@
+{
+  "answer": "Assessment scope: SYN005; reporting date 2025-09-30; information cutoff 2025-09-30. [assessment 6d43420b-26d1-4b57-8966-230e4e0b99a6]\n\nSYN005, 2025-09-30 — Issues: Source availability dates are unknown; point-in-time forecast reliability is not established. [assessment 6d43420b-26d1-4b57-8966-230e4e0b99a6]\n\nSYN005, 2025-09-30 — Verified results: True [assessment 6d43420b-26d1-4b57-8966-230e4e0b99a6]\n\nSYN005, 2025-09-30 — Verification notes: [{\"code\": \"information_availability_unknown\", \"message\": \"Reporting dates do not establish when these inputs became available.\", \"path\": \"results[0]\", \"severity\": \"warning\"}] [assessment 6d43420b-26d1-4b57-8966-230e4e0b99a6]\n\nSYN005, 2025-09-30 — Forecast availability: disabled [assessment 6d43420b-26d1-4b57-8966-230e4e0b99a6]\n\nMaximum Total Leverage (synthetic:SYN005:LEV) — 2025-09-30: Actual 5.2; Threshold 4.5; Operator <=; Unit x; Headroom null (unavailable); Status waived; Basis calculated; Issues none reported; Terms version 26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b; Testing status waived; Measurement basis synthetic contractual inputs; Allowed addbacks 0; Base ebitda 25; Cap fraction null (unavailable); Covenant ebitda 25; Currency null (unavailable); Scale null (unavailable); Supplied addbacks 0; Addback rule none; Cash netting rule none; Effective start 2025-01-01; Testing condition quarterly; Waiver or special rule Testing waived for quarters ending 2025-06-30 and 2025-09-30; Explicit test periods 2025-06-30; 2025-09-30; Last explicit test period 2025-09-30; Legal expiry date null (unavailable); Limitation A separate legal expiry is not supplied. Testing relief applies only to the stated tests; it does not establish compliance or repayment strength. [assessment 6d43420b-26d1-4b57-8966-230e4e0b99a6, result 507c2ecb-ee13-46ae-af59-db88e8864661]\n\nResults apply individually to each covenant and period. A passing ratio does not establish overall borrower compliance or sound credit management. Structured verification covers service results, not generated interpretation. Evidence confidence is distinct from breach probability.",
+  "confidence": "medium",
+  "confidence_explanation": "The evaluation reflects the latest available financial data as of the information cutoff date, but the source's availability and timing are uncertain.",
+  "schema_version": "agent-answer-v2",
+  "answer_kind": "assessment",
+  "claims": [
+    {
+      "claim_id": "summary:assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6:borrower_id",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6"
+      ],
+      "field_path": "borrower_id",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "summary:assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6:period_end",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6"
+      ],
+      "field_path": "period_end",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "summary:assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6:information_cutoff",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6"
+      ],
+      "field_path": "information_cutoff",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "summary:assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6:issues",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6"
+      ],
+      "field_path": "issues",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "core:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:actual_value",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "actual_value",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "core:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:threshold",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "threshold",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "core:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:operator",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "operator",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "core:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:unit",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "unit",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "core:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:headroom",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "headroom",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "core:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:compliance_status",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "compliance_status",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "core:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:financial_inputs.result_basis",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "financial_inputs.result_basis",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6:verification.is_valid",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6"
+      ],
+      "field_path": "verification.is_valid",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6:verification.issues",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6"
+      ],
+      "field_path": "verification.issues",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6:ml_status",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6"
+      ],
+      "field_path": "ml_status",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:issues",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "issues",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:covenant_version",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "covenant_version",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:resolved_covenant.testing_status",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "resolved_covenant.testing_status",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:resolved_covenant.measurement_basis",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "resolved_covenant.measurement_basis",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.ebitda_explanation.allowed_addbacks",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.ebitda_explanation.allowed_addbacks",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.ebitda_explanation.base_ebitda",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.ebitda_explanation.base_ebitda",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.ebitda_explanation.cap_fraction",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.ebitda_explanation.cap_fraction",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.ebitda_explanation.covenant_ebitda",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.ebitda_explanation.covenant_ebitda",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.ebitda_explanation.currency",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.ebitda_explanation.currency",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.ebitda_explanation.scale",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.ebitda_explanation.scale",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.ebitda_explanation.supplied_addbacks",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.ebitda_explanation.supplied_addbacks",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.source_terms.addback_rule",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.source_terms.addback_rule",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.source_terms.cash_netting_rule",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.source_terms.cash_netting_rule",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.source_terms.effective_start",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.source_terms.effective_start",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.source_terms.testing_condition",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.source_terms.testing_condition",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.source_terms.waiver_or_special_rule",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.source_terms.waiver_or_special_rule",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.testing_relief.explicit_test_periods",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.testing_relief.explicit_test_periods",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.testing_relief.last_explicit_test_period",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.testing_relief.last_explicit_test_period",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.testing_relief.legal_expiry_date",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.testing_relief.legal_expiry_date",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661:presentation.testing_relief.limitation",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661"
+      ],
+      "field_path": "presentation.testing_relief.limitation",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "csv:4a568b174d444b4a4d27",
+      "kind": "csv",
+      "borrower_id": "SYN005",
+      "ticker": null,
+      "period_end": "2025-09-30",
+      "information_cutoff": "2025-09-30",
+      "citation": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_quarterly_financials.csv, row 11",
+      "payload_json": "{\"available_at\": null, \"borrower_id\": \"SYN005\", \"currency\": null, \"debt_source_status\": null, \"metrics\": {\"acquired_ebitda\": null, \"capex\": null, \"cash\": 5.0, \"cash_interest\": null, \"cash_taxes\": null, \"compliance_certificate_debt\": null, \"eligible_addbacks\": 0.0, \"financials_debt\": null, \"fixed_charge_numerator\": null, \"fixed_charges\": null, \"interest_expense\": null, \"rent\": null, \"reported_ebitda\": 25.0, \"revolver_availability_pct\": null, \"scheduled_principal\": null, \"synergy_addback\": null, \"total_debt\": 130.0}, \"period_end\": \"2025-09-30\", \"scale\": null, \"source_file\": \"/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_quarterly_financials.csv\", \"source_row\": 11}"
+    },
+    {
+      "evidence_id": "assessment:6d43420b-26d1-4b57-8966-230e4e0b99a6",
+      "kind": "assessment",
+      "borrower_id": "SYN005",
+      "ticker": null,
+      "period_end": "2025-09-30",
+      "information_cutoff": "2025-09-30",
+      "citation": "assessment 6d43420b-26d1-4b57-8966-230e4e0b99a6",
+      "payload_json": "{\"assessment_run_id\": \"6d43420b-26d1-4b57-8966-230e4e0b99a6\", \"borrower_id\": \"SYN005\", \"feature_snapshot\": null, \"information_cutoff\": \"2025-09-30\", \"issues\": [\"Source availability dates are unknown; point-in-time forecast reliability is not established.\"], \"ml_status\": \"disabled\", \"period_end\": \"2025-09-30\", \"prediction\": null, \"trends\": {\"borrower_id\": \"SYN005\", \"covenants\": [{\"actual_value\": 5.2, \"basis_changed\": false, \"compliance_status\": \"waived\", \"covenant_id\": \"synthetic:SYN005:LEV\", \"covenant_type\": \"total_leverage\", \"headroom\": null, \"headroom_change_qoq\": null, \"metric_change_qoq\": null, \"previous_breach\": null, \"previous_waiver\": null, \"threshold\": 4.5, \"threshold_change_qoq\": null}], \"feature_schema_version\": \"v1\", \"information_availability_known\": false, \"information_cutoff\": \"2025-09-30\", \"liquidity\": null, \"liquidity_change_qoq\": null, \"period_end\": \"2025-09-30\", \"reported_ebitda_growth_qoq\": null, \"reported_ebitda_growth_yoy\": null, \"total_debt_growth_qoq\": null, \"total_debt_growth_yoy\": null}, \"verification\": {\"is_valid\": true, \"issues\": [{\"code\": \"information_availability_unknown\", \"message\": \"Reporting dates do not establish when these inputs became available.\", \"path\": \"results[0]\", \"severity\": \"warning\"}]}}"
+    },
+    {
+      "evidence_id": "calculation:6d43420b-26d1-4b57-8966-230e4e0b99a6:507c2ecb-ee13-46ae-af59-db88e8864661",
+      "kind": "calculation",
+      "borrower_id": "SYN005",
+      "ticker": null,
+      "period_end": "2025-09-30",
+      "information_cutoff": "2025-09-30",
+      "citation": "assessment 6d43420b-26d1-4b57-8966-230e4e0b99a6, result 507c2ecb-ee13-46ae-af59-db88e8864661",
+      "payload_json": "{\"actual_value\": 5.2, \"agreement_id\": \"synthetic:SYN005\", \"assessment_run_id\": \"6d43420b-26d1-4b57-8966-230e4e0b99a6\", \"borrower_id\": \"SYN005\", \"calculation_version\": \"v1\", \"compliance_status\": \"waived\", \"covenant_id\": \"synthetic:SYN005:LEV\", \"covenant_type\": \"total_leverage\", \"covenant_version\": \"26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b\", \"created_at\": \"2026-11-09T15:15:06.876126Z\", \"evidence\": [{\"source_file\": \"/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_covenant_terms.csv\", \"source_hash\": \"26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b\", \"source_row\": 7, \"source_values\": {\"addback_cap_fraction\": \"\", \"addback_rule\": \"none\", \"borrower_id\": \"SYN005\", \"calculation_contract\": \"\", \"cash_netting_cap\": \"\", \"cash_netting_rule\": \"none\", \"covenant_id\": \"LEV\", \"covenant_name\": \"Maximum Total Leverage\", \"effective_end\": \"\", \"effective_start\": \"2025-01-01\", \"metric_formula\": \"total_debt / adjusted_ebitda\", \"operator\": \"<=\", \"springing_trigger_pct\": \"\", \"synergy_cap_fraction\": \"\", \"testing_condition\": \"quarterly\", \"threshold\": \"4.5\", \"unit\": \"x\", \"waived_periods\": \"\", \"waiver_or_special_rule\": \"Testing waived for quarters ending 2025-06-30 and 2025-09-30\"}}], \"financial_inputs\": {\"financial_period\": {\"available_at\": null, \"borrower_id\": \"SYN005\", \"currency\": null, \"debt_source_status\": null, \"loaded_at\": \"2026-11-09T15:15:01.747Z\", \"metrics\": {\"acquired_ebitda\": null, \"capex\": null, \"cash\": 5.0, \"cash_interest\": null, \"cash_taxes\": null, \"compliance_certificate_debt\": null, \"eligible_addbacks\": 0.0, \"financials_debt\": null, \"fixed_charge_numerator\": null, \"fixed_charges\": null, \"interest_expense\": null, \"rent\": null, \"reported_ebitda\": 25.0, \"revolver_availability_pct\": null, \"scheduled_principal\": null, \"synergy_addback\": null, \"total_debt\": 130.0}, \"period_end\": \"2025-09-30\", \"scale\": null, \"source_file\": \"/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_quarterly_financials.csv\", \"source_row\": 11}, \"result_basis\": \"calculated\"}, \"headroom\": null, \"information_cutoff\": \"2025-09-30\", \"issues\": [], \"operator\": \"<=\", \"period_end\": \"2025-09-30\", \"presentation\": {\"ebitda_explanation\": {\"allowed_addbacks\": 0.0, \"base_ebitda\": 25.0, \"cap_fraction\": null, \"covenant_ebitda\": 25.0, \"currency\": null, \"method\": \"calculations.leverage.adjusted_ebitda\", \"scale\": null, \"supplied_addbacks\": 0.0}, \"source_terms\": {\"addback_rule\": \"none\", \"cash_netting_rule\": \"none\", \"effective_start\": \"2025-01-01\", \"testing_condition\": \"quarterly\", \"waiver_or_special_rule\": \"Testing waived for quarters ending 2025-06-30 and 2025-09-30\"}, \"testing_relief\": {\"explicit_test_periods\": [\"2025-06-30\", \"2025-09-30\"], \"last_explicit_test_period\": \"2025-09-30\", \"legal_expiry_date\": null, \"limitation\": \"A separate legal expiry is not supplied. Testing relief applies only to the stated tests; it does not establish compliance or repayment strength.\"}, \"version\": \"assessment-explanations-v1\"}, \"resolved_covenant\": {\"addback_cap_fraction\": null, \"agreement_id\": \"synthetic:SYN005\", \"available_at\": null, \"borrower_id\": \"SYN005\", \"calculation_contract\": \"legacy_v1\", \"cash_netting_cap\": null, \"covenant_id\": \"synthetic:SYN005:LEV\", \"covenant_name\": \"Maximum Total Leverage\", \"covenant_type\": \"total_leverage\", \"covenant_version\": \"26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b\", \"evidence\": [{\"source_file\": \"/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_covenant_terms.csv\", \"source_hash\": \"26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b\", \"source_row\": 7, \"source_values\": {\"addback_cap_fraction\": \"\", \"addback_rule\": \"none\", \"borrower_id\": \"SYN005\", \"calculation_contract\": \"\", \"cash_netting_cap\": \"\", \"cash_netting_rule\": \"none\", \"covenant_id\": \"LEV\", \"covenant_name\": \"Maximum Total Leverage\", \"effective_end\": \"\", \"effective_start\": \"2025-01-01\", \"metric_formula\": \"total_debt / adjusted_ebitda\", \"operator\": \"<=\", \"springing_trigger_pct\": \"\", \"synergy_cap_fraction\": \"\", \"testing_condition\": \"quarterly\", \"threshold\": \"4.5\", \"unit\": \"x\", \"waived_periods\": \"\", \"waiver_or_special_rule\": \"Testing waived for quarters ending 2025-06-30 and 2025-09-30\"}}], \"formula\": \"total_leverage\", \"measurement_basis\": \"synthetic contractual inputs\", \"operator\": \"<=\", \"period_end\": \"2025-09-30\", \"reported_actual\": null, \"reported_evidence\": [], \"synergy_cap_fraction\": null, \"testing_status\": \"waived\", \"threshold\": 4.5, \"unit\": \"x\"}, \"result_id\": \"507c2ecb-ee13-46ae-af59-db88e8864661\", \"threshold\": 4.5, \"unit\": \"x\"}"
+    }
+  ],
+  "usage": {
+    "requests": 3,
+    "input_tokens": 9687,
+    "output_tokens": 306
+  },
+  "sources": [],
+  "tool_trace": [
+    {
+      "call_id": "call_WP6uuxnoLh3Kcux9oKMcHL8g",
+      "name": "get_financials",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "borrower_id": "SYN005",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "current": {
+          "borrower_id": "SYN005",
+          "period_end": "2025-09-30",
+          "metrics": {
+            "total_debt": 130.0,
+            "cash": 5.0,
+            "reported_ebitda": 25.0,
+            "eligible_addbacks": 0.0,
+            "cash_interest": null,
+            "capex": null,
+            "cash_taxes": null,
+            "scheduled_principal": null,
+            "rent": null,
+            "revolver_availability_pct": null,
+            "acquired_ebitda": null,
+            "synergy_addback": null,
+            "financials_debt": null,
+            "compliance_certificate_debt": null,
+            "interest_expense": null,
+            "fixed_charge_numerator": null,
+            "fixed_charges": null
+          },
+          "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_quarterly_financials.csv",
+          "source_row": 11,
+          "loaded_at": "2026-11-09T15:15:01.747Z",
+          "available_at": null,
+          "currency": null,
+          "scale": null,
+          "debt_source_status": null
+        },
+        "history": [],
+        "issues": [
+          "Source availability dates are unknown; load times are not publication dates."
+        ]
+      },
+      "sources": []
+    },
+    {
+      "call_id": "call_oNG8hAxZmVg5Crva3SMCMseO",
+      "name": "assess_covenants",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "assessment_run_id": "6d43420b-26d1-4b57-8966-230e4e0b99a6",
+        "borrower_id": "SYN005",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "results": [
+          {
+            "result_id": "507c2ecb-ee13-46ae-af59-db88e8864661",
+            "assessment_run_id": "6d43420b-26d1-4b57-8966-230e4e0b99a6",
+            "borrower_id": "SYN005",
+            "agreement_id": "synthetic:SYN005",
+            "covenant_id": "synthetic:SYN005:LEV",
+            "covenant_version": "26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b",
+            "covenant_type": "total_leverage",
+            "period_end": "2025-09-30",
+            "information_cutoff": "2025-09-30",
+            "actual_value": 5.2,
+            "threshold": 4.5,
+            "operator": "<=",
+            "unit": "x",
+            "headroom": null,
+            "compliance_status": "waived",
+            "calculation_version": "v1",
+            "resolved_covenant": {
+              "borrower_id": "SYN005",
+              "agreement_id": "synthetic:SYN005",
+              "covenant_id": "synthetic:SYN005:LEV",
+              "covenant_name": "Maximum Total Leverage",
+              "covenant_type": "total_leverage",
+              "covenant_version": "26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b",
+              "period_end": "2025-09-30",
+              "threshold": 4.5,
+              "operator": "<=",
+              "unit": "x",
+              "formula": "total_leverage",
+              "calculation_contract": "legacy_v1",
+              "measurement_basis": "synthetic contractual inputs",
+              "cash_netting_cap": null,
+              "addback_cap_fraction": null,
+              "synergy_cap_fraction": null,
+              "testing_status": "waived",
+              "reported_actual": null,
+              "reported_evidence": [],
+              "evidence": [
+                {
+                  "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_covenant_terms.csv",
+                  "source_row": 7,
+                  "source_values": {
+                    "borrower_id": "SYN005",
+                    "covenant_id": "LEV",
+                    "covenant_name": "Maximum Total Leverage",
+                    "effective_start": "2025-01-01",
+                    "effective_end": "",
+                    "metric_formula": "total_debt / adjusted_ebitda",
+                    "operator": "<=",
+                    "threshold": "4.5",
+                    "unit": "x",
+                    "testing_condition": "quarterly",
+                    "cash_netting_rule": "none",
+                    "addback_rule": "none",
+                    "waiver_or_special_rule": "Testing waived for quarters ending 2025-06-30 and 2025-09-30",
+                    "calculation_contract": "",
+                    "waived_periods": "",
+                    "addback_cap_fraction": "",
+                    "synergy_cap_fraction": "",
+                    "cash_netting_cap": "",
+                    "springing_trigger_pct": ""
+                  },
+                  "source_hash": "26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b"
+                }
+              ],
+              "available_at": null
+            },
+            "financial_inputs": {
+              "financial_period": {
+                "borrower_id": "SYN005",
+                "period_end": "2025-09-30",
+                "metrics": {
+                  "total_debt": 130.0,
+                  "cash": 5.0,
+                  "reported_ebitda": 25.0,
+                  "eligible_addbacks": 0.0,
+                  "cash_interest": null,
+                  "capex": null,
+                  "cash_taxes": null,
+                  "scheduled_principal": null,
+                  "rent": null,
+                  "revolver_availability_pct": null,
+                  "acquired_ebitda": null,
+                  "synergy_addback": null,
+                  "financials_debt": null,
+                  "compliance_certificate_debt": null,
+                  "interest_expense": null,
+                  "fixed_charge_numerator": null,
+                  "fixed_charges": null
+                },
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_quarterly_financials.csv",
+                "source_row": 11,
+                "loaded_at": "2026-11-09T15:15:01.747Z",
+                "available_at": null,
+                "currency": null,
+                "scale": null,
+                "debt_source_status": null
+              },
+              "result_basis": "calculated"
+            },
+            "evidence": [
+              {
+                "source_file": "/workspaces/capstone-ai-private-credit/data/evaluation/agent_scenarios/results/2026-11-09-poc-final/inputs/synthetic_covenant_terms.csv",
+                "source_row": 7,
+                "source_values": {
+                  "borrower_id": "SYN005",
+                  "covenant_id": "LEV",
+                  "covenant_name": "Maximum Total Leverage",
+                  "effective_start": "2025-01-01",
+                  "effective_end": "",
+                  "metric_formula": "total_debt / adjusted_ebitda",
+                  "operator": "<=",
+                  "threshold": "4.5",
+                  "unit": "x",
+                  "testing_condition": "quarterly",
+                  "cash_netting_rule": "none",
+                  "addback_rule": "none",
+                  "waiver_or_special_rule": "Testing waived for quarters ending 2025-06-30 and 2025-09-30",
+                  "calculation_contract": "",
+                  "waived_periods": "",
+                  "addback_cap_fraction": "",
+                  "synergy_cap_fraction": "",
+                  "cash_netting_cap": "",
+                  "springing_trigger_pct": ""
+                },
+                "source_hash": "26e811c18b1f01fead39ddd0eff0a2e64b302635b852fbbf4ec4749fea51996b"
+              }
+            ],
+            "issues": [],
+            "created_at": "2026-11-09T15:15:06.876126Z"
+          }
+        ],
+        "history": [],
+        "trends": {
+          "borrower_id": "SYN005",
+          "period_end": "2025-09-30",
+          "information_cutoff": "2025-09-30",
+          "feature_schema_version": "v1",
+          "covenants": [
+            {
+              "covenant_id": "synthetic:SYN005:LEV",
+              "covenant_type": "total_leverage",
+              "actual_value": 5.2,
+              "threshold": 4.5,
+              "headroom": null,
+              "compliance_status": "waived",
+              "metric_change_qoq": null,
+              "headroom_change_qoq": null,
+              "threshold_change_qoq": null,
+              "basis_changed": false,
+              "previous_breach": null,
+              "previous_waiver": null
+            }
+          ],
+          "reported_ebitda_growth_qoq": null,
+          "reported_ebitda_growth_yoy": null,
+          "total_debt_growth_qoq": null,
+          "total_debt_growth_yoy": null,
+          "liquidity": null,
+          "liquidity_change_qoq": null,
+          "information_availability_known": false
+        },
+        "feature_snapshot": null,
+        "prediction": null,
+        "ml_status": "disabled",
+        "narrative": "synthetic:SYN005:LEV: waived; calculated actual 5.2000.",
+        "issues": [
+          "Source availability dates are unknown; point-in-time forecast reliability is not established."
+        ],
+        "verification": {
+          "is_valid": true,
+          "issues": [
+            {
+              "severity": "warning",
+              "code": "information_availability_unknown",
+              "path": "results[0]",
+              "message": "Reporting dates do not establish when these inputs became available."
+            }
+          ]
+        }
+      },
+      "sources": []
+    }
+  ],
+  "complete": true,
+  "error": null
+}

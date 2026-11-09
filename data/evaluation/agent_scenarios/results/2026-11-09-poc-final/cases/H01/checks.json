@@ -1,0 +1,67 @@
+[
+  {
+    "name": "completed",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "nonblank_answer",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "tool_contract",
+    "passed": true,
+    "detail": "expected ['get_financials', 'assess_covenants'], got ['get_financials', 'assess_covenants']"
+  },
+  {
+    "name": "dates:get_financials",
+    "passed": true,
+    "detail": "{'period_end': '2025-09-30', 'information_cutoff': '2025-09-30'}"
+  },
+  {
+    "name": "borrower:get_financials",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "dates:assess_covenants",
+    "passed": true,
+    "detail": "{'period_end': '2025-09-30', 'information_cutoff': '2025-09-30'}"
+  },
+  {
+    "name": "borrower:assess_covenants",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "unique_result:synthetic:SYN001:LEV:2025-09-30",
+    "passed": true,
+    "detail": ""
+  },
+  {
+    "name": "result:synthetic:SYN001:LEV:2025-09-30:compliance_status",
+    "passed": true,
+    "detail": "expected 'compliant', got 'compliant'"
+  },
+  {
+    "name": "result:synthetic:SYN001:LEV:2025-09-30:actual_value",
+    "passed": true,
+    "detail": "expected 3.125, got 3.125"
+  },
+  {
+    "name": "result:synthetic:SYN001:LEV:2025-09-30:threshold",
+    "passed": true,
+    "detail": "expected 5.5, got 5.5"
+  },
+  {
+    "name": "result:synthetic:SYN001:LEV:2025-09-30:headroom",
+    "passed": true,
+    "detail": "expected 2.375, got 2.375"
+  },
+  {
+    "name": "citation_assessment_coverage",
+    "passed": true,
+    "detail": "Each displayed current result needs an adjacent valid claim link."
+  }
+]

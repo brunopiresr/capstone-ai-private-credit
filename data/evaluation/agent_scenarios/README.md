@@ -10,6 +10,9 @@ See the [saved results CSV](results/2026-11-09-baseline/results.csv) for every a
 The [agent quality improvement plan](../../../docs/project/agent_quality_improvement_plan.md)
 turns these findings into implementation packages, tests and release criteria.
 
+The [final POC smoke](results/2026-11-09-poc-final/REPORT.md) completed 10/10 cases
+with all deterministic checks passing. It is not a semantic accuracy estimate.
+
 | Category | Count |
 | --- | ---: |
 | Happy path | 18 |

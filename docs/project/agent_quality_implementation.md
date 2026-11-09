@@ -42,4 +42,11 @@ POC scope. No changes to the bullish/bearish/recommendation roles are claimed.
 
 ## Verification
 
-The final lint, full test results and live smoke outcomes are recorded here when complete.
+- `make lint`: passed.
+- `make test-all`: 1,004 main tests and 93 homework tests passed; six opt-in live
+  agent/judge tests skipped.
+- [Final live smoke](../../data/evaluation/agent_scenarios/results/2026-11-09-poc-final/REPORT.md):
+  10/10 cases completed and passed every deterministic check, including the unknown
+  borrower, source injection, ambiguous dates, scope switching, waiver and forecast.
+  Semantic grades are intentionally unavailable. Generation source hashes match
+  the saved manifest at revision `d466321`.

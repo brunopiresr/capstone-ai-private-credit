@@ -1,0 +1,198 @@
+{
+  "answer": "Assessment scope: SYN999; reporting date 2025-09-30; information cutoff 2025-09-30. [assessment 196a2075-4e4b-4263-924c-e73f2d4197df]\n\nSYN999, 2025-09-30 — Issues: No mapped covenant inputs are available for this borrower-period. [assessment 196a2075-4e4b-4263-924c-e73f2d4197df]\n\nSYN999, 2025-09-30 — Verified results: True [assessment 196a2075-4e4b-4263-924c-e73f2d4197df]\n\nSYN999, 2025-09-30 — Verification notes: none reported [assessment 196a2075-4e4b-4263-924c-e73f2d4197df]\n\nSYN999, 2025-09-30 — Forecast availability: disabled [assessment 196a2075-4e4b-4263-924c-e73f2d4197df]\n\nResults apply individually to each covenant and period. A passing ratio does not establish overall borrower compliance or sound credit management. Structured verification covers service results, not generated interpretation. Evidence confidence is distinct from breach probability.",
+  "confidence": "low",
+  "confidence_explanation": "No financial inputs are available for the requested date, indicating substantial gaps in data.",
+  "schema_version": "agent-answer-v2",
+  "answer_kind": "assessment",
+  "claims": [
+    {
+      "claim_id": "summary:assessment:196a2075-4e4b-4263-924c-e73f2d4197df:borrower_id",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:196a2075-4e4b-4263-924c-e73f2d4197df"
+      ],
+      "field_path": "borrower_id",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "summary:assessment:196a2075-4e4b-4263-924c-e73f2d4197df:period_end",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:196a2075-4e4b-4263-924c-e73f2d4197df"
+      ],
+      "field_path": "period_end",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "summary:assessment:196a2075-4e4b-4263-924c-e73f2d4197df:information_cutoff",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:196a2075-4e4b-4263-924c-e73f2d4197df"
+      ],
+      "field_path": "information_cutoff",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "summary:assessment:196a2075-4e4b-4263-924c-e73f2d4197df:issues",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:196a2075-4e4b-4263-924c-e73f2d4197df"
+      ],
+      "field_path": "issues",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:assessment:196a2075-4e4b-4263-924c-e73f2d4197df:verification.is_valid",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:196a2075-4e4b-4263-924c-e73f2d4197df"
+      ],
+      "field_path": "verification.is_valid",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:assessment:196a2075-4e4b-4263-924c-e73f2d4197df:verification.issues",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:196a2075-4e4b-4263-924c-e73f2d4197df"
+      ],
+      "field_path": "verification.issues",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    },
+    {
+      "claim_id": "policy:assessment:196a2075-4e4b-4263-924c-e73f2d4197df:ml_status",
+      "kind": "fact",
+      "statement": "",
+      "evidence_ids": [
+        "assessment:196a2075-4e4b-4263-924c-e73f2d4197df"
+      ],
+      "field_path": "ml_status",
+      "value_json": null,
+      "borrower_id": null,
+      "ticker": null,
+      "period_end": null,
+      "information_cutoff": null,
+      "unit": null,
+      "assumptions": [],
+      "limitations": []
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "assessment:196a2075-4e4b-4263-924c-e73f2d4197df",
+      "kind": "assessment",
+      "borrower_id": "SYN999",
+      "ticker": null,
+      "period_end": "2025-09-30",
+      "information_cutoff": "2025-09-30",
+      "citation": "assessment 196a2075-4e4b-4263-924c-e73f2d4197df",
+      "payload_json": "{\"assessment_run_id\": \"196a2075-4e4b-4263-924c-e73f2d4197df\", \"borrower_id\": \"SYN999\", \"feature_snapshot\": null, \"information_cutoff\": \"2025-09-30\", \"issues\": [\"No mapped covenant inputs are available for this borrower-period.\"], \"ml_status\": \"disabled\", \"period_end\": \"2025-09-30\", \"prediction\": null, \"trends\": null, \"verification\": {\"is_valid\": true, \"issues\": []}}"
+    }
+  ],
+  "usage": {
+    "requests": 3,
+    "input_tokens": 5384,
+    "output_tokens": 179
+  },
+  "sources": [],
+  "tool_trace": [
+    {
+      "call_id": "call_HMBBnb1yLoyiIWiiad2wsSwj",
+      "name": "get_financials",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "borrower_id": "SYN999",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "current": null,
+        "history": [],
+        "issues": [
+          "No financial inputs are available for the requested reporting date."
+        ]
+      },
+      "sources": []
+    },
+    {
+      "call_id": "call_Nsc9C0bdVXsom4zvuIP6fW7s",
+      "name": "assess_covenants",
+      "arguments": {
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30"
+      },
+      "outcome": {
+        "assessment_run_id": "196a2075-4e4b-4263-924c-e73f2d4197df",
+        "borrower_id": "SYN999",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "results": [],
+        "history": [],
+        "trends": null,
+        "feature_snapshot": null,
+        "prediction": null,
+        "ml_status": "disabled",
+        "narrative": "No covenant results are available.",
+        "issues": [
+          "No mapped covenant inputs are available for this borrower-period."
+        ],
+        "verification": {
+          "is_valid": true,
+          "issues": []
+        }
+      },
+      "sources": []
+    }
+  ],
+  "complete": true,
+  "error": null
+}

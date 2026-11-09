@@ -1,0 +1,69 @@
+{
+  "scenario_id": "H08",
+  "category": "happy_path",
+  "topic": "springing_tests",
+  "family": "exact_boundary",
+  "question": "Assess SYN029 springing test at the availability boundary. Reporting date: 2025-09-30. Information cutoff: 2025-09-30.",
+  "expected_behavior": "Availability exactly 25% is not below 25%; springing test is inactive, status not_tested with null actual and headroom. Do not call this compliant or a breach; cite calculation IDs.",
+  "answer": "Assessment scope: SYN029; reporting date 2025-09-30; information cutoff 2025-09-30. [assessment e640c6e9-fcc6-4eed-baf6-bc33825c8784]\n\nSYN029, 2025-09-30 — Issues: Source availability dates are unknown; point-in-time forecast reliability is not established. [assessment e640c6e9-fcc6-4eed-baf6-bc33825c8784]\n\nSYN029, 2025-09-30 — Verified results: True [assessment e640c6e9-fcc6-4eed-baf6-bc33825c8784]\n\nSYN029, 2025-09-30 — Verification notes: [{\"code\": \"information_availability_unknown\", \"message\": \"Reporting dates do not establish when these inputs became available.\", \"path\": \"results[0]\", \"severity\": \"warning\"}, {\"code\": \"information_availability_unknown\", \"message\": \"Reporting dates do not establish when these inputs became available.\", \"path\": \"results[1]\", \"severity\": \"warning\"}, {\"code\": \"information_availability_unknown\", \"message\": \"Reporting dates do not establish when these inputs became available.\", \"path\": \"results[2]\", \"severity\": \"warning\"}] [assessment e640c6e9-fcc6-4eed-baf6-bc33825c8784]\n\nSYN029, 2025-09-30 — Forecast availability: disabled [assessment e640c6e9-fcc6-4eed-baf6-bc33825c8784]\n\nSpringing maximum total leverage, tested below 25% availability (synthetic:SYN029:SPR) — 2025-09-30: Actual null (unavailable); Threshold 4; Operator <=; Unit x; Headroom null (unavailable); Status not_tested; Basis unavailable; Issues none reported; Terms version 1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd; Testing status inactive; Measurement basis Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps; Addback rule none; Cash netting rule none; Effective end 2026-06-30; Effective start 2025-03-31; Testing condition quarterly; Waived periods []; Waiver or special rule none; Assessment status not_tested; Boundary Equality does not activate a below-threshold trigger.; Observed availability pct 25; Testing status inactive; Trigger direction <; Trigger threshold pct 25 [assessment e640c6e9-fcc6-4eed-baf6-bc33825c8784, result d6e8ef3a-8382-4488-be9a-b1ffe6d36173]\n\nSpringing maximum total leverage, tested below 25% availability (synthetic:SYN029:SPR) — 2025-03-31: Actual null (unavailable); Threshold 4; Operator <=; Unit x; Headroom null (unavailable); Status not_tested; Basis unavailable; Issues none reported; Terms version 1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd; Testing status inactive; Measurement basis Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps [assessment e640c6e9-fcc6-4eed-baf6-bc33825c8784, result 12605a10-e701-4107-b213-38a423f99f95]\n\nSpringing maximum total leverage, tested below 25% availability (synthetic:SYN029:SPR) — 2025-06-30: Actual null (unavailable); Threshold 4; Operator <=; Unit x; Headroom null (unavailable); Status not_tested; Basis unavailable; Issues none reported; Terms version 1a080fd1e51f9ce13db89cf4e03f22f4a49d9dea155996159a4bc58d97f86fdd; Testing status inactive; Measurement basis Synthetic TTM inputs; USD millions; base-EBITDA adjustment caps [assessment e640c6e9-fcc6-4eed-baf6-bc33825c8784, result 18f72bfb-3ef5-4829-8055-6996c9abf172]\n\nResults apply individually to each covenant and period. A passing ratio does not establish overall borrower compliance or sound credit management. Structured verification covers service results, not generated interpretation. Evidence confidence is distinct from breach probability.",
+  "confidence": "low",
+  "confidence_explanation": "There are substantial gaps due to the unknown availability dates for financial inputs, which prevents establishing clear compliance status for the springing test.",
+  "status": "needs_review",
+  "execution_complete": true,
+  "error": null,
+  "agent_seconds": 21.057,
+  "judge_seconds": 0.0,
+  "tool_names_json": "[\"get_financials\", \"assess_covenants\"]",
+  "failed_checks_json": "[]",
+  "deterministic_pass": true,
+  "judge_label": null,
+  "judge_reason": "Deterministic smoke only.",
+  "failure_tags_json": "[]",
+  "response_sha256": "a4cb23098bfeab25b3e71395586ea67c2fc228fedd53c43a94506ec157b2ad9b",
+  "evaluator_version": "agent-quality-v2",
+  "dimensions": {
+    "execution": {
+      "passed": 2,
+      "denominator": 2,
+      "missing": 0
+    },
+    "workflow": {
+      "passed": 5,
+      "denominator": 5,
+      "missing": 0
+    },
+    "financial": {
+      "passed": 6,
+      "denominator": 6,
+      "missing": 0
+    },
+    "citations": {
+      "passed": 1,
+      "denominator": 1,
+      "missing": 0
+    },
+    "disclosures": {
+      "passed": 0,
+      "denominator": 0,
+      "missing": 0
+    },
+    "semantic": {
+      "passed": 0,
+      "denominator": 1,
+      "missing": 1
+    }
+  },
+  "historical_citations": {
+    "name": "historical_prose_only_v1",
+    "passed": 1,
+    "denominator": 1
+  },
+  "usage": {
+    "requests": 3,
+    "input_tokens": 17692,
+    "output_tokens": 221
+  },
+  "model": "openai-responses:gpt-4o-mini",
+  "judge_model": "openai-responses:gpt-4.1-mini",
+  "evidence_path": "cases/H08/answer.json"
+}
