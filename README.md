@@ -70,6 +70,12 @@ make test-all      # Offline app and homework checks; live scenarios skip
 make lint
 ```
 
+GitHub Actions runs these checks on every push and pull request using locked
+dependencies. The Python 3.14 job includes the ML extra; a separate Python 3.13
+job runs `make lint-judges` and `make test-judges` with the judge lockfile.
+CI requires no API keys and leaves live evaluations disabled. See the
+[CI workflow](.github/workflows/ci.yml) for the commands.
+
 See [evaluation](docs/homework/evaluation.md) for optional ML, live, and judge checks.
 Offline tests check behavior; they do not measure live answer quality.
 

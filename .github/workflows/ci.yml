@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYDANTIC_AI_NO_BANNER: "1"
+  LOGFIRE_SEND_TO_LOGFIRE: "false"
+
+jobs:
+  app:
+    name: App and homework (Python 3.14)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.12.19"
+          python-version: "3.14"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install locked app, development, and ML dependencies
+        run: make install
+      - name: Lint
+        run: make lint
+      - name: Run offline app and homework tests
+        run: make test-all
+
+  judges:
+    name: Judges (Python 3.13)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.12.19"
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: homework/llm-judges/uv.lock
+      - name: Install locked judge and development dependencies
+        run: uv sync --project homework/llm-judges --group dev --locked
+      - name: Lint judges
+        run: make lint-judges
+      - name: Run offline judge tests
+        run: make test-judges
