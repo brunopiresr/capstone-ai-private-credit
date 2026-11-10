@@ -206,9 +206,34 @@ def test_reference_context_does_not_count_as_attack_exposure():
     assert payload["tool_trace"] == answer["tool_trace"]
 
 
-def test_summary_keeps_existing_failures_visible(capsys):
-    workbench.summary(SimpleNamespace(run="baseline-live", judge=None))
+def test_summary_keeps_existing_failures_visible(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(workbench, "ROOT", tmp_path)
+    run = tmp_path / "runs/summary-fixture"
+    run.mkdir(parents=True)
+    for index, label in enumerate(["fail"] * 19 + ["pass"] * 5 + ["insufficient_evidence"] * 3):
+        case_id = f"S{index + 1:02}"
+        folder = run / case_id
+        folder.mkdir()
+        workbench.save(folder / "answer.json", {"answer": "Synthetic captured response."})
+        workbench.append(run / "cases.jsonl", {"case_id": case_id})
+        workbench.append(
+            run / "records.jsonl", {"case_id": case_id, "execution_status": "completed"}
+        )
+        workbench.append(
+            tmp_path / "classifications.jsonl", {"case_id": case_id, "category": "synthetic"}
+        )
+        workbench.append(
+            run / "labels.jsonl",
+            {
+                "case_id": case_id,
+                "label": label,
+                "response_sha256": workbench.fingerprint(folder / "answer.json"),
+            },
+        )
+
+    workbench.summary(SimpleNamespace(run="summary-fixture", judge=None))
     output = capsys.readouterr().out
+    assert "| S01 | synthetic | completed | fail | ungraded |" in output
     assert "'fail': 19" in output and "'pass': 5" in output
     assert "'insufficient_evidence': 3" in output
 
