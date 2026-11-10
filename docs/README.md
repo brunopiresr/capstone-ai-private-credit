@@ -5,6 +5,7 @@ Start with the [project README](../README.md) to install and run the app.
 ## Usage guides
 
 - [Workspace walkthrough](guides/ui_preview.md): assessment through board reporting.
+- [Docker Compose](guides/docker.md): container setup and persistence verification.
 - [Document processing](guides/document_processing.md): extraction, search, and assistant APIs.
 - [Quarterly assessment and ML](guides/ml_early_warning.md): calculations and synthetic forecasts.
 - [Credit reviews](guides/credit_review.md): bullish, bearish, and recommendation agents.

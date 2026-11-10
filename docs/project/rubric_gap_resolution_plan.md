@@ -38,13 +38,13 @@ Bonus evidence is separate from the base score:
 | Manual ground-truth evaluation | A human rating app exists. The dated exercise explicitly calls its historical Business Agent labels specialist-agent reviews. **Unclaimed: 0/2.** | R08: complete and publish a genuine human review. |
 | User feedback | Rating/comment collection is implemented and documented in the monitoring and human-evaluation apps. **1/1**, scoped to those apps. | Preserve a sanitized example; broader main-workspace coverage is optional. |
 | Logs to evaluation dataset | Candidate signals are documented, but no automatic export-to-evaluation workflow was found. **0/2.** | R09. |
-| Containerization / Compose | No tracked Dockerfile or Compose definition. **0/1 and 0/2.** | R11, optional. |
+| Containerization / Compose | Dockerfile and Compose launch the main app with locked dependencies, bundled inputs/model, health checks, and persistent volumes. **1/1 and 2/2.** | R11 completed 10 November 2026; [container verification](../guides/docker.md#recorded-verification-10-november-2026) records build, page, model, and persistence checks. |
 | Makefile / dependency environment | Make targets, uv, virtual environments, and both lockfiles. **1/1 and 1/1.** | Preserve and verify through R04. |
 | CI/CD | No tracked `.github/workflows` configuration or other pipeline definition found. **0/2.** | R10, optional but useful. |
 | Agent UI | Streamlit workspace and documented launch command. **1/1.** | Verify through R04. |
 | Cloud deployment | No reproducible deployment evidence found. **0/2.** | R12, optional. |
 
-The conservative bonus estimate is **4 points**. Human-authorship and manual-review
+The conservative bonus estimate is **7 points**. Human-authorship and manual-review
 points should remain unclaimed until their specific evidence exists.
 
 ## Checks performed during this review
@@ -253,7 +253,7 @@ feed expected answers to generation to obtain a passing result.
 | R08 | P2 / 0.5–1 day plus human review | Record dataset authorship and preparation history. Where human authorship cannot be established, create a small genuinely human-authored source-backed set. Have a human rate actual captured answers against references using the existing app; retain response hashes, reasons, reviewer/date, and aggregate results. Keep agent-proxy labels distinct. | Human author/reviewer; R02. Up to **2 authorship + 2 manual-evaluation** points. |
 | R09 | P2 / 1–2 days | Add an export command selecting negative feedback, corrections, or retries from logs, joining each interaction to its actual answer/tool/evidence snapshot, deduplicating it, and emitting review candidates. Have reviewers supply expected answers, then pass approved records to the existing evaluation runner. Demonstrate the full export → review → evaluation path on captured events. Never use the original answer or a low rating as the expected answer. | R02/R03; access to exported events and complete captured evidence. Up to **2 points**. |
 | R10 | P2 / 0.5 day | Add CI for locked Python 3.14 lint/app/homework checks and a separate Python 3.13 judge job. Run offline checks on pull requests with no secrets; make any paid live evaluation an explicit opt-in job. Include a documented successful CI run and failure behavior. | R01/R04. Up to **2 points**. |
-| R11 | P3 / 0.5–1 day | Add an app image and Compose configuration with the uv lockfile, bundled data/model, port, persisted runtime storage, and documented optional environment settings. Use SQLite as the existing storage dependency. Verify `docker compose up --build` opens the app and runs a bundled assessment. Keep any isolated judge service explicit. | R04. Up to **1 container + 2 full-system Compose** points if the respective requirements are demonstrated. |
+| R11 | Completed 10 November 2026 | Added an app image and Compose configuration with the uv lockfile, bundled data/model, health check, and persistent runtime/SEC-cache volumes. Verified build/start, six pages, bundled ML assessment, and saved data after container recreation. [Commands and results](../guides/docker.md). | **1 container + 2 full-system Compose** points supported for the main app. The isolated homework judge environment remains separate. |
 | R12 | P3 / estimate after hosting choice | Prepare hosting configuration and a reviewable deployment, define persistence/access and required credentials, then publish only with the user's authorization for the selected external deployment. Verify the hosted assessment and document the URL and reproduction steps. | Hosting choice/account; R04 and any required deployment packaging. Up to **2 points**. |
 
 ## Delivery order and acceptance
