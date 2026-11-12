@@ -18,8 +18,8 @@ from credit_monitoring.domain.agent import AgentAnswer
 
 def test_stream_yields_partial_answer_before_confidence_and_finalizes(document_service_factory):
     async def generate(messages, info):
-        yield {0: DeltaToolCall(name="final_result", json_args='{"summary":"First')}
-        yield {0: DeltaToolCall(json_args=" sentence. More text")}
+        yield {0: DeltaToolCall(name="final_result", json_args='{"summary":"**First')}
+        yield {0: DeltaToolCall(json_args=" sentence**. More text")}
         yield {0: DeltaToolCall(json_args='", "confidence":"medium"')}
         yield {0: DeltaToolCall(json_args=', "confidence_explanation":"Limited evidence."}')}
 
@@ -33,13 +33,14 @@ def test_stream_yields_partial_answer_before_confidence_and_finalizes(document_s
     events = asyncio.run(collect())
     updates = [event.output for event in events if event.kind == "answer_update"]
     assert len(updates) > 2
-    assert updates[0].answer == "First" and updates[0].confidence is None
-    assert updates[1].answer == "First sentence. More text"
+    assert updates[0].answer == "**First" and updates[0].confidence is None
+    assert updates[1].answer == "**First sentence**. More text"
     final = events[-1]
     assert final.kind == "run_end" and final.answer.complete
     assert final.answer.confidence == "medium"
     assert final.answer.confidence_explanation == "Limited evidence."
     assert final.answer.tool_trace == []
+    assert final.answer.answer == updates[-1].answer == "**First sentence**. More text"
     assert sum(event.kind == "run_end" for event in events) == 1
     for event in events:
         assert AgentEvent.model_validate_json(event.model_dump_json()) == event

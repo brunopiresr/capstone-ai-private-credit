@@ -117,7 +117,7 @@ For Python callers, set `AssessmentSettings.risk_model` to
 `RiskModelConfig(type="logistic_regression", version="v1",
 artifact_path=Path("data/models/logistic_regression/v1"))`.
 
-The [agents notebook](../../homework/notebooks/03-agents.ipynb) starts with
+The [agents notebook](../../notebooks/03-agents.ipynb) starts with
 `USE_TRAINED_MODEL = False`. Install the ML extra, select the project kernel, set it to
 `True`, and rerun configuration to use the included artifact. Restore False for the
 stub-probability exercise.

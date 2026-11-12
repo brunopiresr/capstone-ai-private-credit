@@ -26,7 +26,7 @@ The primary user is a credit analyst. The following query types come from the pr
 
 ## Where to exercise the agent
 
-Use `CreditAssessmentAgent` or [the agents notebook](../../notebooks/03-agents.ipynb) to inspect live tool selection. The main Streamlit workspace also uses real agents; its separate benchmark page remains a mock.
+Use `CreditAssessmentAgent` or [the agents notebook](../../../notebooks/03-agents.ipynb) to inspect live tool selection. The main Streamlit workspace also uses real agents; its separate benchmark page remains a mock.
 
 For borrower scenarios, configure an assessment service and the stated `borrower_id` through the application. For issuer scenarios, configure the stated `ticker`. Borrower scope is not a model-visible assessment-tool argument.
 

@@ -24,12 +24,15 @@ Start with the [project README](../README.md) to install and run the app.
 - [Dataset integration](project/dataset_expansion_plan.md).
 - [Credit review decisions](project/decisions/001-credit-review-agents.md) and
   [Logfire decisions](project/decisions/logfire_implementation_decisions.md).
+- [Agent Markdown rendering decision](project/decisions/002-agent-markdown-rendering.md):
+  structured output, shared backend formatting, and direct Markdown display in clients.
 - [Borrower comparison proposal](project/borrower_comparison_implementation_plan.md) and
   [deferred simplification](project/deferred-simplification-plan.md).
 
 ## Exercises and evaluation
 
-- [Homework](../homework/README.md): notebooks, demos, and tests.
+- [Notebooks](../notebooks/): guided platform testing and reviewer questions.
+- [Homework](../homework/README.md): demos and evaluation exercises.
 - [Evaluation](homework/evaluation.md) and [optional LLM judges](homework/llm_judges.md).
 - [Public SEC findings](reviews/public_sec_benchmark_triage.md): extraction limits and recorded results.
 

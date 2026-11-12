@@ -6,7 +6,11 @@ from dataclasses import dataclass, field
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.usage import RunUsage
 
-from credit_monitoring.agents.answer_contract import render_content
+from credit_monitoring.agents.answer_contract import (
+    SCHEMA_VERSION,
+    markdown_literal,
+    render_content,
+)
 from credit_monitoring.agents.evidence import EvidenceRegistry
 from credit_monitoring.agents.source_tables import materialize_source_tables
 from credit_monitoring.agents.tools.sources import result_sources
@@ -66,7 +70,9 @@ class AgentRunState:
 
     def answer(self, content: AnswerContent | str, error: str | None = None) -> AgentAnswer:
         if isinstance(content, str):
-            content = render_content(AnswerDraft(summary=content))
+            content = AnswerContent(
+                summary=content, answer=markdown_literal(content), schema_version=SCHEMA_VERSION
+            )
         data = content.model_dump()
         if error:
             data.update(

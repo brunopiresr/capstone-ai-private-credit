@@ -1,27 +1,69 @@
 # AI Credit Monitoring
 
-A proof of concept (POC) for reviewing borrower covenants: calculate compliance and
-headroom, inspect source evidence, compare bullish and bearish AI reviews, and prepare
-analyst, risk manager, and board reports. Analysts make the decisions.
+## Problem
 
-This capstone for **From RAG to Agents** applies the course concepts to a
-private-credit business case: helping analysts turn financial documents and source
-evidence into traceable covenant assessments and advisory credit reviews.
+Private-credit lenders need to check whether borrowers comply with loan covenants:
+contractual conditions such as limits on leverage or minimum interest coverage.
+Analysts must gather financial reports and loan terms, identify which conditions
+apply to the reporting period, calculate ratios against those limits, and explain
+the results to risk managers.
+
+The evidence can be spread across filings, amendments, and financial records.
+Missing inputs, conflicting figures, changing thresholds, and unclear source
+references make assessments harder to verify and can obscure emerging compliance
+issues. Reviewers need to understand both the calculation and the evidence behind
+it before deciding how to manage an exposure.
+
+## Impact of the solution
+
+This proof of concept brings source evidence, deterministic covenant calculations,
+and human review into one workflow. It supports the review process in four ways:
+
+- **Traceable assessments:** inspect inputs, applied terms, ratios, compliance, and
+  headroom alongside source references and visible evidence gaps.
+- **Reusable evidence:** search filing passages and reuse saved extracted facts
+  when investigating questions or reviewing a later assessment.
+- **Broader credit review:** compare bullish and bearish AI interpretations of the
+  same assessment, then inspect their synthesized recommendation.
+- **Clear handoffs:** save analyst observations and validation, submit a frozen
+  assessment for risk-manager review, and prepare board reports from saved cases.
+
+The intended impact is less repeated evidence gathering and clearer, more
+consistent review. These are POC capabilities; reductions in review time and
+improvements in credit outcomes have not been measured. AI reviews remain advisory,
+and people make the decisions.
 
 The demo includes **37 fictional borrowers**, **172 quarterly financial records**, and
 **69 public SEC source references**. Synthetic borrowers are separate from real SEC issuers.
 
-## Problem
+### Long-term vision
 
-Private-credit analysts must determine whether borrowers comply with loan covenants
-using financial reports and supporting documents. This requires gathering evidence,
-calculating ratios against contractual limits, and explaining findings to risk
-managers. Missing inputs, conflicting figures, and unclear source references make
-those assessments harder to verify and can obscure emerging compliance issues.
-This project brings calculations, source evidence, and human review into one
-workflow so analysts can produce traceable covenant assessments.
+The ambition is an AI Credit Monitoring platform that continuously combines legal
+terms, borrower financials, public information, historical performance, and analyst
+feedback to help credit teams identify deterioration earlier and monitor larger
+portfolios efficiently. It would extend beyond covenant compliance into broader
+credit-risk analysis, portfolio prioritization, specialized agents, private-data
+integrations, and production workflows.
+
+The capstone demonstrates a foundation for that vision: evidence retrieval,
+deterministic calculations, advisory agent reviews, and analyst-to-manager handoffs.
+Continuous monitoring, integrated private data, and the broader risk-analysis
+capabilities remain future work.
+
+## Target personas
+
+| Persona | Need | How the platform helps |
+| --- | --- | --- |
+| Credit analyst | Investigate borrower compliance and prepare a defensible assessment. | Retrieve evidence, inspect calculations, ask follow-up questions, record observations, and validate and submit a case. |
+| Risk manager | Review the analyst's conclusions and resolve issues before completing a case. | Inspect the submitted evidence and AI perspectives, record a recommendation, and request further analysis. |
+| Board or credit committee member | Understand reviewed cases, unresolved risks, and proposed actions. | Read reports containing case summaries, open flags, analyst observations, and manager recommendations. |
 
 ## From RAG to Agents: course concepts in the project
+
+This capstone for **From RAG to Agents** applies the course concepts to a
+private-credit business case: helping analysts turn financial documents and source
+evidence into traceable covenant assessments and advisory credit reviews. Each
+technique below addresses a specific step in that review.
 
 | Course topic | What was developed | Business purpose |
 | --- | --- | --- |
@@ -43,10 +85,42 @@ not automatically matched to real SEC issuers.
 RAG produces evidence-backed narrative notes; extraction produces structured facts;
 the calculation service determines supported ratios, headroom, and compliance.
 AI recommendations remain advisory. For the course progression, inspect the
-[RAG notebook](homework/notebooks/02-rag.ipynb), then the
-[agents notebook](homework/notebooks/03-agents.ipynb), then the
-[bullish and bearish credit review](homework/notebooks/04-credit-review.ipynb). The
+[RAG notebook](notebooks/02-rag.ipynb), then the
+[agents notebook](notebooks/03-agents.ipynb), then the
+[bullish and bearish credit review](notebooks/04-credit-review.ipynb). The
 [workspace walkthrough](docs/guides/ui_preview.md) shows the analyst and manager workflow.
+
+## Test the platform with notebooks
+
+The [notebooks](notebooks/) are the simplest way for project reviewers to test the
+platform's capabilities. They contain guided examples and many questions to try,
+covering retrieval, evidence inspection, agent tools, covenant calculations,
+predictions, follow-up conversations, and multi-agent credit review.
+
+Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
+
+```bash
+uv sync --group notebooks --group dev --extra ml --locked
+uv run --locked --group notebooks --extra ml jupyter lab notebooks/
+```
+
+Select the project's `.venv` kernel and run each notebook's cells in order. Start
+with setup, then follow the sequence below; notebooks 03 and 04 can also run independently.
+Change the example questions to explore other capabilities and inspect the answers,
+source evidence, and tool traces.
+
+| Notebook | What to test |
+| --- | --- |
+| [01 — Setup](notebooks/01-setup.ipynb) | Check the environment and model connection. |
+| [02 — RAG](notebooks/02-rag.ipynb) | Retrieve SEC filing evidence, generate cited answers, and extract covenant facts. |
+| [03 — Agents](notebooks/03-agents.ipynb) | Ask research and assessment questions; inspect tool calls, calculations, predictions, and follow-ups. |
+| [04 — Credit review](notebooks/04-credit-review.ipynb) | Calculate an assessment, compare bullish and bearish analyses, and inspect the recommendation. |
+
+Set `OPENAI_API_KEY` in the root `.env` file for model calls. Uncached SEC downloads
+also need `SEC_USER_AGENT` with your name or organization and contact email. Model
+calls incur API usage. Notebook 04's sections 1–4 run without API credentials or
+SEC downloads. Use the [app walkthrough](docs/guides/ui_preview.md) to test the
+analyst, manager, and board-reporting screens.
 
 ## Run the app
 
@@ -142,13 +216,14 @@ This local POC has no authentication, external notifications, or PDF export.
 
 - [Documentation](docs/README.md): guides, architecture, decisions, and historical notes.
 - [Data](data/README.md): inputs, benchmarks, models, and local storage.
-- [Homework](homework/README.md): notebooks, monitoring demo, and evaluation exercises.
+- [Notebooks](notebooks/): guided capability testing and reviewer questions.
+- [Homework](homework/README.md): monitoring demo and evaluation exercises.
 - [Source](src/credit_monitoring/), [scripts](scripts/), and [tests](tests/).
 
 ## Check the project
 
 ```bash
-make test-all      # Offline app and homework checks; live scenarios skip
+make test-all      # Offline app, notebook, and homework checks; live scenarios skip
 make lint
 ```
 

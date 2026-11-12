@@ -86,7 +86,7 @@ type AnswerKind = Literal[
 
 
 class AnswerFinding(ExtractionModel):
-    text: str = Field(description="Plain text finding, including relevant values and units.")
+    text: str = Field(description="Markdown finding, including relevant values and units.")
     citations: list[SourceReference] = Field(
         default_factory=list, description="Supplied source citations."
     )
@@ -113,8 +113,8 @@ class AnswerDraft(ExtractionModel):
     summary: str = Field(
         default="",
         description=(
-            "One or two concise plain text sentences answering or clarifying the question. "
-            "Put detailed findings in findings and schedule rows in tables, without Markdown."
+            "One or two concise Markdown sentences answering or clarifying the question. "
+            "Put detailed findings in findings and schedule rows in structured tables."
         ),
     )
     answer_kind: AnswerKind | None = Field(default=None, description="Descriptive response kind.")
@@ -133,9 +133,11 @@ class AnswerDraft(ExtractionModel):
         ),
     )
     gaps: list[str] = Field(
-        default_factory=list, description="Missing data and material limitations."
+        default_factory=list, description="Missing data and material limitations, in Markdown."
     )
-    diligence_questions: list[str] = Field(default_factory=list, description="Diligence questions.")
+    diligence_questions: list[str] = Field(
+        default_factory=list, description="Diligence questions in Markdown; one question per item."
+    )
     confidence: Literal["low", "medium", "high"] | None = Field(
         default=None, description="Confidence in evidence support, independent of credit risk."
     )
@@ -145,7 +147,9 @@ class AnswerDraft(ExtractionModel):
 class AnswerContent(AnswerDraft):
     """Generated content; defaults allow provisional streaming snapshots."""
 
-    answer: str = Field(default="", description="Cited answer or clarification request.")
+    answer: str = Field(
+        default="", description="Backend-rendered Markdown answer or clarification."
+    )
     schema_version: Literal["agent-answer-v2", "agent-answer-v3"] | None = Field(
         default=None, description="Answer contract version; null for historical captures."
     )

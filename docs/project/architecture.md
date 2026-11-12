@@ -48,6 +48,17 @@ sequentially. SEC downloads retain shared pacing. Search is lexical over local M
 vector and hybrid retrieval are deferred. Source-to-borrower links are explicit.
 See [document processing](../guides/document_processing.md).
 
+## Assistant answer rendering
+
+The assistant returns structured answer fields with Markdown in narrative text.
+`agents/answer_contract.py` assembles the display `answer` in the backend, rendering
+tables and citations consistently for previews and final answers. Streamlit and
+notebooks render that string directly with their normal Markdown components.
+Confidence stays separately displayed. The formatter handles presentation; it does
+not verify generated claims. See the
+[Markdown rendering decision](decisions/002-agent-markdown-rendering.md) for the
+rationale and the tradeoff with complete model-authored Markdown.
+
 ## Workspace and storage
 
 The main workspace (`make preview`) saves assessments, reviews, analyst validation,

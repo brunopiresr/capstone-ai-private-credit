@@ -9,6 +9,7 @@ dependencies = [
     "gitsource>=0.0.5",
     "httpx>=0.28,<1",
     "logfire>=5.2,<6",
+    "markdown-it-py>=4,<5",
     "markitdown>=0.1.0",
     "minsearch>=0.0.5",
     "pandas>=2.2.0",
@@ -53,7 +54,7 @@ target-version = "py314"
 include = [
     "src/**/*.py", "tests/**/*.py", "scripts/**/*.py",
     "homework/agent-tests/**/*.py", "homework/monitoring/**/*.py",
-    "homework/notebooks/tests/**/*.py", "homework/evaluation/**/*.py",
+    "notebooks/tests/**/*.py", "homework/evaluation/**/*.py",
 ]
 
 [tool.ruff.lint]

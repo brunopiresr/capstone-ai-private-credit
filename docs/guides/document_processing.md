@@ -147,8 +147,8 @@ gold labels are excluded from inputs; scope and date checks remain application-o
 
 ## Examples and checks
 
-The [RAG notebook](../../homework/notebooks/02-rag.ipynb) demonstrates retrieval;
-the [agents notebook](../../homework/notebooks/03-agents.ipynb) adds scoped tools,
+The [RAG notebook](../../notebooks/02-rag.ipynb) demonstrates retrieval;
+the [agents notebook](../../notebooks/03-agents.ipynb) adds scoped tools,
 conversations, and assessments. For an offline throughput measurement:
 
 ```bash

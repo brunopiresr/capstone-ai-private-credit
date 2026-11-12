@@ -3,9 +3,66 @@
 import re
 from html import escape
 
+from markdown_it import MarkdownIt
+
 from credit_monitoring.domain.agent import AnswerContent, AnswerDraft, AnswerTable, SourceReference
 
 SCHEMA_VERSION = "agent-answer-v3"
+_MARKDOWN = MarkdownIt("commonmark", {"html": False})
+
+# Preserve code and autolinks while escaping HTML and math delimiters in prose.
+_INLINE_MARKDOWN = re.compile(
+    r"(?<![\\`])(?P<ticks>`+)(?!`)[^\n]*?(?<!`)(?P=ticks)(?!`)"
+    r"|<(?:https?://|mailto:)[^<>\s]+>"
+)
+
+
+def _prose(text: str) -> str:
+    def escape_prose(value: str) -> str:
+        return re.sub(
+            r"(\\*)\$",
+            lambda match: match[1] + (r"\$" if len(match[1]) % 2 == 0 else "$"),
+            value.replace("<", "&lt;"),
+        )
+
+    parts = []
+    start = 0
+    for match in _INLINE_MARKDOWN.finditer(text):
+        parts.extend((escape_prose(text[start : match.start()]), match[0]))
+        start = match.end()
+    parts.append(escape_prose(text[start:]))
+    return "".join(parts)
+
+
+def _narrative(text: str) -> str:
+    """Preserve Markdown code blocks; escape HTML and math delimiters only in prose."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = text.splitlines(keepends=True)
+    parts = []
+    start = 0
+    for token in _MARKDOWN.parse(text):
+        if token.type not in {"fence", "code_block"} or token.map is None:
+            continue
+        first, end = token.map
+        parts.extend((_prose("".join(lines[start:first])), "".join(lines[first:end])))
+        if token.type == "fence" and token.level == 0:
+            closing = (
+                r" {0,3}"
+                + re.escape(token.markup[0])
+                + "{"
+                + str(len(token.markup))
+                + r",}[ \t]*\n?"
+            )
+            if end - first == 1 or not re.fullmatch(closing, lines[end - 1]):
+                # A partial fence must not swallow subsequent citations or sections.
+                parts.append(("" if text.endswith("\n") else "\n") + token.markup + "\n")
+        start = end
+    parts.append(_prose("".join(lines[start:])))
+    return "".join(parts)
+
+
+def _list_item(marker: str, text: str) -> str:
+    return marker + _narrative(text).replace("\n", "\n" + " " * len(marker))
 
 
 def markdown_literal(text: str) -> str:
@@ -72,23 +129,22 @@ def _table(table: AnswerTable) -> str:
 
 def render_content(draft: AnswerDraft) -> AnswerContent:
     """The same projection serves provisional snapshots and completed answers."""
-    paragraphs = [markdown_literal(draft.summary)] if draft.summary else []
+    paragraphs = [_narrative(draft.summary)] if draft.summary else []
     for finding in draft.findings:
-        text = markdown_literal(finding.text)
+        text = _narrative(finding.text)
         if finding.citations:
-            text += "  \nSource: " + _sources(finding.citations)
+            text += "\n\nSource: " + _sources(finding.citations)
         paragraphs.append(text)
     paragraphs.extend(rendered for table in draft.tables if (rendered := _table(table)))
     if draft.gaps:
         paragraphs.append(
-            "### Gaps and limitations\n\n"
-            + "\n".join("- " + markdown_literal(gap).replace("\n", "\n  ") for gap in draft.gaps)
+            "### Gaps and limitations\n\n" + "\n".join(_list_item("- ", gap) for gap in draft.gaps)
         )
     if draft.diligence_questions:
         paragraphs.append(
             "### Diligence questions\n\n"
             + "\n".join(
-                f"{i}. " + markdown_literal(question).replace("\n", "\n   ")
+                _list_item(f"{i}. ", question)
                 for i, question in enumerate(draft.diligence_questions, 1)
             )
         )

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic_ai import models
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
 
 from document_fixtures import (  # noqa: E402, F401
     document_service_factory,

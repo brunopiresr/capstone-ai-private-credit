@@ -364,10 +364,13 @@ def test_expanded_mock_benchmark_lists_each_covenant(working_app, monkeypatch):
 def test_structured_answer_matrix_renders_in_streamlit():
     app = AppTest.from_string("""
 from credit_monitoring.agents.answer_contract import render_content
-from credit_monitoring.domain.agent import AgentAnswer, AnswerDraft, AnswerTable, AnswerTableRow
+from credit_monitoring.domain.agent import (
+    AgentAnswer, AnswerDraft, AnswerFinding, AnswerTable, AnswerTableRow,
+)
 from credit_monitoring.web.assessment import render_answer
 content = render_content(AnswerDraft(
-    summary="There are 2 source differences.",
+    summary="There are **2 source differences**.",
+    findings=[AnswerFinding(text="### Finding\\n\\n- Review *terms*\\n\\n<script>text</script>")],
     tables=[AnswerTable(title="Evidence matrix", columns=["Source", "Wording"], rows=[
         AnswerTableRow(cells=["DOC_A", "A | B\\n$10 and $20 <script>text</script>"])
     ])],
@@ -378,5 +381,6 @@ render_answer(AgentAnswer(**content.model_dump()))
 """).run()
     assert not app.exception
     markdown = "\n".join(item.value for item in app.markdown)
+    assert "**2 source differences**" in markdown and "### Finding\n\n- Review *terms*" in markdown
     assert "Evidence matrix" in markdown and r"A \| B<br>" in markdown
     assert "Which schedule applies?" in markdown and "<script>" not in markdown

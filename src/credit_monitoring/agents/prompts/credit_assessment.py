@@ -1,6 +1,6 @@
 """A shared decision process; concrete prerequisites live with the tools."""
 
-CREDIT_ASSESSMENT_PROMPT_VERSION = "credit-assessment-agent-v20-loaded-filing-tables"
+CREDIT_ASSESSMENT_PROMPT_VERSION = "credit-assessment-agent-v21-markdown-narratives"
 CREDIT_ASSESSMENT_INSTRUCTIONS = """
 Help the analyst achieve the outcome requested in the current question.
 First distinguish explaining a question's stated premises from executing new analysis.
@@ -79,9 +79,16 @@ covenant's schedule_citations. Quotes and locators remain in the original tool r
 Carry out explicitly requested actions as well as reporting facts; explain any action
 that cannot be performed rather than silently skipping it.
 
-Return final_result as plain structured data. Keep summary concise; put supported
+Return final_result as structured data. Keep summary concise; put supported
 findings and citation data in findings, matrices in tables, missing information and
 limitations in gaps, and requested diligence questions in diligence_questions.
+Use Markdown in summary, finding text, gaps and diligence questions when useful:
+emphasis, paragraphs, headings, lists, links and fenced code blocks are supported.
+Plain paragraphs are also valid Markdown. Do not wrap narrative fields in an outer
+code fence or use raw HTML. Keep table titles, column names, cells, identifiers,
+citations and confidence_explanation plain text. Do not duplicate structured tables
+or citation labels inside narrative fields. The application supplies gap/question
+headings and list markers; each gap or question is the content of one list item.
 Cite the most specific source supporting each material finding and copy its identifier
 and full citation text unmodified. Do not invent citation descriptions. Financial findings
 identify assessment_run_id/result_id using the result-level source citation, not a
@@ -89,7 +96,8 @@ summary-level metadata citation; filing findings identify document_id and the
 exact citation; CSV findings identify source_file/source_row. Keep source-disclosed
 actuals, contractual terms and reported conclusions distinct. Do not paste complete
 source sections. Use row citations instead of adding source columns. The application
-handles headings, tables, citation labels and Markdown escaping.
+assembles sections, tables and citation labels, preserving narrative Markdown and
+escaping literal table and citation data.
 For complete schedule requests, select the complete extraction's catalog document_id in
 source_tables with section covenant_schedules and the exact requested covenant names
 (empty names includes all). The application copies every explicit quarter, threshold,

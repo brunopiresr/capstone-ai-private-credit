@@ -15,7 +15,7 @@ from credit_monitoring.paths import ROOT
 
 @pytest.mark.parametrize("prompt_number", [1, 2])
 def test_notebook_prompts_run_in_existing_event_loop(synthetic_records, capsys, prompt_number):
-    notebook_path = ROOT / "homework/notebooks/02-rag.ipynb"
+    notebook_path = ROOT / "notebooks/02-rag.ipynb"
     cells = json.loads(notebook_path.read_text())["cells"]
     index = Mock()
     index.search.return_value = [synthetic_records["base"]]

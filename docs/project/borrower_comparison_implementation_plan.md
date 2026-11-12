@@ -12,7 +12,7 @@ Support both prompts through the assessment agent:
 Return a factual comparison of covenant results, headroom, data gaps and optional
 predictions, using a shared reporting period and information cutoff.
 
-Deliver through the agent and `homework/notebooks/03-agents.ipynb`. Defer Streamlit
+Deliver through the agent and `notebooks/03-agents.ipynb`. Defer Streamlit
 integration, company-name resolution, automated rankings, downloadable reports and
 production-scale portfolio processing.
 
