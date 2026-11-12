@@ -6,6 +6,7 @@ import pytest
 from document_workspace_helpers import document_inputs, local_markdown
 from model_helpers import ScriptedModel, model_response
 from streamlit.testing.v1 import AppTest
+from workspace_ui_helpers import page
 
 from credit_monitoring.domain import CovenantExtraction
 from credit_monitoring.web import documents, portfolio
@@ -15,11 +16,6 @@ APP = Path(__file__).resolve().parents[3] / "src/credit_monitoring/web/preview.p
 
 def click(app, label):
     next(button for button in app.button if button.label == label).click().run()
-    assert not app.exception
-
-
-def page(app, name):
-    app.radio(key="preview_page").set_value(name).run()
     assert not app.exception
 
 
@@ -71,6 +67,7 @@ def test_opening_inventory_runs_nothing_and_registration_survives_reload(connect
     fresh.radio(key="documents_view").set_value("All catalog sources").run()
     assert len(fresh.dataframe[0].value) == 3
     assert model.respond.call_count == len(downloaded) == 0
+    page(fresh, "Settings")
     fresh.button(key="preview_reset").click().run()
     assert not fresh.exception
     assert len(documents.get_document_workspace().repository.documents()) == 3
@@ -154,6 +151,7 @@ def test_explicit_link_reassessment_warning_and_financial_recreation(connected):
     assert any("Sources changed" in item.value for item in app.warning)
     assert app.selectbox(key="analysis_version").value == rid
     page(app, "Documents & data")
+    page(app, "Settings")
     app.selectbox(key="documents_rebuild_target").select("Financial database").run()
     click(app, "Rebuild selected target")
     operation = documents.get_document_workspace().repository.operations()[0]
@@ -166,7 +164,7 @@ def test_index_rebuild_search_and_failed_recreation_show_actual_outcomes(connect
     app, _, _ = connected
     workspace = documents.get_document_workspace()
     local_markdown(workspace)
-    app.run()
+    page(app, "Settings")
     click(app, "Rebuild selected target")
     assert app.session_state.documents_rebuild_result["verification_hits"] > 0
     app.text_input(key="documents_query").set_value("leverage")

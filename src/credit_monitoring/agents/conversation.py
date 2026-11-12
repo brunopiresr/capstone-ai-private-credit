@@ -11,7 +11,6 @@ from pydantic_ai.messages import ModelMessage
 
 from credit_monitoring.agents.events import AgentEvent, EventStreamHandler
 from credit_monitoring.agents.evidence import EvidenceRegistry
-from credit_monitoring.agents.request_policy import AnalystDate
 from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.sources import result_sources
 from credit_monitoring.domain.agent import AgentAnswer, EvidenceEntry, SourceReference
@@ -48,10 +47,6 @@ class AgentConversation:
         self._history: list[ModelMessage] = []
         self._sources: list[SourceReference] = []
         self._evidence: list[EvidenceEntry] = []
-        self._dates: dict[str, AnalystDate] = {}
-        self._has_evidence = False
-        self._pending_intent = None
-        self._assessment_id: str | None = None
         self._closed = False
         self._in_progress = False
 
@@ -76,15 +71,11 @@ class AgentConversation:
         self._history.clear()
         self._sources.clear()
         self._evidence.clear()
-        self._dates.clear()
-        self._has_evidence = False
-        self._pending_intent = None
-        self._assessment_id = None
 
     def prime_evidence(
         self, assessment: RiskAssessment, review: CreditReviewResult | None = None
     ) -> None:
-        """Accept a selected application snapshot as evidence, never as analyst date intent."""
+        """Accept a selected snapshot as evidence and available calculation date context."""
         if self.closed or self._in_progress:
             raise RuntimeError("Cannot supply evidence to a closed or running conversation.")
         registry = EvidenceRegistry()
@@ -97,8 +88,6 @@ class AgentConversation:
                 assessment_run_id=assessment.assessment_run_id,
             )
         self._evidence = list(registry.entries)
-        self._assessment_id = assessment.assessment_run_id
-        self._has_evidence = True
         sources = {(s.document_id, s.citation): s for s in self._sources}
         sources.update({(s.document_id, s.citation): s for s in result_sources(assessment)})
         self._sources = [s.model_copy(deep=True) for s in sources.values()]
@@ -169,8 +158,6 @@ class AgentConversation:
         self._in_progress = True
         state = AgentRunState(
             max_tool_rounds=self._agent.max_tool_rounds,
-            has_retained_evidence=self._has_evidence,
-            retained_assessment_id=self._assessment_id,
             sources={(s.document_id, s.citation): s.model_copy(deep=True) for s in self._sources},
         )
         state.evidence.retain(self._evidence)
@@ -184,8 +171,6 @@ class AgentConversation:
                     event_stream_handler=event_stream_handler,
                     history=deepcopy(self._history),
                     session=self._session,
-                    retained_dates=dict(self._dates),
-                    retained_intent=self._pending_intent,
                     selected_dates=selected_dates,
                     supplemental_context=supplemental_context,
                 )
@@ -194,33 +179,8 @@ class AgentConversation:
                     if event.kind == "run_end" and not self.closed:
                         self._history = deepcopy(state.history)
                         if event.answer.complete:
-                            for call in event.answer.tool_trace:
-                                if isinstance(call.outcome, RiskAssessment):
-                                    self._assessment_id = call.outcome.assessment_run_id
                             self._evidence = list(state.evidence.entries)
-                            self._has_evidence = (
-                                self._has_evidence
-                                or any(
-                                    hasattr(call.outcome, "assessment_run_id")
-                                    for call in event.answer.tool_trace
-                                )
-                                or bool(event.answer.sources)
-                            )
                             self._sources = [s.model_copy(deep=True) for s in event.answer.sources]
-                            if state.request:
-                                self._pending_intent = (
-                                    state.request.requested_intent
-                                    if state.request.intent == "clarification"
-                                    else None
-                                )
-                                self._dates = {
-                                    key: value
-                                    for key, value in (
-                                        ("reporting", state.request.reporting),
-                                        ("cutoff", state.request.cutoff),
-                                    )
-                                    if value
-                                }
                     yield event
         finally:
             self._in_progress = False

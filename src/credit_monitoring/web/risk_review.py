@@ -11,6 +11,7 @@ from credit_monitoring.application.manager_workflow import DEFAULT_CRITERIA, Man
 from credit_monitoring.application.portfolio_service import STATUS_LABELS
 from credit_monitoring.web.assessment import render_evidence, render_results, render_verification
 from credit_monitoring.web.borrower_analysis import get_workflow
+from credit_monitoring.web.navigation import context
 from credit_monitoring.web.portfolio import formatted_time, render_agent_result
 from credit_monitoring.web.review_requests import render_requests, run_action
 
@@ -62,7 +63,9 @@ def open_analyst(manager: ManagerWorkflow, borrower_id: str, submission: dict | 
         }
         for key in ("analysis_period", "analysis_cutoff", "analysis_version"):
             st.session_state.pop(key, None)
+            context().selections.pop(key, None)
         st.session_state._analysis_next_run = assessment.assessment_run_id
+    st.session_state.analysis_section = "Review and submit"
     st.session_state._preview_next_page = "Borrower analysis"
     st.rerun()
 
@@ -314,31 +317,14 @@ def render_risk_review_page() -> None:
             or st.session_state.get("portfolio_borrower")
         )
         st.session_state.risk_borrower = prior if prior in names else next(iter(names))
-    borrower_id = st.selectbox(
-        "Select borrower to review",
-        list(names),
-        format_func=names.get,
-        key="risk_borrower",
-        on_change=change_borrower,
-    )
-    columns = st.columns(6)
+    columns = st.columns(3)
     for column, label, value in zip(
         columns,
+        ["Pending reviews", "Flagged borrowers", "Breaches"],
         [
-            "Borrowers",
-            "Assessed",
-            "Not assessed",
-            "Breaches",
-            "Flagged borrowers",
-            "Pending reviews",
-        ],
-        [
-            len(entries),
-            sum(e.assessment is not None for e in entries),
-            sum(e.assessment is None for e in entries),
-            sum("breach" in e.statuses for e in entries),
-            sources["metrics"]["flagged_borrowers"],
             sources["metrics"]["pending_reviews"],
+            sources["metrics"]["flagged_borrowers"],
+            sum("breach" in entry.statuses for entry in entries),
         ],
         strict=True,
     ):
@@ -434,5 +420,12 @@ def render_risk_review_page() -> None:
     if st.button("Prepare board report", key="risk_open_board"):
         st.session_state._preview_next_page = "Board report"
         st.rerun()
+    borrower_id = st.selectbox(
+        "Select borrower to review",
+        list(names),
+        format_func=names.get,
+        key="risk_borrower",
+        on_change=change_borrower,
+    )
     st.header(names[borrower_id])
     render_case(manager, borrower_id, scope_period, cutoff)

@@ -76,7 +76,8 @@ def main() -> None:
         "Board report",
         "User guide",
     ):
-        app.radio(key="preview_page").set_value(page).run()
+        app.session_state._preview_next_page = page
+        app.run()
         assert not app.exception, (page, app.exception)
 
     assert not Path("/app/.env").exists(), "Credentials must not be baked into the image."

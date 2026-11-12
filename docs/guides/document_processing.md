@@ -116,15 +116,27 @@ Inject an `assessment_service` and pass explicit `borrower_id` scope to enable:
 
 | Tool | Result |
 | --- | --- |
-| `get_financials` | Sanitized current metrics and bounded history |
+| `list_financial_periods` | Reporting periods and known availability from the active source; no dates needed |
+| `get_financials` | Optional read of sanitized current metrics and bounded history |
 | `assess_covenants` | Verified calculations with ML disabled |
 | `predict_risk` | Assessment plus the configured model's output or explicit unavailability |
 
-Tools accept ISO reporting and information-cutoff dates. Each assessment call creates
+Financial reads/calculations accept ISO reporting and information-cutoff dates;
+discovery accepts no arguments. Assessment and prediction tools load their own
+financials, so a prior `get_financials` read is optional. Each assessment call creates
 a new run. Missing terms, inputs, conflicts, waivers, and inactive tests retain their
 service outcomes. The default stub supplies no probability.
 
-An assessment-only agent can omit the document service. Financial borrowers and SEC
+For latest/current analysis, the agent can discover the reporting period and use the
+provided current date (Europe/Lisbon) as the cutoff if no user or contextual cutoff
+exists. It states this assumption and preserves unknown source availability. Explicit
+and saved dates remain context; historical or ambiguous requests may need clarification.
+Saved-assessment chats discover only the selected snapshot and its history.
+
+An assessment-only agent can omit the document service. Without borrower selection,
+it can explain or ask the analyst to select one; borrower-bound tools stay unavailable.
+Selection requires an application update and a new scoped conversation/call, rather
+than simply naming a borrower inside the existing chat. Financial borrowers and SEC
 issuers are never matched automatically. Document-backed calculations need explicit
 `ExtractionBinding` and established calculation rules; see the
 [assessment guide](ml_early_warning.md#consume-stored-document-covenants).

@@ -17,6 +17,7 @@ from credit_monitoring.evaluation.agent_batch import (
     make_agent,
     read_scenarios,
     run_batch,
+    scenario_dates,
     summarize,
     verdict,
 )
@@ -116,10 +117,11 @@ def test_static_numeric_references_against_real_services(tmp_path):
     for case in cases:
         if not case.expected_results:
             continue
+        dates = scenario_dates(case)
         assessment = service.assess(
             case.borrower_id,
-            date.fromisoformat(case.period_end),
-            date.fromisoformat(case.information_cutoff),
+            date.fromisoformat(dates["period_end"]),
+            date.fromisoformat(dates["information_cutoff"]),
             ml_enabled=False,
         )
         actuals = [r.model_dump(mode="json") for r in assessment.results + assessment.history]
@@ -201,3 +203,99 @@ async def test_batch_saves_actual_answers_judgments_and_execution_errors(tmp_pat
     request = json.loads((answer_path.parent / "request.json").read_text())
     assert "expected_behavior" not in request
     assert json.loads((args.output / "summary.json").read_text())["overall"]["total"] == 2
+
+
+def test_v3_citation_scoring_reads_escaped_display_text():
+    from credit_monitoring.agents.answer_contract import render_content
+    from credit_monitoring.domain.agent import (
+        AnswerDraft,
+        AnswerFinding,
+        SourceReference,
+        ToolExecution,
+    )
+    from credit_monitoring.domain.documents import RetrievedRecord
+
+    case = next(
+        case for case in read_scenarios(SUITE / "scenarios.csv") if case.scenario_id == "V11"
+    )
+    citation = "Source [note]_table | $10"
+    record = RetrievedRecord(
+        document_id="EVAL_DEMO_Q1",
+        citation=citation,
+        ticker="DEMO",
+        text="Reported leverage actual 4.77x versus maximum permitted 5.50x.",
+    )
+    content = render_content(
+        AnswerDraft(
+            findings=[
+                AnswerFinding(
+                    text=record.text,
+                    citations=[SourceReference(document_id=record.document_id, citation=citation)],
+                )
+            ]
+        )
+    )
+    answer = AgentAnswer(
+        **content.model_dump(),
+        sources=[SourceReference(document_id=record.document_id, citation=citation)],
+        tool_trace=[
+            ToolExecution(
+                call_id="search",
+                name="search_evidence",
+                arguments={"query": "leverage"},
+                outcome=[record],
+            )
+        ],
+    )
+    checks = check_answer(case, answer)
+    assert next(check for check in checks if check["name"] == "source_citation:EVAL_DEMO_Q1")[
+        "passed"
+    ]
+
+
+@pytest.mark.parametrize("with_discovery", [False, True])
+def test_assessment_contract_accepts_standalone_calculation_and_optional_metadata(with_discovery):
+    from credit_monitoring.domain.agent import ToolExecution
+    from credit_monitoring.domain.assessment import RiskAssessment
+    from credit_monitoring.domain.tool_results import FinancialPeriodCatalog
+    from credit_monitoring.evaluation.agent_batch import historical_citation_score
+
+    case = next(c for c in read_scenarios(SUITE / "scenarios.csv") if c.scenario_id == "H01")
+    payload = json.loads((SUITE / "results/2026-11-09-baseline/cases/H01/answer.json").read_text())
+    assessment = RiskAssessment.model_validate(payload["tool_trace"][-1]["outcome"])
+    trace = []
+    if with_discovery:
+        trace.append(
+            ToolExecution(
+                call_id="periods",
+                name="list_financial_periods",
+                arguments={},
+                outcome=FinancialPeriodCatalog(
+                    borrower_id=case.borrower_id, source="financial_repository"
+                ),
+            )
+        )
+    trace.append(
+        ToolExecution(
+            call_id="calculation",
+            name="assess_covenants",
+            arguments=scenario_dates(case),
+            outcome=assessment,
+        )
+    )
+    text = "\n\n".join(
+        f"Actual {result.actual_value}, threshold {result.threshold}, {result.compliance_status}. "
+        f"assessment {assessment.assessment_run_id}, result {result.result_id}"
+        for result in assessment.results
+    )
+    answer = AgentAnswer(answer=text, tool_trace=trace)
+    assert all(check["passed"] for check in check_answer(case, answer))
+    assert historical_citation_score(answer)["denominator"] == 1
+
+
+def test_today_expectation_uses_capture_date_instead_of_model_arguments():
+    case = next(c for c in read_scenarios(SUITE / "scenarios.csv") if c.scenario_id == "E01")
+    assert scenario_dates(case, current_date=date(2026, 11, 11)) == {
+        "period_end": "2025-12-31",
+        "information_cutoff": "2026-11-11",
+    }

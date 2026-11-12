@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from portfolio_helpers import portfolio_inputs, review_model
 from streamlit.testing.v1 import AppTest
+from workspace_ui_helpers import page
 
 from credit_monitoring.web import portfolio
 from credit_monitoring.web.risk_review import get_manager
@@ -15,12 +16,12 @@ APP = Path(__file__).resolve().parents[3] / "src/credit_monitoring/web/preview.p
 
 
 def click(app, label):
-    next(b for b in app.button if b.label == label).click().run()
-    assert not app.exception
-
-
-def page(app, label):
-    app.radio(key="preview_page").set_value(label).run()
+    button = (
+        app.button(key="analysis_run")
+        if label == "Run assessment"
+        else next(b for b in app.button if b.label == label)
+    )
+    button.click().run()
     assert not app.exception
 
 
@@ -247,7 +248,7 @@ def test_board_draft_refresh_final_snapshot_and_direct_link(connected):
     fresh.query_params["report_id"] = final_id
     fresh.run()
     assert not fresh.exception
-    assert fresh.radio(key="preview_page").value == "Board report"
+    assert fresh.session_state.preview_page == "Board report"
     assert fresh.selectbox(key="board_report_selection").value == final_id
     fresh.selectbox(key="board_report_selection").select("new").run()
     assert not fresh.exception

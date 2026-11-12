@@ -1,22 +1,64 @@
-"""Executed and retained evidence with scope/period partitions and immutable views."""
+"""Copied tool and saved-assessment context; interpretation belongs to the agent."""
 
 import hashlib
 import json
-import re
 from dataclasses import dataclass, field
-from datetime import date
 
 from credit_monitoring.agents.presentation import calculation_details
 from credit_monitoring.domain.agent import EvidenceEntry
 from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
 from credit_monitoring.domain.credit_review import CreditReviewResult
 from credit_monitoring.domain.documents import RetrievedRecord
-from credit_monitoring.domain.processing import DocumentExtraction
+from credit_monitoring.domain.processing import DocumentExtraction, DocumentSummary
 from credit_monitoring.domain.tool_results import FinancialReview, ToolOutcome
 
 
 def canonical(value) -> str:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False)
+
+
+def _document_prompt_data(data: dict) -> dict:
+    """Keep source facts concise; complete quotations remain in tool history and storage."""
+    if data.get("status") != "complete" or not isinstance(data.get("result"), dict):
+        return data
+
+    def compact(value):
+        if isinstance(value, dict):
+            if {"evidence_quote", "document_id", "citation"} <= value.keys():
+                return {key: value[key] for key in ("document_id", "citation")}
+            return {key: compact(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [compact(item) for item in value]
+        return value
+
+    projected = compact(data)
+    for covenant in projected["result"]["extraction"]["covenants"]:
+        rows = []
+        citations = []
+        named_periods = 0
+        for entry in covenant["threshold_schedule"]:
+            citation = entry.pop("evidence")
+            if citation not in citations:
+                citations.append(citation)
+            entry["citation_index"] = citations.index(citation)
+            dates = entry["period_end_dates"]
+            named_periods += len(dates)
+            rows.extend({**entry, "period_end_dates": [day]} for day in dates)
+            if not dates:
+                rows.append(entry)
+        covenant["threshold_schedule"] = rows
+        covenant["schedule_citations"] = citations
+        covenant["explicitly_named_period_count"] = named_periods
+    extraction = projected["result"]["extraction"]
+    projected["available_source_tables"] = [
+        section
+        for section, available in (
+            ("covenant_schedules", any(c["threshold_schedule"] for c in extraction["covenants"])),
+            ("reported_values", bool(extraction["reported_financial_values"])),
+        )
+        if available
+    ]
+    return projected
 
 
 @dataclass
@@ -27,19 +69,8 @@ class EvidenceRegistry:
     def entries(self) -> tuple[EvidenceEntry, ...]:
         return tuple(item.model_copy(deep=True) for item in self._entries.values())
 
-    def get(self, evidence_id: str) -> EvidenceEntry:
-        if evidence_id not in self._entries:
-            raise ValueError(
-                f"Unknown evidence ID: {evidence_id}. Available IDs: {list(self._entries)}"
-            )
-        return self._entries[evidence_id].model_copy(deep=True)
-
     def retain(self, entries: list[EvidenceEntry]) -> None:
-        for entry in entries:
-            existing = self._entries.get(entry.evidence_id)
-            if existing is not None and existing != entry:
-                raise ValueError("Evidence ID collision with changed contents.")
-            self._entries[entry.evidence_id] = entry.model_copy(deep=True)
+        self._entries.update({entry.evidence_id: entry.model_copy(deep=True) for entry in entries})
 
     def _add(
         self,
@@ -52,26 +83,18 @@ class EvidenceRegistry:
         period_end=None,
         information_cutoff=None,
     ) -> None:
-        self.retain(
-            [
-                EvidenceEntry(
-                    evidence_id=evidence_id,
-                    kind=kind,
-                    payload_json=canonical(data),
-                    citation=citation,
-                    borrower_id=borrower_id,
-                    ticker=ticker,
-                    period_end=period_end,
-                    information_cutoff=information_cutoff,
-                )
-            ]
+        self._entries[evidence_id] = EvidenceEntry(
+            evidence_id=evidence_id,
+            kind=kind,
+            payload_json=canonical(data),
+            citation=citation,
+            borrower_id=borrower_id,
+            ticker=ticker,
+            period_end=period_end,
+            information_cutoff=information_cutoff,
         )
 
     def _financial(self, financial: FinancialPeriod, cutoff: str) -> None:
-        if financial.available_at is not None and financial.available_at > date.fromisoformat(
-            cutoff
-        ):
-            raise ValueError("Financial evidence exceeds the information cutoff.")
         if financial.source_file is not None and financial.source_row is not None:
             data = financial.model_dump(mode="json", exclude={"loaded_at"})
             identifier = hashlib.sha256(canonical([data, cutoff]).encode()).hexdigest()[:20]
@@ -86,173 +109,87 @@ class EvidenceRegistry:
             )
 
     def record(self, outcome: ToolOutcome, *, borrower_id: str | None, ticker: str | None) -> None:
-        if isinstance(outcome, (RiskAssessment, FinancialReview)):
-            if borrower_id is None or outcome.borrower_id != borrower_id:
-                raise ValueError("Executed evidence is outside the configured borrower scope.")
-            period, cutoff = str(outcome.period_end), str(outcome.information_cutoff)
-            if isinstance(outcome, FinancialReview):
-                if outcome.current and outcome.current.period_end != outcome.period_end:
-                    raise ValueError(
-                        "Current financial evidence uses a different reporting period."
-                    )
-                if any(item.period_end >= outcome.period_end for item in outcome.history):
-                    raise ValueError("Financial history must precede the reporting period.")
-                for financial in ([outcome.current] if outcome.current else []) + outcome.history:
-                    if (
-                        financial.borrower_id != borrower_id
-                        or financial.period_end > outcome.period_end
-                    ):
-                        raise ValueError(
-                            "Financial evidence has inconsistent borrower/period identity."
-                        )
-                    self._financial(financial, cutoff)
-            else:
-                data = outcome.model_dump(mode="json", exclude={"narrative", "results", "history"})
+        if isinstance(outcome, FinancialReview):
+            for financial in ([outcome.current] if outcome.current else []) + outcome.history:
+                self._financial(financial, str(outcome.information_cutoff))
+        elif isinstance(outcome, RiskAssessment):
+            run, period, cutoff = (
+                outcome.assessment_run_id,
+                str(outcome.period_end),
+                str(outcome.information_cutoff),
+            )
+            data = outcome.model_dump(mode="json", exclude={"narrative", "results", "history"})
+            self._add(
+                f"assessment:{run}",
+                "assessment",
+                data,
+                f"assessment {run}",
+                outcome.borrower_id,
+                period_end=period,
+                information_cutoff=cutoff,
+            )
+            for result in [*outcome.results, *outcome.history]:
+                data = result.model_dump(mode="json")
+                data["presentation"] = calculation_details(data)
                 self._add(
-                    f"assessment:{outcome.assessment_run_id}",
-                    "assessment",
+                    f"calculation:{run}:{result.result_id}",
+                    "calculation",
                     data,
-                    f"assessment {outcome.assessment_run_id}",
-                    borrower_id,
-                    period_end=period,
+                    f"assessment {run}, result {result.result_id}",
+                    result.borrower_id,
+                    period_end=str(result.period_end),
                     information_cutoff=cutoff,
                 )
-                for current, results in ((True, outcome.results), (False, outcome.history)):
-                    for result in results:
-                        if (
-                            result.borrower_id != borrower_id
-                            or result.assessment_run_id != outcome.assessment_run_id
-                            or result.information_cutoff != outcome.information_cutoff
-                            or (current and result.period_end != outcome.period_end)
-                            or (not current and result.period_end >= outcome.period_end)
-                        ):
-                            raise ValueError(
-                                "Calculation evidence has inconsistent identity or dates."
-                            )
-                        calculation = result.model_dump(mode="json")
-                        calculation["presentation"] = calculation_details(calculation)
-                        self._add(
-                            f"calculation:{outcome.assessment_run_id}:{result.result_id}",
-                            "calculation",
-                            calculation,
-                            f"assessment {outcome.assessment_run_id}, result {result.result_id}",
-                            borrower_id,
-                            period_end=str(result.period_end),
-                            information_cutoff=cutoff,
-                        )
-                        raw = result.financial_inputs.get("financial_period")
-                        if raw:
-                            financial = FinancialPeriod.model_validate(raw)
-                            if (
-                                financial.borrower_id != borrower_id
-                                or financial.period_end != result.period_end
-                            ):
-                                raise ValueError(
-                                    "Calculation financial inputs have inconsistent scope."
-                                )
-                            self._financial(financial, cutoff)
-                if outcome.prediction:
-                    prediction = outcome.prediction
-                    if (
-                        prediction.borrower_id != borrower_id
-                        or prediction.period_end != outcome.period_end
-                        or outcome.feature_snapshot is None
-                        or prediction.snapshot_id != outcome.feature_snapshot.snapshot_id
-                        or prediction.prediction_status != outcome.ml_status
-                    ):
-                        raise ValueError("Prediction identity does not match its assessment.")
-                    if prediction.prediction_status != "complete" and any(
-                        value is not None
-                        for value in (
-                            prediction.breach_probability,
-                            prediction.deterioration_probability,
-                            prediction.anomaly_score,
-                        )
-                    ):
-                        raise ValueError(
-                            "Unavailable predictions cannot supply probabilities/scores."
-                        )
-                    self._add(
-                        f"prediction:{prediction.prediction_id}",
-                        "prediction",
-                        prediction.model_dump(mode="json"),
-                        f"assessment {outcome.assessment_run_id}, "
-                        f"prediction {prediction.prediction_id}",
-                        borrower_id,
-                        period_end=period,
-                        information_cutoff=cutoff,
-                    )
+                if raw := result.financial_inputs.get("financial_period"):
+                    self._financial(FinancialPeriod.model_validate(raw), cutoff)
+            if prediction := outcome.prediction:
+                self._add(
+                    f"prediction:{prediction.prediction_id}",
+                    "prediction",
+                    prediction.model_dump(mode="json"),
+                    f"assessment {run}, prediction {prediction.prediction_id}",
+                    prediction.borrower_id,
+                    period_end=str(prediction.period_end),
+                    information_cutoff=cutoff,
+                )
         elif isinstance(outcome, list):
             for record in outcome:
-                if isinstance(record, RetrievedRecord):
-                    if ticker and record.ticker not in (None, ticker):
-                        raise ValueError("Retrieved evidence is outside the issuer scope.")
-                    cursor = 0
-                    for block in re.split(r"\n\s*\n", record.text):
-                        text = block.strip()
-                        start = record.text.find(text, cursor) if text else cursor
-                        cursor = start + len(text)
-                        if not text or all(line.startswith("#") for line in text.splitlines()):
-                            continue
-                        # Instruction-only source paragraphs remain in the raw trace, not
-                        # in the set of financial passages the answer may quote.
-                        if re.search(
-                            r"\bSYSTEM OVERRIDE\b|ignore (?:all |prior |previous )?instructions",
-                            text,
-                            re.I,
-                        ):
-                            continue
-                        data = record.model_dump(mode="json")
-                        data.update(
-                            text=text,
-                            excerpt_start=start,
-                            excerpt_end=cursor,
-                            excerpt_coordinate_system="returned_text",
-                        )
-                        identifier = hashlib.sha256(canonical(data).encode()).hexdigest()[:20]
-                        self._add(
-                            f"filing:{identifier}",
-                            "filing",
-                            data,
-                            f"{record.document_id}: {record.citation}",
-                            ticker=ticker or record.ticker,
-                            period_end=record.period_end,
-                        )
-        elif isinstance(outcome, DocumentExtraction) and outcome.status == "complete":
-            data = outcome.model_dump(mode="json")
-            identifier = hashlib.sha256(canonical(data).encode()).hexdigest()[:20]
-            self._add(
-                f"filing:{identifier}",
-                "filing",
-                data,
-                f"{outcome.document_id}: {outcome.citation}",
-                ticker=ticker,
-            )
+                if isinstance(record, (RetrievedRecord, DocumentSummary)):
+                    self._document(record, ticker)
+        elif isinstance(outcome, DocumentExtraction):
+            self._document(outcome, ticker)
+
+    def _document(self, record: RetrievedRecord | DocumentSummary, ticker: str | None) -> None:
+        data = record.model_dump(mode="json")
+        identifier = hashlib.sha256(canonical(data).encode()).hexdigest()[:20]
+        # Re-reading a known extraction makes its status the latest observed state.
+        if isinstance(record, DocumentExtraction):
+            self._entries.pop(f"filing:{identifier}", None)
+        self._add(
+            f"filing:{identifier}",
+            "filing",
+            data,
+            f"{record.document_id}: {record.citation}",
+            ticker=record.ticker or ticker,
+            period_end=getattr(record, "period_end", None),
+        )
 
     def prompt(self) -> str:
         return canonical(
             [
                 {
-                    "evidence_id": e.evidence_id,
-                    "kind": e.kind,
-                    "borrower_id": e.borrower_id,
-                    "ticker": e.ticker,
-                    "period_end": e.period_end,
-                    "information_cutoff": e.information_cutoff,
-                    "data": e.data,
+                    **entry.model_dump(exclude={"payload_json"}),
+                    "data": _document_prompt_data(entry.data)
+                    if entry.kind == "filing"
+                    else entry.data,
                 }
-                for e in self.entries
+                for entry in self.entries
             ]
         )
 
     def record_review(
         self, review: CreditReviewResult, *, borrower_id: str, assessment_run_id: str
     ) -> None:
-        if (
-            review.snapshot.borrower_id != borrower_id
-            or review.snapshot.assessment_run_id != assessment_run_id
-        ):
-            raise ValueError("Saved review does not belong to the selected assessment.")
         data = {
             "review_id": review.review_id,
             "basis": "Saved agent opinions, not source facts",

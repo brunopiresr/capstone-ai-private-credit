@@ -83,18 +83,21 @@ def render_status(workflow: BorrowerWorkflow, assessment: RiskAssessment, *, ver
         if validation
         else "Needs validation"
     )
-    chips += [
+    compliance_chips = chips
+    chips = [
         ("Submitted" if submitted else "Analyst draft", "grey"),
         (f"Assessment v{version}", "grey"),
         (validation_label, "green" if validation else "amber"),
     ]
-    st.markdown(
-        " ".join(
-            f'<span class="preview-chip chip-{tone}">{escape(label)}</span>'
-            for label, tone in chips
-        ),
-        unsafe_allow_html=True,
-    )
+    for label, values in (("Compliance", compliance_chips), ("Workflow", chips)):
+        st.markdown(
+            f'<span class="preview-status-label">{label}</span> '
+            + " ".join(
+                f'<span class="preview-chip chip-{tone}">{escape(text)}</span>'
+                for text, tone in values
+            ),
+            unsafe_allow_html=True,
+        )
 
 
 def render_summary_metrics(assessment: RiskAssessment) -> None:
@@ -390,4 +393,4 @@ def render_history_table(workflow: BorrowerWorkflow, versions: list, selected: s
     st.dataframe(
         pd.DataFrame(rows), key="analysis_version_history", hide_index=True, width="stretch"
     )
-    st.caption("Choose Assessment version in Assessment settings to inspect a saved run.")
+    st.caption("Choose a saved version at the top to inspect an earlier assessment.")

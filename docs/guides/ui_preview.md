@@ -7,23 +7,30 @@ Install the environment using the [README](../../README.md#run-the-app), then ru
 uv run --locked --extra ml streamlit run src/credit_monitoring/web/preview.py --server.port 8502
 ```
 
-Open **User guide** in the sidebar for task help. Inline **How to…** sections explain
-controls. Save drafts before navigating; unsent forms are not saved automatically.
+Use the sidebar for **Portfolio**, **Risk review**, **Board reports**, and **Documents**.
+**Help** and **Settings** are below the main navigation. Contextual Help popovers explain
+controls. Borrower observations and validation edits survive in-session navigation;
+**Save draft** retains observations after restart.
 
 ## Assess a borrower
 
 1. In **Portfolio**, choose the reporting period and information cutoff.
    **Latest available per borrower** selects each borrower's latest eligible period.
-2. Choose **Run selected assessment** or **Assess all borrowers**. The latter includes
-   every registered borrower, regardless of table filters. Missing inputs remain missing.
-3. Open **Borrower analysis** to inspect compliance, headroom, trends, calculations,
-   sources, and verification. **Assessment settings** selects dates and saved versions.
-4. For an AI review, provide a question, criteria, and constraints, then choose
-   **Run agent review**. Alternatively, enable **Include agent reviews** before a
-   portfolio assessment. Reviews require `OPENAI_API_KEY` and incur provider usage.
+2. Select a table row or use the **Borrower** picker, then choose **Open borrower**.
+3. Choose **Run assessment** in the borrower workspace. The header shows the reporting
+   period, cutoff and saved version. Use **Run new assessment** to create another version.
+4. **Overview** shows covenant results, trends, forecast and a concise AI recommendation.
+   **Evidence** contains calculations, inputs, applied terms, source references and verification.
+   **Review and submit** prepares the handoff; **History** contains saved versions and submissions.
+5. For an optional AI review, expand **AI review** in Overview, provide a question,
+   criteria and constraints, then **Generate AI review**. Supporting arguments are expandable.
+   Reviews require `OPENAI_API_KEY` and incur provider usage.
+6. Use **Back to portfolio** to return to your filters. Portfolio-wide assessments are
+   under **Batch actions** and include every registered borrower regardless of filters.
+   **Include agent reviews** optionally adds reviews to that batch.
 
 The main workspace uses the bundled synthetic-trained Logistic Regression forecast by
-default. **Off** and **Stub** are also available. An older assessment without ML can be
+default. **Off** and **Stub** are available under **Settings → Prediction mode**. An older assessment without ML can be
 updated with **Run assessment with ML**, followed by a new agent review. Calculations,
 forecasts, and advisory opinions are shown separately.
 
@@ -32,7 +39,7 @@ A failed review preserves its assessment and does not stop other borrowers.
 
 ## Ask questions and revise inputs
 
-Use **Credit assistant** to discuss the selected saved analysis. Suggested follow-up
+Enable **Ask assistant** to open the assistant alongside results and discuss the selected saved analysis. Suggested follow-up
 questions fill the editable **Question draft**; **Send question** submits it. A review
 generates up to three questions, and older analyses offer **Generate follow-up questions**.
 Generation and replies need model credentials; saved questions are reused when browsing.
@@ -40,13 +47,14 @@ Generation and replies need model credentials; saved questions are reused when b
 Each borrower/assessment version has its own conversation. Browser refresh may clear
 chat memory. **Allow recalculation for this question** explicitly permits a new run.
 
-For manual changes, expand **Recalculate with revised financial inputs**, select metrics,
+For manual changes, open **Evidence** and expand **Recalculate with revised financial inputs**, select metrics,
 enter values and a reason, then **Recalculate**. Clearing a value marks it missing.
 Revisions preserve earlier versions and need fresh validation.
 
 ## Validate and submit
 
-1. In **Analyst handoff**, complete the three validation checks and notes. Structured
+1. In **Review and submit**, record observations, address risks, and complete the
+   three validation checks and notes. Structured
    errors block validation; missing or conflicting evidence needs an explicit exception.
 2. Add flags with severity, explanation, and proposed action. A breach needs a flag
    for that version or an explained triage decision.
@@ -58,16 +66,16 @@ Use **History** to inspect versions and submissions.
 
 ## Manage documents and data
 
-1. Open **Documents & data** and choose a borrower/source view. Public issuers are
+1. Open **Documents** and choose a borrower/source view. Public issuers are
    separate from synthetic borrowers; link sources explicitly in **Register & link**.
 2. Register an HTML URL and metadata, or select existing sources. PDF is unsupported.
 3. **Fetch selected** downloads missing HTML using `SEC_USER_AGENT`.
 4. **Process selected** cleans, converts, and extracts using `OPENAI_API_KEY`.
-   **Documents processed at once** defaults to four; select one for sequential work.
+   **Advanced processing options → Documents processed at once** defaults to four; select one for sequential work.
    Retries reuse completed sections; **Force reprocess selected** reruns all sections.
 5. Inspect source text, facts, citations, and failures. Extraction does not update
    financial inputs or contractual calculation rules automatically.
-6. Use **Rebuild working data** to rebuild the lexical index or a database. The page
+6. Use **Settings → Working data maintenance** to rebuild the lexical index or a database. The page
    shows the target and recovery source; replacements retain a backup. Missing or
    invalid recovery sources leave the working database in place.
 
@@ -93,7 +101,7 @@ before marking the case reviewed. Saving a comment keeps it linked to the visibl
 
 ## Prepare a board report
 
-1. In **Board report**, choose dates and **Generate report draft**. The report includes
+1. In **Board reports**, choose dates and **Generate report draft**. The report includes
    open flags, unresolved older cases, untriaged breaches, and pending work.
 2. Review the register, source snapshots, analyst observations, and manager recommendations.
    Edit the executive summary and recommendations, then **Save report draft**.

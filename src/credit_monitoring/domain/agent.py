@@ -10,8 +10,15 @@ from .tool_results import ToolOutcome
 
 
 class SourceReference(ExtractionModel):
-    document_id: str = Field(description="Actual document ID supplied by an evidence tool.")
-    citation: str = Field(description="Actual citation supplied by an evidence tool.")
+    document_id: str = Field(
+        description="Source document, calculation run/result, or CSV file/row ID from a tool."
+    )
+    citation: str = Field(
+        description=(
+            "Complete source citation copied verbatim from a tool result, including its "
+            "identifier and URL when supplied; do not shorten it."
+        )
+    )
 
 
 class ToolExecution(ExtractionModel):
@@ -45,7 +52,7 @@ class EvidenceEntry(ExtractionModel):
 
 
 class MaterialClaim(ExtractionModel):
-    """Facts select authoritative fields; interpretation explicitly names its evidence."""
+    """Historical v2 claim data retained for loading saved answers."""
 
     claim_id: str
     kind: Literal["fact", "quote", "narrative"]
@@ -66,50 +73,82 @@ class MaterialClaim(ExtractionModel):
     limitations: list[str] = Field(default_factory=list)
 
 
-class AnswerDraft(ExtractionModel):
-    """Small model contract; the application owns financial facts and citations."""
+type AnswerKind = Literal[
+    "assessment",
+    "forecast",
+    "evidence",
+    "follow_up",
+    "clarification",
+    "scope",
+    "unrelated",
+    "discovery",
+]
 
-    answer: str = Field(
-        default="", description="Brief explanation; financial facts render separately."
+
+class AnswerFinding(ExtractionModel):
+    text: str = Field(description="Plain text finding, including relevant values and units.")
+    citations: list[SourceReference] = Field(
+        default_factory=list, description="Supplied source citations."
     )
+
+
+class AnswerTableRow(ExtractionModel):
+    cells: list[str] = Field(description="Plain text values, in column order.")
+    citations: list[SourceReference] = Field(
+        default_factory=list, description="Supplied source citations."
+    )
+
+
+class AnswerTable(ExtractionModel):
+    title: str = Field(default="", description="Plain text table title.")
+    columns: list[str] = Field(default_factory=list, description="Plain text column names.")
+    rows: list[AnswerTableRow] = Field(
+        default_factory=list, description="Table data and citations."
+    )
+
+
+class AnswerDraft(ExtractionModel):
+    """Model-authored data; presentation belongs to the application."""
+
+    summary: str = Field(
+        default="",
+        description=(
+            "One or two concise plain text sentences answering or clarifying the question. "
+            "Put detailed findings in findings and schedule rows in tables, without Markdown."
+        ),
+    )
+    answer_kind: AnswerKind | None = Field(default=None, description="Descriptive response kind.")
+    findings: list[AnswerFinding] = Field(
+        default_factory=list,
+        description=(
+            "Cited factual findings. For requested reported actuals, include each requested "
+            "metric for every source reporting period found; put schedules in tables."
+        ),
+    )
+    tables: list[AnswerTable] = Field(
+        default_factory=list,
+        description=(
+            "Structured tables for requested schedules and matrices, with row citations. "
+            "Complete schedules retain every explicitly named period and threshold."
+        ),
+    )
+    gaps: list[str] = Field(
+        default_factory=list, description="Missing data and material limitations."
+    )
+    diligence_questions: list[str] = Field(default_factory=list, description="Diligence questions.")
     confidence: Literal["low", "medium", "high"] | None = Field(
         default=None, description="Confidence in evidence support, independent of credit risk."
     )
     confidence_explanation: str = Field(default="", description="Evidence support and limitations.")
-    evidence_ids: list[str] = Field(
-        default_factory=list, description="Actual evidence used to explain."
-    )
-    schema_version: Literal["agent-answer-v2"] | None = Field(
-        default=None, description="Optional version marker; the application versions final answers."
-    )
 
 
-class AnswerContent(ExtractionModel):
+class AnswerContent(AnswerDraft):
     """Generated content; defaults allow provisional streaming snapshots."""
 
     answer: str = Field(default="", description="Cited answer or clarification request.")
-    confidence: Literal["low", "medium", "high"] | None = Field(
-        default=None, description="Model-assessed evidence support, not a credit-risk probability."
-    )
-    confidence_explanation: str = Field(
-        default="", description="Evidence and limitations supporting the confidence assessment."
-    )
-    schema_version: Literal["agent-answer-v2"] | None = Field(
+    schema_version: Literal["agent-answer-v2", "agent-answer-v3"] | None = Field(
         default=None, description="Answer contract version; null for historical captures."
     )
-    answer_kind: (
-        Literal[
-            "assessment",
-            "forecast",
-            "evidence",
-            "follow_up",
-            "clarification",
-            "scope",
-            "unrelated",
-            "discovery",
-        ]
-        | None
-    ) = Field(default=None, description="Validated answer intent, owned by the application.")
     claims: list[MaterialClaim] = Field(
         default_factory=list,
         description="Material claims linked to actual evidence fields/passages.",
@@ -118,7 +157,7 @@ class AnswerContent(ExtractionModel):
 
 class AgentAnswer(AnswerContent):
     evidence: list[EvidenceEntry] = Field(
-        default_factory=list, description="Immutable executed and valid retained evidence registry."
+        default_factory=list, description="Copied executed and retained tool context."
     )
     usage: dict[str, int | float | None] = Field(
         default_factory=dict,

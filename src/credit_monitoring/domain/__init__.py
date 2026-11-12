@@ -25,7 +25,13 @@ from .financials import FinancialMetricDefinition, ReportedFinancialValue
 from .processing import DocumentExtraction, DocumentSummary
 from .risk_features import BorrowerFeatureSnapshot, BorrowerRiskFeatures, CovenantRiskFeatures
 from .risk_prediction import RiskPrediction
-from .tool_results import FinancialReview, ToolFailure, ToolOutcome
+from .tool_results import (
+    FinancialPeriodCatalog,
+    FinancialPeriodSummary,
+    FinancialReview,
+    ToolFailure,
+    ToolOutcome,
+)
 from .validation import (
     AllCompanyExtractionResult,
     ExtractionResult,
@@ -55,6 +61,8 @@ __all__ = [
     "ExtractionResult",
     "FinancialMetricDefinition",
     "FinancialPeriod",
+    "FinancialPeriodCatalog",
+    "FinancialPeriodSummary",
     "FinancialReview",
     "ReportedFinancialValue",
     "ResolvedCovenant",

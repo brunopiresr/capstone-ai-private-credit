@@ -1,209 +1,143 @@
-"""Claims are checked against actual evidence, including after co-emitted tools."""
+"""Structured answer data is rendered consistently, without evidence enforcement."""
 
 import asyncio
 import json
+from pathlib import Path
 
-import pytest
-from model_helpers import ScriptedModel, filing_answer, model_response, scripted_responses
-from pydantic import ValidationError
+from markdown_it import MarkdownIt
+from model_helpers import ScriptedModel, model_response
 
-from credit_monitoring.agents.answer_contract import finalize_content, validate_claim
+from credit_monitoring.agents.answer_contract import render_content
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
-from credit_monitoring.agents.evidence import EvidenceRegistry
-from credit_monitoring.agents.request_policy import resolve_request
-from credit_monitoring.domain.agent import AgentAnswer, AnswerContent, MaterialClaim
-from credit_monitoring.domain.assessment import RiskAssessment
-from credit_monitoring.evaluation.agent_batch import SUITE
-
-
-@pytest.fixture
-def calculation_evidence():
-    raw = json.loads((SUITE / "results/2026-11-09-baseline/cases/H01/answer.json").read_text())
-    outcome = RiskAssessment.model_validate(raw["tool_trace"][-1]["outcome"])
-    registry = EvidenceRegistry()
-    registry.record(outcome, borrower_id="SYN001", ticker=None)
-    entry = next(
-        e for e in registry.entries if e.kind == "calculation" and e.period_end == "2025-09-30"
-    )
-    context = resolve_request(
-        "Assess. Reporting date: 2025-09-30. Information cutoff: 2025-09-30",
-        borrower_id="SYN001",
-        ticker=None,
-    )
-    return registry, entry, context, outcome
-
-
-@pytest.mark.parametrize(
-    "changes",
-    [
-        {"evidence_ids": []},
-        {"evidence_ids": ["invented"]},
-        {"borrower_id": "SYN002"},
-        {"period_end": "2025-06-30"},
-        {"information_cutoff": "2025-12-31"},
-        {"unit": "%"},
-        {"value_json": "0"},
-        {"field_path": "nonexistent"},
-        {"statement": "This proves sound credit management"},
-    ],
+from credit_monitoring.domain.agent import (
+    AgentAnswer,
+    AnswerDraft,
+    AnswerFinding,
+    AnswerTable,
+    AnswerTableRow,
+    SourceReference,
 )
-def test_invalid_fact_references_copied_values_units_and_labels_fail(calculation_evidence, changes):
-    registry, entry, context, _ = calculation_evidence
-    claim = MaterialClaim(
-        claim_id="actual", kind="fact", evidence_ids=[entry.evidence_id], field_path="actual_value"
-    )
-    claim = claim.model_copy(update=changes)
-    with pytest.raises(ValueError):
-        validate_claim(claim, registry, context)
 
 
-def test_nulls_cannot_be_copied_as_zero_and_real_id_cannot_supply_wrong_status(
-    calculation_evidence,
-):
-    registry, entry, context, _ = calculation_evidence
-    for path, copied in (
-        ("resolved_covenant.reported_actual", "0"),
-        ("compliance_status", '"breach"'),
-        ("operator", '">="'),
-        ("financial_inputs.result_basis", '"reported"'),
-    ):
-        with pytest.raises(ValueError):
-            validate_claim(
-                MaterialClaim(
-                    claim_id=path,
-                    kind="fact",
-                    evidence_ids=[entry.evidence_id],
-                    field_path=path,
-                    value_json=copied,
-                ),
-                registry,
-                context,
+def test_matrix_escapes_source_text_and_preserves_questions_and_numbers():
+    source = SourceReference(document_id="DOC_A", citation="Section [a]_notes | $10")
+    draft = AnswerDraft(
+        summary="There are 2 unresolved differences.",
+        findings=[AnswerFinding(text="Actual 4.77x; limit 5.50x.", citations=[source])],
+        tables=[
+            AnswerTable(
+                title="Evidence matrix",
+                columns=["Period", "Source wording"],
+                rows=[
+                    AnswerTableRow(
+                        cells=["2025-09-30", "A | B\n$10 and $20; **bold** <script>x</script>"],
+                        citations=[source],
+                    ),
+                ],
             )
-
-
-def test_registry_is_immutable_and_csv_provenance_survives(calculation_evidence):
-    registry, entry, _, _ = calculation_evidence
-    with pytest.raises(ValidationError):
-        entry.borrower_id = "OTHER"
-    view = entry.data
-    view["actual_value"] = 1000
-    assert registry.get(entry.evidence_id).data["actual_value"] == 3.125
-    financial = next(e for e in registry.entries if e.kind == "csv")
-    assert "row " in financial.citation and financial.data["source_row"] > 0
-    assert "source_hash" in entry.data["evidence"][0]
-
-
-def test_current_and_historical_claims_are_cited_with_their_own_periods(calculation_evidence):
-    registry, entry, context, outcome = calculation_evidence
-    content = AnswerContent(
-        schema_version="agent-answer-v2",
-        answer="Calculation available.",
+        ],
+        gaps=["Applicability remains unresolved."],
+        diligence_questions=["Which amendment applies?", "What does clause [a] mean?"],
         confidence="medium",
-        confidence_explanation="Source limitations.",
+        confidence_explanation="Conflicting sources.",
     )
-    rendered = finalize_content(content, registry, context, {outcome.assessment_run_id})
-    assert "2025-09-30" in rendered.answer and entry.data["result_id"] in rendered.answer
-    assert all(claim.evidence_ids for claim in rendered.claims)
-    assert "2025-06-30" in rendered.answer
+    rendered = render_content(draft)
+    html = MarkdownIt().enable("table").render(rendered.answer)
+    assert html.count("<table>") == 1 and html.count("<td>") == 3
+    assert "A | B<br>" in html and "$10 and $20" in html
+    assert "<script>" not in html and "&lt;script&gt;" in html
+    assert "<strong>bold</strong>" not in html
+    assert "DOC_A: Section [a]_notes | $10" in html
+    assert "Actual 4.77x; limit 5.50x." in html
+    assert "There are 2 unresolved differences." in html
+    assert html.count("<ol>") == 1 and html.count("<li>") == 3
+    assert draft.tables[0].rows[0].cells[1].startswith("A | B\n")
+    assert rendered.schema_version == "agent-answer-v3"
+    answer = AgentAnswer(**rendered.model_dump())
+    assert AgentAnswer.model_validate_json(answer.model_dump_json()) == answer
 
 
-def test_correct_numbers_do_not_license_unsupported_reassurance(calculation_evidence):
-    registry, entry, context, _ = calculation_evidence
-    claim = MaterialClaim(
-        claim_id="interpretation",
-        kind="narrative",
-        evidence_ids=[entry.evidence_id],
-        statement="This proves sound credit management.",
+def test_incomplete_streaming_table_preserves_all_supplied_cells():
+    draft = AnswerDraft(
+        tables=[
+            AnswerTable(
+                columns=["Metric"],
+                rows=[
+                    AnswerTableRow(cells=["Leverage", "5.5x"]),
+                    AnswerTableRow(cells=["Coverage"]),
+                ],
+            )
+        ]
     )
-    with pytest.raises(ValueError, match="reassurance"):
-        validate_claim(claim, registry, context)
+    html = MarkdownIt().enable("table").render(render_content(draft).answer)
+    assert "5.5x" in html and "Coverage" in html and "Column 2" in html
+    assert html.count("<td>") == 4
 
 
-def test_late_output_validation_repairs_after_accompanying_tools(document_service_factory):
-    first = model_response(("search_evidence", {"query": "leverage"}), answer="Evidence found.")
-    first.parts.reverse()
-    model = ScriptedModel()
-    model.respond.side_effect = scripted_responses(first, filing_answer)
-    answer = CreditAssessmentAgent(
-        service=document_service_factory(), model=model, max_tool_rounds=1
-    ).ask("Find leverage evidence", ticker="SYN")
-    assert answer.complete and answer.schema_version == "agent-answer-v2"
-    assert len(answer.tool_trace) == 1
-    assert model.respond.call_count == 2
-    assert answer.claims and answer.evidence
-    assert "SYN:" in answer.answer
+def test_plain_source_markdown_stays_literal():
+    text = "# Source heading\n1. list\n- bullet\n> quote\n| a | b |\n```code```"
+    rendered = render_content(AnswerDraft(findings=[AnswerFinding(text=text)]))
+    html = MarkdownIt().enable("table").render(rendered.answer)
+    assert all(
+        tag not in html for tag in ("<h1>", "<ol>", "<ul>", "<blockquote>", "<table>", "<code>")
+    )
+    assert "# Source heading" in html and "1. list" in html
 
 
-def test_failed_repair_preserves_actual_work_and_does_not_commit_evidence(document_service_factory):
-    model = ScriptedModel()
-    unsupported = model_response(answer="The threshold is 99x.")
-    model.respond.side_effect = [
-        model_response(("search_evidence", {"query": "leverage"})),
-        unsupported,
-        unsupported,
-    ]
-    chat = CreditAssessmentAgent(
-        service=document_service_factory(), model=model
-    ).start_conversation(ticker="SYN")
-    answer = chat.ask("Find leverage evidence")
-    assert not answer.complete and answer.error == "incomplete_answer"
-    assert len(answer.tool_trace) == 1 and answer.evidence
-    assert chat._evidence == [] and chat._sources == []
-
-
-def test_followup_reuses_immutable_evidence_without_cross_conversation_leak(
+def test_supplied_citations_are_formatted_without_membership_or_claim_checks(
     document_service_factory,
 ):
-    model = ScriptedModel()
-    model.respond.side_effect = scripted_responses(
-        model_response(("search_evidence", {"query": "leverage"})),
-        filing_answer,
-        filing_answer,
+    model = ScriptedModel(
+        response=model_response(
+            answer="A numeric explanation survives: 2 observations.",
+            findings=[
+                {
+                    "text": "Reported ratio 99x.",
+                    "citations": [
+                        {"document_id": "MODEL_SUPPLIED", "citation": "Section 7"},
+                    ],
+                }
+            ],
+        )
+    )
+    answer = CreditAssessmentAgent(service=document_service_factory(), model=model).ask("Explain")
+    assert answer.complete and model.respond.call_count == 1
+    assert "99x" in answer.answer and "MODEL" in answer.answer and "Section 7" in answer.answer
+    assert "2 observations" in answer.answer and answer.evidence == []
+
+
+def test_stream_and_final_use_same_renderer(document_service_factory):
+    model = ScriptedModel(
+        response=model_response(
+            answer="There are 2 gaps.",
+            tables=[
+                {
+                    "title": "Matrix",
+                    "columns": ["Source"],
+                    "rows": [{"cells": ["A | B\n$20"]}],
+                }
+            ],
+            diligence_questions=["Can you provide the missing source?"],
+        )
     )
     agent = CreditAssessmentAgent(service=document_service_factory(), model=model)
-    chat = agent.start_conversation(ticker="SYN")
-    first = chat.ask("Find leverage evidence")
-    first.evidence.clear()
-    followup = chat.ask("Which passage supports this?")
-    assert followup.complete and followup.tool_trace == [] and followup.claims
-    assert agent.start_conversation(ticker="SYN")._evidence == []
-    chat.close()
-    assert chat._evidence == []
+
+    async def collect():
+        return [event async for event in agent.stream_async("Prepare a matrix")]
+
+    events = asyncio.run(collect())
+    updates = [event.output for event in events if event.kind == "answer_update"]
+    assert updates and updates[-1].answer == events[-1].answer.answer
+    assert events[-1].answer.tables and events[-1].answer.diligence_questions
 
 
-def test_legacy_json_loads_without_inventing_claim_links():
-    legacy = AgentAnswer.model_validate_json('{"answer":"Old uncited answer","complete":true}')
-    assert legacy.schema_version is None and legacy.claims == [] and legacy.evidence == []
-
-
-def test_primed_snapshot_is_evidence_but_never_supplies_analyst_dates(calculation_evidence):
-    _, _, _, assessment = calculation_evidence
-    from unittest.mock import Mock
-
-    service = Mock()
-    model = ScriptedModel()
-    chat = CreditAssessmentAgent(assessment_service=service, model=model).start_conversation(
-        borrower_id=assessment.borrower_id
+def test_historical_v2_answers_and_claims_load_unchanged():
+    path = Path(
+        "data/evaluation/agent_scenarios/results/2026-11-09-poc-final/cases/H01/answer.json"
     )
-    chat.prime_evidence(assessment)
-    assert chat._evidence and not chat._dates
-    result = chat.ask("Assess covenant compliance")
-    assert result.complete and "Please provide" in result.answer and result.tool_trace == []
-    service.assess.assert_not_called()
-    model.respond.assert_not_called()
-
-
-def test_cancellation_never_retains_new_registry_entries(document_service_factory):
-    async def exercise():
-        model = ScriptedModel(response=model_response(("search_evidence", {"query": "leverage"})))
-        chat = CreditAssessmentAgent(
-            service=document_service_factory(), model=model
-        ).start_conversation(ticker="SYN")
-        stream = chat.stream_async("Find leverage evidence")
-        async for event in stream:
-            if event.kind == "tool_result":
-                await stream.aclose()
-                break
-        assert chat._evidence == [] and chat._history == []
-
-    asyncio.run(exercise())
+    raw = json.loads(path.read_text())
+    answer = AgentAnswer.model_validate(raw)
+    assert answer.answer == raw["answer"] and answer.schema_version == "agent-answer-v2"
+    assert answer.claims and not answer.tables
+    legacy = AgentAnswer.model_validate_json('{"answer":"Old uncited answer"}')
+    assert legacy.schema_version is None and legacy.findings == []

@@ -210,8 +210,9 @@ def render_evidence(assessment: RiskAssessment) -> None:
 def render_answer(answer: AgentAnswer) -> None:
     if not answer.complete:
         st.error(f"Assistant could not complete the response: {answer.error or 'unknown error'}")
-    else:
+    if answer.answer.strip():
         st.markdown(answer.answer)
+    if answer.complete:
         st.caption(f"Evidence confidence: {answer.confidence} · {answer.confidence_explanation}")
     used = {key for claim in answer.claims for key in claim.evidence_ids}
     if used:

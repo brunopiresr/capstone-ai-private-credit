@@ -1,21 +1,16 @@
 """Reusable document methods wrapped as PydanticAI tools from signatures and docstrings."""
 
-from typing import TYPE_CHECKING
-
 from pydantic import StrictStr
 from pydantic_ai import Tool
 
 from credit_monitoring.agents.tools.common import (
+    InvalidToolArguments,
     NonEmptyString,
-    TerminalPolicyError,
     domain_tool,
 )
 from credit_monitoring.application.document_processing_service import DocumentProcessingService
 from credit_monitoring.domain.documents import RetrievedRecord
 from credit_monitoring.domain.processing import DocumentExtraction, DocumentSummary
-
-if TYPE_CHECKING:
-    from credit_monitoring.agents.request_policy import DispatchPolicy
 
 
 class DocumentTools:
@@ -24,11 +19,9 @@ class DocumentTools:
         service: DocumentProcessingService,
         *,
         ticker: str | None = None,
-        policy: DispatchPolicy | None = None,
     ) -> None:
         self.service = service
         self.ticker = ticker
-        self.policy = policy
 
     @property
     def tools(self) -> list[Tool]:
@@ -45,7 +38,7 @@ class DocumentTools:
     def list_documents(self, ticker: StrictStr | None = None) -> list[DocumentSummary]:
         """Discover catalog documents, including unprocessed ones, and processing states.
 
-        Obtain document IDs here before reading extractions or processing.
+        Useful when document IDs are not yet known; known catalog IDs can be read directly.
 
         Args:
             ticker: Catalog ticker, or None; other configured-scope tickers are rejected.
@@ -59,9 +52,12 @@ class DocumentTools:
         return [DocumentSummary.from_extraction(document) for document in documents]
 
     def get_document_extraction(self, document_id: NonEmptyString) -> DocumentExtraction:
-        """Read stored extractions first for complete covenant terms and fiscal-quarter schedules.
+        """Read stored complete covenant terms and fiscal-quarter schedules with processing status.
 
         If missing, stale, failed or unavailable, use process_document when facts are needed.
+        For complete schedules, include every requested covenant's threshold_schedule.
+        An entry can contain several period_end_dates: retain every date, not just the
+        first or last. Preserve stated ranges and thereafter terms too.
 
         Args:
             document_id: The exact catalog document ID.
@@ -106,27 +102,15 @@ class DocumentTools:
         return self.service.process_document(document_id)
 
     def _resolve_ticker(self, requested: str | None) -> str | None:
-        self._guard()
         if self.ticker and requested not in (None, self.ticker):
             self._reject_scope()
         return self.ticker or requested
 
     def _check_document_scope(self, document_id: str) -> None:
-        self._guard()
         if self.ticker:
             record = self.service.catalog_record(document_id)
             if record.get("ticker") != self.ticker:
                 self._reject_scope()
 
-    def _guard(self) -> None:
-        if self.policy and self.policy.terminal_response:
-            raise TerminalPolicyError(self.policy.terminal_response)
-
     def _reject_scope(self) -> None:
-        if not self.policy:
-            raise ValueError("Document or ticker is outside the requested issuer scope.")
-        self.policy.terminal_response = (
-            f"This conversation is scoped to {self.ticker}. Start a new scoped conversation "
-            "to review another issuer."
-        )
-        raise TerminalPolicyError(self.policy.terminal_response)
+        raise InvalidToolArguments("Document or ticker is outside the configured issuer scope.")

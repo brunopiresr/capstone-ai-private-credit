@@ -30,18 +30,17 @@ AVAILABILITY_CAVEAT = (
 )
 
 
-def test_assessment_only_agent_requires_borrower_scope_and_has_no_document_tools():
+def test_assessment_only_agent_can_clarify_without_enabling_borrower_tools():
     model = ScriptedModel()
     agent = CreditAssessmentAgent(assessment_service=Mock(), model=model)
-    with pytest.raises(ValueError, match="borrower ID"):
-        agent.start_conversation()
-    with pytest.raises(ValueError, match="borrower ID"):
-        agent.ask("Summarize the assessment")
+    assert agent.start_conversation().ask("Explain what this assistant can do.").complete
+    assert model.respond.call_args.kwargs["info"].function_tools == []
     with pytest.raises(ValueError, match="document service"):
         agent.start_conversation(borrower_id="SYN", ticker="SYN")
     conversation = agent.start_conversation(borrower_id="SYN")
     assert conversation.ask("Find evidence").complete
     assert {tool.name for tool in model.respond.call_args.kwargs["info"].function_tools} == {
+        "list_financial_periods",
         "get_financials",
         "assess_covenants",
         "predict_risk",
@@ -57,7 +56,12 @@ def test_agent_sends_only_context_for_registered_tools(assessment_enabled):
     answer = agent.ask("Find evidence", borrower_id="SYN" if assessment_enabled else None)
     assert answer.complete
     info = model.respond.call_args.kwargs["info"]
-    assessment_names = {"get_financials", "assess_covenants", "predict_risk"}
+    assessment_names = {
+        "list_financial_periods",
+        "get_financials",
+        "assess_covenants",
+        "predict_risk",
+    }
     assert {tool.name for tool in info.function_tools} & assessment_names == (
         assessment_names if assessment_enabled else set()
     )

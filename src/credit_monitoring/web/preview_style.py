@@ -8,12 +8,12 @@ def render_preview_style() -> None:
         """
         <style>
         .stApp {
-          --ink:#1d3028; --muted:#738077; --line:#e2e8e1;
-          background:#f8faf7; color:var(--ink);
+          --ink:#172720; --muted:#52635a; --line:#dce3df;
+          background:#f7f9f8; color:var(--ink);
           font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
-        .stMain .block-container { max-width:1500px; padding:3rem 2.7rem 4rem; }
-        [data-testid="stSidebar"] { background:#f0f4ee; border-right:1px solid #dfe6dd; }
+        .stMain .block-container { max-width:1320px; padding:1.75rem 2rem 3rem; }
+        [data-testid="stSidebar"] { background:#ffffff; border-right:1px solid #dfe6dd; }
         [data-testid="stSidebar"] .block-container { padding-top:1.5rem; }
         [data-testid="stSidebar"] [data-testid="stRadio"] label p { font-size:.92rem; }
         [data-testid="stSidebar"] [data-testid="stRadio"] > div { gap:.6rem; }
@@ -29,11 +29,7 @@ def render_preview_style() -> None:
         .preview-brand small { display:block; color:#728075; font-size:.7rem; margin-top:2px; }
         .preview-eyebrow { font-size:.67rem; letter-spacing:.15em; text-transform:uppercase;
           color:#7a887d; font-weight:700; margin:0 0 8px; }
-        .preview-subtitle { color:#718075; font-size:.93rem; margin:-.3rem 0 1.3rem; }
-        .preview-ribbon { display:flex; justify-content:space-between; align-items:center;
-          gap:12px; padding:10px 15px; background:#edf3e9; border:1px solid #dce6d5;
-          border-radius:8px; margin-bottom:23px; color:#52674e; font-size:.76rem; }
-        .preview-ribbon b { color:#315133; }
+        .preview-subtitle { color:#52635a; font-size:.93rem; margin:-.3rem 0 1.3rem; }
         .preview-chip { display:inline-block; font-size:.7rem; font-weight:650;
           border-radius:5px; padding:5px 9px; line-height:1.3; margin-right:5px; }
         .chip-green { color:#256044; background:#e5f0e5; }
@@ -55,7 +51,7 @@ def render_preview_style() -> None:
         [data-testid="stMetric"] { background:white; border:1px solid #e2e8df;
           border-radius:10px; padding:17px 19px; }
         [data-testid="stMetricValue"] { font-size:1.8rem; font-weight:650; letter-spacing:-.04em; }
-        [data-testid="stMetricLabel"] { font-size:.76rem; color:#728173; }
+        [data-testid="stMetricLabel"] { font-size:.76rem; color:#52635a; }
         [data-testid="stMetricDelta"] { font-size:.72rem; }
         [data-testid="stVerticalBlockBorderWrapper"] > div { border-color:#e2e8df!important; }
         [data-testid="stDataFrame"] { border:1px solid #e2e8df; border-radius:9px; }
@@ -65,14 +61,27 @@ def render_preview_style() -> None:
         .stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] {
           background:#214d3a; border-color:#214d3a; color:white;
         }
-        [data-testid="stCaptionContainer"] { color:#7c877e; }
+        [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {
+          color:#52635a; }
         [data-testid="stChatMessage"] { border-radius:8px; background:#f1f5ed; }
         [data-testid="stChatMessage"] p { font-size:.84rem; }
         [data-testid="stExpander"] { background:white; border-color:#e2e8df; }
         [data-testid="stForm"] { border-color:#e2e8df; border-radius:9px; background:white; }
+        .preview-status-label { display:inline-block; min-width:88px; font-size:.78rem;
+          font-weight:600; color:#52635a; }
+        button:focus-visible, input:focus-visible, textarea:focus-visible,
+        [role="tab"]:focus-visible { outline:3px solid #214d3a!important; outline-offset:3px; }
+        [data-testid="stMarkdownContainer"] a { color:#214d3a; text-underline-offset:3px; }
+        [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
+          background:#edf4ef; border-radius:6px; }
+        @media(max-width:640px) {
+          [data-testid="stHorizontalBlock"] { flex-wrap:wrap; }
+          [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            min-width:min(100%,280px); flex:1 1 100%; }
+          [data-testid="stTabs"] [role="tablist"] { gap:12px; overflow-x:auto; }
+        }
         @media(max-width:900px) {
           .stMain .block-container { padding:2rem 1rem 3rem; }
-          .preview-ribbon { align-items:flex-start; flex-direction:column; gap:4px; }
           h1 { font-size:1.75rem!important; }
         }
         </style>

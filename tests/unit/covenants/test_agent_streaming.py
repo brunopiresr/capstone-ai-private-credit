@@ -18,15 +18,10 @@ from credit_monitoring.domain.agent import AgentAnswer
 
 def test_stream_yields_partial_answer_before_confidence_and_finalizes(document_service_factory):
     async def generate(messages, info):
-        yield {0: DeltaToolCall(name="final_result", json_args='{"answer":"First')}
+        yield {0: DeltaToolCall(name="final_result", json_args='{"summary":"First')}
         yield {0: DeltaToolCall(json_args=" sentence. More text")}
         yield {0: DeltaToolCall(json_args='", "confidence":"medium"')}
-        yield {
-            0: DeltaToolCall(
-                json_args=', "confidence_explanation":"Limited evidence.", '
-                '"schema_version":"agent-answer-v2"}'
-            )
-        }
+        yield {0: DeltaToolCall(json_args=', "confidence_explanation":"Limited evidence."}')}
 
     agent = CreditAssessmentAgent(
         service=document_service_factory(), model=FunctionModel(stream_function=generate)
@@ -53,14 +48,12 @@ def test_stream_yields_partial_answer_before_confidence_and_finalizes(document_s
 @pytest.mark.parametrize(
     "invalid",
     [
-        {"answer": "Missing confidence"},
-        {"answer": "Missing explanation", "confidence": "low"},
         {
-            "answer": "Bad confidence",
+            "summary": "Bad confidence",
             "confidence": "certain",
             "confidence_explanation": "Unsupported",
         },
-        {"answer": " ", "confidence": "high", "confidence_explanation": "Unsupported"},
+        {"summary": "Wrong findings shape", "findings": "invalid"},
     ],
 )
 def test_invalid_final_output_is_retried_and_never_accepted(document_service_factory, invalid):
@@ -75,7 +68,11 @@ def test_invalid_final_output_is_retried_and_never_accepted(document_service_fac
 def test_output_validation_can_recover_within_budget(document_service_factory):
     model = ScriptedModel()
     model.respond.side_effect = [
-        ModelResponse(parts=[ToolCallPart("final_result", {"answer": "Missing confidence"})]),
+        ModelResponse(
+            parts=[
+                ToolCallPart("final_result", {"summary": "Invalid shape", "confidence": "certain"})
+            ]
+        ),
         model_response(answer="Corrected answer"),
     ]
     answer = CreditAssessmentAgent(service=document_service_factory(), model=model).ask("Explain")
@@ -96,7 +93,7 @@ def test_exhaustive_output_does_not_drop_accompanying_tools(document_service_fac
     assert answer.complete
     assert [step.name for step in answer.tool_trace] == ["search_evidence"]
     assert [source.document_id for source in answer.sources] == ["SYN"]
-    assert model.respond.call_count == 2
+    assert model.respond.call_count == 1
 
 
 def test_cancelling_stream_keeps_successful_history_and_releases_turn(document_service_factory):
@@ -105,7 +102,7 @@ def test_cancelling_stream_keeps_successful_history_and_releases_turn(document_s
 
         async def generate(messages, info):
             try:
-                yield {0: DeltaToolCall(name="final_result", json_args='{"answer":"Provisional')}
+                yield {0: DeltaToolCall(name="final_result", json_args='{"summary":"Provisional')}
                 started.set()
                 await release.wait()
                 yield {
@@ -239,8 +236,7 @@ def test_injected_test_model_and_legacy_answers(document_service_factory):
     model = TestModel(
         call_tools=[],
         custom_output_args={
-            "answer": "Answer",
-            "schema_version": "agent-answer-v2",
+            "summary": "Answer",
             "confidence": "high",
             "confidence_explanation": "Supplied evidence.",
         },
@@ -254,7 +250,7 @@ def test_injected_test_model_and_legacy_answers(document_service_factory):
 
 def test_stream_failure_retains_only_provisional_output(document_service_factory):
     async def generate(messages, info):
-        yield {0: DeltaToolCall(name="final_result", json_args='{"answer":"Partial')}
+        yield {0: DeltaToolCall(name="final_result", json_args='{"summary":"Partial')}
         raise ModelAPIError(model_name="synthetic", message="Connection lost")
 
     agent = CreditAssessmentAgent(

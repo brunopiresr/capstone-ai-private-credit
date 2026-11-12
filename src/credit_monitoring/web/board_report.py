@@ -163,7 +163,7 @@ def render_report_content(report: dict) -> None:
 def render_board_report_page() -> None:
     from credit_monitoring.web.user_guide import render_help
 
-    st.title("Board report")
+    st.title("Board reports")
     render_help(
         "Documents, manager and board workflows", "How to prepare and finalize a board report"
     )

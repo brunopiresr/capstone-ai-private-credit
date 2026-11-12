@@ -18,8 +18,8 @@ from credit_monitoring.application.portfolio_service import (
 )
 from credit_monitoring.domain.credit_review import CreditReviewResult, ExposureDecisionContext
 from credit_monitoring.paths import DATA_ROOT, RUNTIME_DIR
-from credit_monitoring.web.assessment import render_evidence, render_results, render_verification
-from credit_monitoring.web.user_guide import render_help, render_invitation
+from credit_monitoring.persistence.workflow_repository import WorkflowRepository
+from credit_monitoring.web.navigation import context, navigate
 
 DEFAULT_DATA_ROOT = DATA_ROOT
 DEFAULT_WORKING_DIR = RUNTIME_DIR / "portfolio"
@@ -74,37 +74,6 @@ def formatted_time(value: str | None) -> str:
 
 def metric_value(value: float | None, unit: str | None, digits: int = 2) -> str:
     return "—" if value is None else f"{value:.{digits}f}{unit or ''}"
-
-
-def entry_row(entry: PortfolioEntry) -> dict:
-    assessment = entry.assessment
-    results = assessment.results if assessment else []
-    # The displayed metric always names its covenant; other results remain in the detail view.
-    primary = next((result for result in results if result.compliance_status == "breach"), None)
-    primary = primary or (results[0] if results else None)
-    digits = 6 if primary and primary.calculation_version == "bundle_v1" else 2
-    return {
-        "Borrower": entry.name,
-        "ID": entry.borrower_id,
-        "Sector": entry.sector,
-        "Period": entry.period_end.isoformat() if entry.period_end else "No financials",
-        "Compliance": entry.compliance,
-        "Source review": "Needs reassessment" if entry.needs_review else "—",
-        "Covenant": primary.covenant_type.replace("_", " ") if primary else "—",
-        "Actual": metric_value(primary.actual_value, primary.unit, digits) if primary else "—",
-        "Threshold": (
-            f"{primary.operator or ''} "
-            f"{metric_value(primary.threshold, primary.unit, digits)}".strip()
-        )
-        if primary
-        else "—",
-        "Headroom": metric_value(primary.headroom, primary.unit, digits) if primary else "—",
-        "Agent review": entry.review.status.title() if entry.review else "Not run",
-        "Last assessment (Lisbon)": formatted_time(entry.created_at),
-        "Last attempt": ("Failed — saved result retained" if entry.assessment else "Failed")
-        if entry.last_error
-        else "—",
-    }
 
 
 def run_assessments(
@@ -245,43 +214,10 @@ def render_agent_result(review: CreditReviewResult) -> None:
         st.json(review.snapshot.model_dump(mode="json"), expanded=False)
 
 
-def render_selected(
-    entry: PortfolioEntry, service: PortfolioService, credentials_available: bool
-) -> None:
-    st.divider()
-    st.header(entry.name)
-    st.caption(f"{entry.borrower_id} · {entry.sector} · Connected service results")
-    if entry.last_error:
-        st.error(entry.last_error)
-    assessment = entry.assessment
-    if assessment is None:
-        st.info(
-            "No saved assessment for this reporting period and cutoff. "
-            "Run the selected borrower assessment above."
-        )
-        return
-    st.caption(
-        f"Reporting period {assessment.period_end}"
-        f" · Saved information cutoff {assessment.information_cutoff}"
-        f" · Run {assessment.assessment_run_id}"
-    )
-    st.caption("Saved results are shown as recorded; rerunning creates a new assessment version.")
-    results, reviews = st.tabs(["Assessment & evidence", "Agent analysis"])
-    with results:
-        render_results(assessment)
-        with st.expander("Verification and data limitations", expanded=entry.needs_data):
-            render_verification(assessment)
-        with st.expander("Source financial inputs and applied terms"):
-            render_evidence(assessment)
-    with reviews:
-        render_review_controls(entry, service, credentials_available)
-
-
 def render_review_controls(
     entry: PortfolioEntry, service: PortfolioService, credentials_available: bool
 ) -> None:
     assessment = entry.assessment
-    render_help("Credit reviews and forecasts", "How credit reviews and forecasts work")
     if assessment is None:
         st.info("Run and save an assessment before requesting a credit review.")
         return
@@ -306,8 +242,7 @@ def render_review_controls(
             "sources are limited to the saved assessment.",
         )
         requested = st.form_submit_button(
-            "Run agent review",
-            type="primary",
+            "Generate AI review",
             disabled=not credentials_available or not assessment.verification.is_valid,
         )
         if requested:
@@ -340,22 +275,39 @@ def render_review_controls(
                         "The assessment and earlier reviews are retained."
                     )
     if entry.review:
-        render_agent_result(entry.review)
-    else:
-        st.info("No agent review is saved for this assessment version.")
+        with st.expander("Supporting AI arguments and evidence"):
+            render_agent_result(entry.review)
+
+
+def workflow_status(entry: PortfolioEntry, service: PortfolioService) -> str:
+    from credit_monitoring.application.borrower_workflow import BorrowerWorkflow
+    from credit_monitoring.application.manager_workflow import ManagerWorkflow
+
+    if not entry.assessment:
+        return "Not started"
+    if entry.needs_review:
+        return "Needs reassessment"
+    analyst = BorrowerWorkflow(
+        service,
+        WorkflowRepository(service.repository.database_path.parent / "workflow.sqlite3"),
+        DEFAULT_DATA_ROOT,
+    )
+    run_id = entry.assessment.assessment_run_id
+    submission = next(
+        (s for s in analyst.repository.submissions(entry.borrower_id) if s["run_id"] == run_id),
+        None,
+    )
+    if submission:
+        return ManagerWorkflow(analyst).state(submission)
+    return "Validated" if analyst.validation(run_id) else "Needs validation"
 
 
 def render_portfolio_page() -> None:
     st.markdown(
         '<div class="preview-eyebrow">Credit analyst / Portfolio</div>', unsafe_allow_html=True
     )
-    st.title("Your portfolio, at a glance")
-    render_invitation()
-    render_help("Portfolio and dates", "How to choose dates and run assessments")
-    st.caption(
-        "Calculated from the loaded borrower financials and covenant terms. "
-        "Synthetic inputs · Explicit assessment and review actions."
-    )
+    st.title("Portfolio")
+    st.caption("Find a borrower, review their assessment, and prepare your findings.")
     dotenv.load_dotenv(DEFAULT_DATA_ROOT.parent / ".env")
     try:
         service = get_portfolio_service(
@@ -420,10 +372,42 @@ def render_portfolio_page() -> None:
         and (status == "All statuses" or status in entry.compliance.split(" / "))
         and (sector == "All sectors" or sector == entry.sector)
     ]
+    names = {entry.borrower_id: entry.name for entry in entries}
+    if st.session_state.get("portfolio_borrower") not in names:
+        st.session_state.portfolio_borrower = (
+            "SYN002" if "SYN002" in names else entries[0].borrower_id
+        )
+    picker, open_action = st.columns([3, 1], vertical_alignment="bottom")
+    selected_id = picker.selectbox(
+        "Borrower",
+        list(names),
+        format_func=names.get,
+        key="portfolio_borrower",
+        on_change=change_borrower,
+    )
+    selected = next(entry for entry in entries if entry.borrower_id == selected_id)
+    if open_action.button(
+        "Open borrower", key="portfolio_open_analysis", type="primary", width="stretch"
+    ):
+        st.session_state._analysis_open_borrower = selected_id
+        st.session_state.preview_selected_borrower = selected_id
+        st.session_state.analysis_saved_selection = {
+            "borrower_id": selected_id,
+            "period": selected.period_end.isoformat() if selected.period_end else None,
+            "cutoff": cutoff,
+        }
+        for key in ("analysis_period", "analysis_cutoff", "analysis_version"):
+            st.session_state.pop(key, None)
+            context().selections.pop(key, None)
+        st.session_state.analysis_section = "Overview"
+        st.session_state.pop("_analysis_next_run", None)
+        if selected.assessment:
+            st.session_state._analysis_next_run = selected.assessment.assessment_run_id
+        navigate("Borrower analysis")
     st.subheader("Borrower directory")
     st.caption(
         f"{len(filtered)} of {len(entries)} borrowers "
-        "· Click any cell to inspect that borrower's saved results."
+        "· Select a row, then open the borrower workspace."
     )
     if filtered:
         table_key = (
@@ -432,7 +416,21 @@ def render_portfolio_page() -> None:
         )
         ids = tuple(entry.borrower_id for entry in filtered)
         event = st.dataframe(
-            pd.DataFrame([entry_row(entry) for entry in filtered]),
+            pd.DataFrame(
+                [
+                    {
+                        "Borrower": entry.name,
+                        "Sector": entry.sector,
+                        "Period": entry.period_end.isoformat()
+                        if entry.period_end
+                        else "No financials",
+                        "Compliance": entry.compliance,
+                        "Workflow status": workflow_status(entry, service),
+                        "Last assessed": formatted_time(entry.created_at),
+                    }
+                    for entry in filtered
+                ]
+            ),
             key=table_key,
             hide_index=True,
             width="stretch",
@@ -447,34 +445,11 @@ def render_portfolio_page() -> None:
         }
     else:
         st.info("No borrowers match these filters.")
-    names = {entry.borrower_id: entry.name for entry in entries}
-    if st.session_state.get("portfolio_borrower") not in names:
-        st.session_state.portfolio_borrower = (
-            "SYN002" if "SYN002" in names else entries[0].borrower_id
-        )
-    selected_id = st.selectbox(
-        "Select borrower",
-        list(names),
-        format_func=names.get,
-        key="portfolio_borrower",
-        on_change=change_borrower,
-    )
-    selected = next(entry for entry in entries if entry.borrower_id == selected_id)
-    if st.button("Open borrower analysis", key="portfolio_open_analysis"):
-        st.session_state._analysis_open_borrower = selected_id
-        st.session_state.preview_selected_borrower = selected_id
-        st.session_state.analysis_saved_selection = {
-            "borrower_id": selected_id,
-            "period": selected.period_end.isoformat() if selected.period_end else None,
-            "cutoff": cutoff,
-        }
-        for key in ("analysis_period", "analysis_cutoff", "analysis_version"):
-            st.session_state.pop(key, None)
-        st.session_state.pop("_analysis_next_run", None)
-        if selected.assessment:
-            st.session_state._analysis_next_run = selected.assessment.assessment_run_id
-        st.session_state._preview_next_page = "Borrower analysis"
-        st.rerun()
+    with st.expander("Batch actions"):
+        render_batch_actions(service, names, period_end, cutoff)
+
+
+def render_batch_actions(service, names, period_end, cutoff) -> None:
     credentials_available = bool(os.getenv("OPENAI_API_KEY", "").strip())
     if not credentials_available:
         st.session_state.portfolio_include_reviews = False
@@ -521,25 +496,17 @@ def render_portfolio_page() -> None:
             )
         else:
             st.warning("Supply a review question and at least one credit criterion.")
-    one, all_borrowers = st.columns(2)
-    if one.button(
-        "Run selected assessment",
-        type="primary",
-        width="stretch",
+    st.caption(
+        f"This runs assessments for all {len(names)} registered borrowers. "
+        "Search and filters do not limit this batch."
+    )
+    if st.button(
+        f"Assess all borrowers ({len(names)})",
         disabled=not review_settings_valid,
-    ):
-        run_assessments(service, [selected_id], period_end, cutoff, review_context)
-    if all_borrowers.button(
-        "Assess all borrowers", width="stretch", disabled=not review_settings_valid
+        key="portfolio_assess_all",
     ):
         run_assessments(service, list(names), period_end, cutoff, review_context)
-    st.caption(
-        "Actions use the chosen reporting dates. "
-        "Search and filters do not change the all-borrower assessment scope."
-    )
     if "portfolio_outcomes" in st.session_state:
-        with st.expander("Last assessment run · outcomes"):
-            st.dataframe(
-                pd.DataFrame(st.session_state.portfolio_outcomes), hide_index=True, width="stretch"
-            )
-    render_selected(selected, service, credentials_available)
+        st.dataframe(
+            pd.DataFrame(st.session_state.portfolio_outcomes), hide_index=True, width="stretch"
+        )

@@ -30,20 +30,17 @@ from credit_monitoring.agents.events import AgentEvent
 from credit_monitoring.agents.models import ModelFailure, check_response
 from credit_monitoring.agents.run_state import AgentRunState
 from credit_monitoring.agents.tools.common import tool_outcome
-from credit_monitoring.domain.agent import AgentAnswer, AnswerContent, AnswerDraft
+from credit_monitoring.domain.agent import AgentAnswer, AnswerDraft
 from credit_monitoring.domain.tool_results import ToolFailure
 from credit_monitoring.observability.session import get_active_session
 
 logger = logging.getLogger(__name__)
 
 
-class _ScopeStopped(Exception):
-    pass
-
-
 async def _model_updates(
     stream: AgentStream[None, AnswerDraft],
     name: str,
+    state: AgentRunState,
 ) -> AsyncIterator[AgentEvent]:
     """Emit copied provisional answers; graph validation still decides completion."""
     final_started = False
@@ -57,11 +54,7 @@ async def _model_updates(
                 yield AgentEvent(
                     kind="answer_update",
                     agent_name=name,
-                    output=AnswerContent(
-                        answer=output.answer,
-                        confidence=output.confidence,
-                        confidence_explanation=output.confidence_explanation,
-                    ),
+                    output=state.preview(output),
                 )
         except UnexpectedModelBehavior as exc:
             # iter() continues into graph validation, where bounded output
@@ -181,7 +174,7 @@ async def run_stream(
                     if Agent.is_model_request_node(node):
                         yield AgentEvent(kind="model_start", agent_name=name)
                         async with node.stream(run.ctx) as stream:
-                            async with aclosing(_model_updates(stream, name)) as updates:
+                            async with aclosing(_model_updates(stream, name, state)) as updates:
                                 async for update in updates:
                                     yield update
                     elif Agent.is_call_tools_node(node):
@@ -193,52 +186,13 @@ async def run_stream(
                                     event, (FunctionToolCallEvent, FunctionToolResultEvent)
                                 ):
                                     yield _tool_event(event, calls, state, tool_names, name)
-                                    if state.policy and state.policy.terminal_response:
-                                        raise _ScopeStopped
             except GeneratorExit:
                 # Close the graph normally when a UI stops consuming the generator.
                 # No further nodes execute and no provisional history is committed.
                 return
             assert run.result is not None
-            try:
-                content = state.finalize(run.result.output)
-            except ValueError as exc:
-                if state.output_repairs:
-                    raise
-                state.output_repairs = 1
-                # A co-emitted final_result may precede service execution. Validate after
-                # all outcomes, then offer exactly one targeted repair with actual history.
-                repair = str(exc)
-            else:
-                repair = None
-                answer = state.answer(content)
+            answer = state.answer(state.finalize(run.result.output))
             state.history = run.result.all_messages()
-        if repair:
-            async with aclosing(
-                run_stream(
-                    agent,
-                    "Repair the final output only: " + repair,
-                    state,
-                    state.history,
-                    tool_names=tool_names,
-                )
-            ) as repaired:
-                async for event in repaired:
-                    if event.kind == "run_end" and not event.answer.complete:
-                        state.history = _failure_history(history or [], prompt, event.answer)
-                    yield event
-            return
-    except _ScopeStopped:
-        answer = state.answer(
-            AnswerContent(
-                answer=state.policy.terminal_response,
-                confidence="low",
-                schema_version="agent-answer-v2",
-                answer_kind="scope",
-                confidence_explanation="Evidence request is outside the configured issuer scope.",
-            )
-        )
-        state.history = _failure_history(history or [], prompt, answer)
     except ValueError as exc:
         answer = state.answer(str(exc), "incomplete_answer")
     except ModelFailure as exc:
@@ -248,18 +202,19 @@ async def run_stream(
         logger.warning("Agent execution stopped", extra={"error_code": "tool_round_limit"})
         answer = state.answer("Processing stopped at the tool-round limit.", "tool_round_limit")
     except (ModelAPIError, UnexpectedModelBehavior) as exc:
-        logger.error("Agent model failed", extra={"error_type": type(exc).__name__})
+        logger.error(
+            "Agent model failed: %s",
+            exc,
+            exc_info=True,
+            extra={"error_type": type(exc).__name__},
+        )
         code = (
             "incomplete_answer"
             if isinstance(exc, UnexpectedModelBehavior)
-            and (state.output_repairs or isinstance(exc.__cause__, ValidationError))
+            and isinstance(exc.__cause__, ValidationError)
             else "model_error"
         )
-        message = (
-            f"Incomplete answer: {state.last_output_error}"
-            if state.last_output_error
-            else (f"Agent model request/response failed: {exc}")
-        )
+        message = f"Agent model request/response failed: {exc}"
         answer = state.answer(message, code)
     if history is not None and not answer.complete:
         state.history = _failure_history(history, prompt, answer)

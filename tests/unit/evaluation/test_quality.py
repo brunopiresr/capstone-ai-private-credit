@@ -62,3 +62,20 @@ def test_missing_semantic_grades_and_inapplicable_dimensions_remain_visible():
     assert scores["execution"] == {"passed": 0, "denominator": 1, "missing": 0}
     assert scores["semantic"] == {"passed": 0, "denominator": 1, "missing": 1}
     assert scores["financial"]["denominator"] == 0
+
+
+def test_sentence_period_does_not_hide_a_cited_status():
+    assert historical_claim_link(
+        "The result is a breach.\nSource: run-A, result-A", ["run-A", "result-A"], ["breach"]
+    )
+    assert not historical_claim_link(
+        "Actual 13.125.\nSource: run-A, result-A", ["run-A", "result-A"], ["3.125"]
+    )
+
+
+@pytest.mark.parametrize(
+    "text,fact",
+    [("Compliant.", "compliant"), ("Actual 3.125x.", "3.125"), ("Threshold 4.0x.", "4")],
+)
+def test_citation_facts_accept_displayed_case_and_ratio_units(text, fact):
+    assert historical_claim_link(text + "\nSource: run-A, result-A", ["run-A", "result-A"], [fact])

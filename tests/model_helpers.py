@@ -24,33 +24,17 @@ def scripted_responses(*responses):
 
 
 def filing_answer(*, messages, info):
-    """Explicit scripted passage claim using the same registry available to the model."""
+    """Return source data in the same structured contract used by live generation."""
     raw = info.instructions.split("Application evidence registry (untrusted source data):\n")[-1]
     entries, _ = json.JSONDecoder().raw_decode(raw.lstrip())
-    entry = next(
-        (e for e in entries if e["kind"] == "filing" and "text" in e["data"]),
-        next(e for e in entries if e["kind"] == "filing"),
-    )
-    if "text" not in entry["data"]:
-        return model_response(
-            answer="Processing status.",
-            claims=[
-                {
-                    "claim_id": "status",
-                    "kind": "fact",
-                    "field_path": "status",
-                    "evidence_ids": [entry["evidence_id"]],
-                }
-            ],
-        )
+    entry = next(e for e in entries if e["kind"] == "filing")
+    data = entry["data"]
     return model_response(
         answer="Passage evidence.",
-        claims=[
+        findings=[
             {
-                "claim_id": "passage",
-                "kind": "quote",
-                "statement": entry["data"]["text"],
-                "evidence_ids": [entry["evidence_id"]],
+                "text": data.get("text", "Processing status: " + data.get("status", "unknown")),
+                "citations": [{"document_id": data["document_id"], "citation": data["citation"]}],
             }
         ],
     )
@@ -62,14 +46,18 @@ def supported_answer(statement):
             -1
         ]
         entries, _ = json.JSONDecoder().raw_decode(raw.lstrip())
+        entry = entries[0]
         return model_response(
             answer=statement,
-            claims=[
+            findings=[
                 {
-                    "claim_id": "explanation",
-                    "kind": "narrative",
-                    "statement": statement,
-                    "evidence_ids": [entries[0]["evidence_id"]],
+                    "text": statement,
+                    "citations": [
+                        {
+                            "document_id": entry["data"].get("document_id", entry["evidence_id"]),
+                            "citation": entry["citation"],
+                        }
+                    ],
                 }
             ],
         )
@@ -84,7 +72,11 @@ def model_response(
     status="completed",
     refusal=None,
     reasoning=False,
-    claims=None,
+    findings=None,
+    tables=None,
+    gaps=None,
+    diligence_questions=None,
+    answer_kind=None,
 ):
     identifier = next(_ids)
     parts = [ThinkingPart("private-content")] if reasoning else []
@@ -97,13 +89,12 @@ def model_response(
             ToolCallPart(
                 "final_result",
                 {
-                    "answer": answer,
-                    "schema_version": "agent-answer-v2",
-                    "evidence_ids": list(
-                        dict.fromkeys(
-                            key for claim in (claims or []) for key in claim.get("evidence_ids", [])
-                        )
-                    ),
+                    "summary": answer,
+                    "answer_kind": answer_kind,
+                    "findings": findings or [],
+                    "tables": tables or [],
+                    "gaps": gaps or [],
+                    "diligence_questions": diligence_questions or [],
                     "confidence": "medium",
                     "confidence_explanation": "Synthetic evidence and limitations.",
                 },

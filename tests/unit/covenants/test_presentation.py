@@ -1,15 +1,11 @@
-"""Required disclosures survive omitted model explanations; financial services stay unchanged."""
+"""Supplemental calculation facts supply context without changing financial service results."""
 
 import json
 from datetime import date
 
 import pytest
 
-from credit_monitoring.agents.answer_contract import finalize_content
 from credit_monitoring.agents.evidence import EvidenceRegistry
-from credit_monitoring.agents.presentation import forecast_label
-from credit_monitoring.agents.request_policy import resolve_request
-from credit_monitoring.domain.agent import AnswerContent
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.evaluation.agent_batch import SUITE, make_agent, read_scenarios
 from credit_monitoring.paths import APP_SYNTHETIC_DIR
@@ -40,28 +36,10 @@ def captured(case, tmp_path=None):
     )
 
 
-def render(assessment):
+def context_registry(assessment):
     registry = EvidenceRegistry()
     registry.record(assessment, borrower_id=assessment.borrower_id, ticker=None)
-    intent = "Predict risk" if assessment.ml_status != "disabled" else "Assess"
-    context = resolve_request(
-        f"{intent}. Reporting date: {assessment.period_end}. "
-        f"Information cutoff: {assessment.information_cutoff}.",
-        borrower_id=assessment.borrower_id,
-        ticker=None,
-    )
-    content = finalize_content(
-        AnswerContent(
-            schema_version="agent-answer-v2",
-            answer="Results.",
-            confidence="medium",
-            confidence_explanation="Source limitations.",
-        ),
-        registry,
-        context,
-        {assessment.assessment_run_id},
-    )
-    return registry, content
+    return registry
 
 
 @pytest.mark.parametrize(
@@ -73,11 +51,11 @@ def render(assessment):
         ("E10", None, "unresolved", "unresolved"),
     ],
 )
-def test_springing_boundaries_and_missing_observations_are_rendered(
+def test_springing_boundaries_and_missing_observations_are_available_in_context(
     case, observed, state, status, tmp_path
 ):
     assessment = captured(case, tmp_path)
-    registry, output = render(assessment)
+    registry = context_registry(assessment)
     entry = next(
         e
         for e in registry.entries
@@ -88,15 +66,12 @@ def test_springing_boundaries_and_missing_observations_are_rendered(
     assert springing["trigger_threshold_pct"] == 25
     assert springing["trigger_direction"] == "<"
     assert springing["testing_status"] == state and springing["assessment_status"] == status
-    assert "Observed availability pct" in output.answer
-    if observed is None:
-        assert "null" in output.answer
 
 
 def test_addback_explanation_reuses_existing_calculation_function_without_changing_result():
     assessment = captured("H06")
     original = assessment.model_dump_json()
-    registry, output = render(assessment)
+    registry = context_registry(assessment)
     detail = next(
         e
         for e in registry.entries
@@ -104,13 +79,12 @@ def test_addback_explanation_reuses_existing_calculation_function_without_changi
     ).data["presentation"]["ebitda_explanation"]
     assert detail["allowed_addbacks"] == 5 and detail["covenant_ebitda"] == 30
     assert detail["cap_fraction"] == 0.2
-    assert "Allowed addbacks" in output.answer
     assert assessment.model_dump_json() == original
 
 
 def test_waiver_periods_do_not_become_financial_satisfaction_or_an_invented_legal_expiry():
     assessment = captured("H11")
-    registry, output = render(assessment)
+    registry = context_registry(assessment)
     current = next(
         e
         for e in registry.entries
@@ -120,27 +94,4 @@ def test_waiver_periods_do_not_become_financial_satisfaction_or_an_invented_lega
     assert relief["explicit_test_periods"] == ["2025-06-30", "2025-09-30"]
     assert relief["last_explicit_test_period"] == "2025-09-30"
     assert relief["legal_expiry_date"] is None
-    assert "repayment strength" in output.answer and "null (unavailable)" in output.answer
     assert current.data["financial_inputs"]["result_basis"] == "calculated"
-
-
-@pytest.mark.parametrize("case", ["H14", "H15", "E08", "E09", "E11", "B04", "B05", "B06"])
-def test_forecast_metadata_nulls_conflicts_and_limitations_survive_absent_model_explanation(case):
-    assessment = captured(case)
-    _, output = render(assessment)
-    for issue in assessment.issues:
-        assert issue in output.answer
-    assert str(assessment.period_end) in output.answer
-    assert "individual" in output.answer and "not generated interpretation" in output.answer
-    if assessment.prediction:
-        assert assessment.prediction.model_version in output.answer
-        assert str(assessment.prediction.snapshot_id) in output.answer
-        assert "next-quarter horizon" in output.answer
-    if assessment.prediction and assessment.prediction.model_name == "logistic_regression":
-        assert "synthetic" in output.answer
-
-
-def test_forecast_asof_date_is_never_named_as_the_future_quarter_end():
-    label = forecast_label({"period_end": "2025-09-30", "horizon_quarters": 1})
-    assert label.startswith("Forecast as of 2025-09-30, next-quarter horizon")
-    assert "Target period end is not supplied" in label

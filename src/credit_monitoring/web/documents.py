@@ -13,6 +13,7 @@ from credit_monitoring.application.document_workspace import PROCESS_ID, Documen
 from credit_monitoring.persistence.document_workspace_repository import DocumentWorkspaceRepository
 from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
 from credit_monitoring.web.borrower_analysis import get_workflow
+from credit_monitoring.web.navigation import context, navigate
 from credit_monitoring.web.user_guide import render_help
 
 
@@ -140,26 +141,27 @@ def render_inventory(workspace: DocumentWorkspace, borrower_id: str) -> None:
         format_func=choices.get,
         key=f"documents_selected_{borrower_id}",
     )
-    user_agent = st.text_input(
-        "Download identity (name / organization and email)",
-        value=workspace.processor.user_agent,
-        key="documents_user_agent",
-    )
-    workspace.processor.user_agent = user_agent
-    st.number_input(
-        "Documents processed at once",
-        min_value=1,
-        max_value=16,
-        value=4,
-        key="documents_workers",
-        disabled=workspace.busy,
-    )
+    with st.expander("Advanced processing options"):
+        user_agent = st.text_input(
+            "Download identity (name / organization and email)",
+            value=workspace.processor.user_agent,
+            key="documents_user_agent",
+        )
+        workspace.processor.user_agent = user_agent
+        st.number_input(
+            "Documents processed at once",
+            min_value=1,
+            max_value=16,
+            value=4,
+            key="documents_workers",
+            disabled=workspace.busy,
+        )
     credentials = bool(os.getenv("OPENAI_API_KEY", "").strip())
     if not credentials:
         st.caption(
             "Set OPENAI_API_KEY to run extraction. Fetch, inspection and rebuilds work without it."
         )
-    fetch, process, force = st.columns(3)
+    fetch, process = st.columns(2)
     if fetch.button("Fetch selected", disabled=not ids or workspace.busy, width="stretch"):
         execute_documents(workspace, "Fetch", ids)
     if process.button(
@@ -169,12 +171,13 @@ def render_inventory(workspace: DocumentWorkspace, borrower_id: str) -> None:
         width="stretch",
     ):
         execute_documents(workspace, "Process", ids)
-    if force.button(
-        "Force reprocess selected",
-        disabled=not ids or workspace.busy or not credentials,
-        width="stretch",
-    ):
-        execute_documents(workspace, "Process", ids, force=True)
+    with st.expander("Reprocess completed documents"):
+        if st.button(
+            "Force reprocess selected",
+            disabled=not ids or workspace.busy or not credentials,
+            width="stretch",
+        ):
+            execute_documents(workspace, "Process", ids, force=True)
     missing_fetch = [
         r["document_id"] for r in rows if not r["html_available"] and not r["format_issue"]
     ]
@@ -382,7 +385,13 @@ def render_maintenance(workspace: DocumentWorkspace) -> None:
 
 
 def render_documents_page() -> None:
-    st.title("Documents & data")
+    main_workspace = "preview_page" in st.session_state
+    if main_workspace and st.button(
+        "Back to borrower" if context().return_page == "Borrower analysis" else "Back to workspace",
+        key="documents_back",
+    ):
+        navigate(context().return_page)
+    st.title("Documents" if main_workspace else "Documents & data")
     render_help(
         "Documents, manager and board workflows", "How document operations affect saved work"
     )
@@ -414,15 +423,28 @@ def render_documents_page() -> None:
     st.session_state.documents_saved_borrower = borrower
     if workspace.busy:
         st.info("Another document or maintenance operation is running.")
-    inventory, catalog, rebuild, history = st.tabs(
-        ["Inventory & processing", "Register & link", "Rebuild working data", "Operation history"]
-    )
+    if main_workspace:
+        inventory, catalog, history = st.tabs(
+            ["Inventory & processing", "Register & link", "Operation history"]
+        )
+        rebuild = None
+    else:
+        # The separate V2 app still exposes maintenance through its document view.
+        inventory, catalog, rebuild, history = st.tabs(
+            [
+                "Inventory & processing",
+                "Register & link",
+                "Rebuild working data",
+                "Operation history",
+            ]
+        )
+    if rebuild is not None:
+        with rebuild:
+            render_maintenance(workspace)
     with inventory:
         render_inventory(workspace, borrower)
     with catalog:
         render_catalog_forms(workspace, borrower)
-    with rebuild:
-        render_maintenance(workspace)
     with history:
         operations = workspace.repository.operations()
         if not operations:

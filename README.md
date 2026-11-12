@@ -4,6 +4,10 @@ A proof of concept (POC) for reviewing borrower covenants: calculate compliance 
 headroom, inspect source evidence, compare bullish and bearish AI reviews, and prepare
 analyst, risk manager, and board reports. Analysts make the decisions.
 
+This capstone for **From RAG to Agents** applies the course concepts to a
+private-credit business case: helping analysts turn financial documents and source
+evidence into traceable covenant assessments and advisory credit reviews.
+
 The demo includes **37 fictional borrowers**, **172 quarterly financial records**, and
 **69 public SEC source references**. Synthetic borrowers are separate from real SEC issuers.
 
@@ -17,6 +21,33 @@ those assessments harder to verify and can obscure emerging compliance issues.
 This project brings calculations, source evidence, and human review into one
 workflow so analysts can produce traceable covenant assessments.
 
+## From RAG to Agents: course concepts in the project
+
+| Course topic | What was developed | Business purpose |
+| --- | --- | --- |
+| RAG | [Retrieve filing excerpts and generate cited monitoring notes](src/credit_monitoring/application/rag_service.py). | Answer analysts' questions using supplied source evidence and disclose missing information. |
+| Evidence search | [MinSearch lexical retrieval](src/credit_monitoring/retrieval/lexical/sec.py) over local Markdown, with issuer filters. | Locate passages supporting covenant terms and disclosures for analyst inspection. |
+| Document processing and extraction | [Convert HTML filings to Markdown, extract structured covenant facts from document sections, and persist results in SQLite](docs/guides/document_processing.md#processing-and-reuse). | Make reported terms and threshold schedules reusable for repeatable document review. |
+| Agents | [A credit-assessment assistant](src/credit_monitoring/agents/credit_assessment.py) with bounded tool calls and follow-up conversations. | Let analysts investigate evidence and ask follow-up questions within an explicit borrower or issuer scope. |
+| Agent tools | [Document tools](src/credit_monitoring/agents/tools/documents.py) discover, read, search, and process sources; [assessment tools](src/credit_monitoring/agents/tools/assessment.py) retrieve financials, assess covenants, and request optional risk predictions. | Give the assistant access to application services for evidence gathering and deterministic calculations. |
+| Multi-agent workflow | [Independent bullish and bearish reviews followed by a recommendation agent](docs/guides/credit_review.md). All three use the same saved assessment evidence; the recommendation also receives both analyses. | Compare supporting and opposing arguments before an analyst decides how to manage the exposure. |
+
+For example, an analyst investigating a leverage covenant retrieves supporting
+filing passages and inspects the extracted terms and threshold schedule. With
+explicitly linked borrower inputs and supported calculation rules, the analyst
+runs a deterministic covenant assessment, compares the bullish and bearish reviews
+and their synthesized recommendation, then submits the analyst's conclusion for
+manager review. Source-to-borrower links must be explicit; synthetic borrowers are
+not automatically matched to real SEC issuers.
+
+RAG produces evidence-backed narrative notes; extraction produces structured facts;
+the calculation service determines supported ratios, headroom, and compliance.
+AI recommendations remain advisory. For the course progression, inspect the
+[RAG notebook](homework/notebooks/02-rag.ipynb), then the
+[agents notebook](homework/notebooks/03-agents.ipynb), then the
+[bullish and bearish credit review](homework/notebooks/04-credit-review.ipynb). The
+[workspace walkthrough](docs/guides/ui_preview.md) shows the analyst and manager workflow.
+
 ## Run the app
 
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
@@ -27,20 +58,24 @@ make preview
 ```
 
 Open the URL printed in the terminal. In **Portfolio**, choose reporting dates and a
-borrower, then run an assessment. Calculations and the bundled Logistic Regression model
+borrower, choose **Open borrower**, then **Run assessment**. Calculations and the bundled Logistic Regression model
 work without API keys, downloads, or training. Saved work stays in `data/runtime/portfolio/`.
 
 | Page | Use it to |
 | --- | --- |
-| Portfolio | Assess borrowers and inspect saved results |
-| Borrower analysis | Review calculations, ask questions, validate, flag, and submit a report |
-| Documents & data | Register and link sources, process HTML filings, and inspect evidence |
+| Portfolio | Find borrowers and open their workspace; run portfolio batches |
+| Borrower workspace (from Portfolio) | Assess, inspect evidence, ask questions, validate, and submit |
+| Documents | Register and link sources, process HTML filings, and inspect evidence |
 | Risk review | Record manager decisions and request further analysis |
-| Board report | Save and finalize a report from reviewed cases and pending items |
+| Board reports | Save and finalize a report from reviewed cases and pending items |
 
-Open **User guide** in the sidebar for help, or read the [walkthrough](docs/guides/ui_preview.md).
+Open **Help** in the sidebar for help, or read the [walkthrough](docs/guides/ui_preview.md).
 The original single-borrower app is available with `make run`; its prediction mode starts at **Off**.
 The main workspace starts with **Logistic Regression** selected.
+
+The task-focused V3 interface is available with `make preview-v3`. It adds analyst
+work queues, editable document checklists, a wide assistant, and separate risk-manager
+case pages while sharing existing saved work. See the [V3 walkthrough](docs/guides/ui_v3.md).
 
 ## Run with Docker Compose
 

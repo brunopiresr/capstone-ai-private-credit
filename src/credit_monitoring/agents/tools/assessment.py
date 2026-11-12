@@ -1,7 +1,6 @@
 """Borrower-scoped PydanticAI tools over the existing calculation and prediction workflow."""
 
 from datetime import date
-from typing import TYPE_CHECKING
 
 from pydantic_ai import Tool
 
@@ -12,127 +11,164 @@ from credit_monitoring.agents.tools.common import (
 )
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.domain.assessment import RiskAssessment
-from credit_monitoring.domain.tool_results import FinancialReview
-
-if TYPE_CHECKING:
-    from credit_monitoring.agents.request_policy import DispatchPolicy
+from credit_monitoring.domain.tool_results import (
+    FinancialPeriodCatalog,
+    FinancialPeriodSummary,
+    FinancialReview,
+)
 
 
 class AssessmentTools:
     """The application owns borrower scope, services, formulas, databases and model selection."""
 
     def __init__(
-        self, service: AssessmentService, *, borrower_id: str, policy: DispatchPolicy | None = None
+        self,
+        service: AssessmentService,
+        *,
+        borrower_id: str,
+        selected_dates: tuple[date, date] | None = None,
     ) -> None:
         if not borrower_id.strip():
             raise ValueError("An explicit borrower ID is required for assessment tools.")
         self.service = service
         self.borrower_id = borrower_id
-        self.policy = policy
+        self.selected_dates = selected_dates
 
     @property
     def tools(self) -> list[Tool]:
         return [
             domain_tool(method)
-            for method in (self.get_financials, self.assess_covenants, self.predict_risk)
+            for method in (
+                self.list_financial_periods,
+                self.get_financials,
+                self.assess_covenants,
+                self.predict_risk,
+            )
         ]
+
+    @property
+    def data_source(self) -> dict:
+        """Describe the active adapter without changing what that adapter can read."""
+        selected = getattr(self.service, "assessment", None)
+        if isinstance(selected, RiskAssessment):
+            return {
+                "source": "saved_assessment",
+                "assessment_run_id": selected.assessment_run_id,
+                "period_end": selected.period_end.isoformat(),
+                "information_cutoff": selected.information_cutoff.isoformat(),
+            }
+        return {"source": "financial_repository", "assessment_run_id": None}
+
+    def list_financial_periods(self) -> FinancialPeriodCatalog:
+        """Discover stored reporting periods and known availability for the selected borrower.
+
+        Requires no dates. Returns metadata without metrics or calculations. Use
+        it when the reporting period is not yet known. A saved-assessment source
+        contains only that snapshot and its history, not the live financial database.
+        Unknown availability stays null; storage/load timestamps are not publication dates.
+
+        Returns:
+            Selected borrower, ordered periods/availability, and active source identity.
+            An empty periods list means no financial periods are stored in that source.
+        """
+        source = self.data_source
+        periods = self.service.financial_repository.get_period_history(self.borrower_id)
+        return FinancialPeriodCatalog(
+            borrower_id=self.borrower_id,
+            source=source["source"],
+            source_assessment_run_id=source["assessment_run_id"],
+            periods=[
+                FinancialPeriodSummary(period_end=p.period_end, available_at=p.available_at)
+                for p in sorted(periods, key=lambda p: p.period_end)
+            ],
+        )
 
     def get_financials(
         self,
         period_end: ISODate,
         information_cutoff: ISODate,
     ) -> FinancialReview:
-        """Read source financial metrics and history before requesting calculations.
+        """Read source financial metrics and history for an explicit reporting period and cutoff.
 
+        Use when the question needs raw inputs. This read performs no calculations
+        and does not require a subsequent assessment. The calculation and prediction
+        tools load their own financials, so this is optional for those operations.
         Missing inputs and unknown availability remain explicit; no alternative
         reporting period is substituted.
-        Even when current is null, call assess_covenants next (or predict_risk for
-        a requested forecast) with these exact dates. The assessment service
-        returns the authoritative missing-evidence decision; a financial read alone
-        is not an assessment. Do not return final_result after only this read.
 
         Args:
-            period_end: Analyst-supplied reporting date, YYYY-MM-DD.
-            information_cutoff: Analyst-supplied cutoff, YYYY-MM-DD;
-                must be on or after period_end.
+            period_end: Unambiguous reporting period, YYYY-MM-DD, from request/context
+                or period discovery. Ask before choosing among multiple possible interpretations.
+            information_cutoff: Information window end, YYYY-MM-DD, on or after period_end.
+                Preserve the user's/contextual cutoff. For latest/current analysis only,
+                a missing cutoff may default to the supplied current_date; disclose it.
+                A historical period without a cutoff requires clarification.
 
         Returns:
             Current metrics, earlier periods, provenance and availability issues.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        self._admit("get_financials", period, cutoff)
-        result = self._financials(period, cutoff)
-        self._succeeded("get_financials")
-        return result
+        return self._financials(period, cutoff)
 
     def assess_covenants(
         self,
         period_end: ISODate,
         information_cutoff: ISODate,
     ) -> RiskAssessment:
-        """Calculate and verify current covenant compliance and headroom.
+        """Load financials, calculate and verify current covenant compliance and headroom.
 
-        Resolve configured terms with established formulas; ML is disabled.
-        First call get_financials with the same dates. One assess_covenants call
-        supplies current and historical results; do not use it after predict_risk.
-        Distinguish source-disclosed actuals from calculated values.
+        ML is disabled. This standalone operation reads its own inputs and returns
+        current and historical calculations, terms, verification and gaps. A separate
+        financial read is optional. Distinguish reported facts from calculated values.
 
         Args:
-            period_end: Analyst-supplied reporting date, YYYY-MM-DD.
-            information_cutoff: Analyst-supplied cutoff, YYYY-MM-DD;
-                must be on or after period_end.
+            period_end: Unambiguous reporting period, YYYY-MM-DD, from request/context
+                or period discovery. Ask before choosing among multiple possible interpretations.
+            information_cutoff: Information window end, YYYY-MM-DD, on or after period_end.
+                Preserve the user's/contextual cutoff. For latest/current analysis only,
+                a missing cutoff may default to the supplied current_date; disclose it.
+                A historical period without a cutoff requires clarification.
 
         Returns:
             Calculations, applicability, provenance, run IDs and limitations.
             Verification covers structured results, not generated prose.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        self._admit("assess_covenants", period, cutoff)
-        result = self._with_context(
+        return self._with_context(
             self.service.assess(self.borrower_id, period, cutoff, ml_enabled=False)
         )
-        self._succeeded("assess_covenants")
-        return result
 
     def predict_risk(
         self,
         period_end: ISODate,
         information_cutoff: ISODate,
     ) -> RiskAssessment:
-        """Calculate current covenants and run the configured next-quarter model.
+        """Load financials, assess current covenants and run the configured forecast model.
 
-        Use for forecast requests. Keep the analyst's input dates unchanged;
-        REQUIRED: call get_financials with those dates before calling this tool.
-        This tool also supplies current compliance and history: answer from its
-        result without another assess_covenants or predict_risk call.
-        the service determines the forecast horizon. Distinguish predicted risk
-        from current observed compliance and disclosed actuals from calculations.
-        Report supplied model name/version, horizon, probability and snapshot_id.
+        Use when a forecast is requested. This standalone operation includes current
+        compliance and history; separate financial reads and assessments are optional.
+        Pass the base reporting period and cutoff, not the future target quarter.
+        The service determines the forecast horizon. Distinguish predicted risk from
+        current observed compliance and disclosed actuals from calculations.
+        Model metadata, snapshot identity, unavailable outputs and limitations are
+        returned explicitly; verification covers structured results, not generated prose.
 
         Args:
-            period_end: Analyst-supplied reporting date, YYYY-MM-DD.
-            information_cutoff: Analyst-supplied cutoff, YYYY-MM-DD;
-                must be on or after period_end.
+            period_end: Unambiguous reporting period, YYYY-MM-DD, from request/context
+                or period discovery. Ask before choosing among multiple possible interpretations.
+            information_cutoff: Information window end, YYYY-MM-DD, on or after period_end.
+                Preserve the user's/contextual cutoff. For latest/current analysis only,
+                a missing cutoff may default to the supplied current_date; disclose it.
+                A historical period without a cutoff requires clarification.
 
         Returns:
             Calculations, model output, provenance and applicable limitations.
             Verification covers structured results, not generated prose.
         """
         period, cutoff = self._dates(period_end, information_cutoff)
-        self._admit("predict_risk", period, cutoff)
-        result = self._with_context(
+        return self._with_context(
             self.service.assess(self.borrower_id, period, cutoff, ml_enabled=True)
         )
-        self._succeeded("predict_risk")
-        return result
-
-    def _admit(self, tool: str, period: date, cutoff: date) -> None:
-        if self.policy:
-            self.policy.admit(tool, period, cutoff)
-
-    def _succeeded(self, tool: str) -> None:
-        if self.policy:
-            self.policy.succeeded(tool)
 
     @staticmethod
     def _with_context(assessment: RiskAssessment) -> RiskAssessment:
@@ -171,13 +207,19 @@ class AssessmentTools:
                 result.issues.append(caveat)
         return result
 
-    @staticmethod
-    def _dates(period_end: str, information_cutoff: str) -> tuple[date, date]:
+    def _dates(self, period_end: str, information_cutoff: str) -> tuple[date, date]:
         try:
             period = date.fromisoformat(period_end)
             cutoff = date.fromisoformat(information_cutoff)
         except ValueError as exc:
             raise InvalidToolArguments(str(exc)) from exc
+        if self.selected_dates is not None and (period, cutoff) != self.selected_dates:
+            selected_period, selected_cutoff = self.selected_dates
+            raise InvalidToolArguments(
+                f"Use the selected period_end={selected_period} and "
+                f"information_cutoff={selected_cutoff}. Predictions use these base dates; "
+                "the service determines the future forecast quarter."
+            )
         if cutoff < period:
             raise InvalidToolArguments("Information cutoff must be on or after the reporting date.")
         return period, cutoff

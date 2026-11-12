@@ -7,11 +7,13 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import time
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from html import unescape
 from pathlib import Path
 from typing import Literal
 
@@ -19,7 +21,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai import Agent, ModelRetry, RunContext
 
-from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
+from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent, current_local_date
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.agents.prompts.credit_assessment import CREDIT_ASSESSMENT_PROMPT_VERSION
 from credit_monitoring.application.bootstrap import (
@@ -29,6 +31,7 @@ from credit_monitoring.application.bootstrap import (
 from credit_monitoring.config.settings import AssessmentSettings, RiskModelConfig
 from credit_monitoring.covenants.structured import SyntheticCovenantReader
 from credit_monitoring.domain.agent import AgentAnswer
+from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.evaluation.quality import (
     EVALUATOR_VERSION,
     RUBRIC_VERSION,
@@ -195,9 +198,25 @@ def equal(actual, expected) -> bool:
     return actual == expected
 
 
-def check_answer(case: Scenario, answer: AgentAnswer) -> list[dict]:
+def scenario_dates(case: Scenario, *, current_date: date | None = None) -> dict[str, str]:
+    """Bind authored 'today' expectations to the capture date, not generated tool arguments."""
+    return {
+        "period_end": case.period_end,
+        "information_cutoff": (current_date or current_local_date()).isoformat()
+        if case.information_cutoff == "today"
+        else case.information_cutoff,
+    }
+
+
+def check_answer(
+    case: Scenario, answer: AgentAnswer, *, current_date: date | None = None
+) -> list[dict]:
     """Check actual dispatch, independent numeric references, nulls, scope and provenance."""
     checks = []
+    displayed_text = answer.answer
+    if answer.schema_version == "agent-answer-v3":
+        # Assess the literal source text the renderer displays, including escaped source IDs.
+        displayed_text = unescape(re.sub(r"\\([\\`*_{}\[\]<>|$#!+\.\-)])", r"\1", displayed_text))
 
     def check(name, passed, detail=""):
         checks.append({"name": name, "passed": bool(passed), "detail": detail})
@@ -212,31 +231,27 @@ def check_answer(case: Scenario, answer: AgentAnswer) -> list[dict]:
             str(names),
         )
     else:
-        expected = (
-            []
-            if case.tool_contract == "none"
-            else [
-                "get_financials",
-                "predict_risk" if case.tool_contract == "forecast" else "assess_covenants",
-            ]
-        )
-        check("tool_contract", names == expected, f"expected {expected}, got {names}")
+        allowed = {"list_financial_periods"}
+        if case.tool_contract == "none":
+            valid = set(names) <= allowed
+        else:
+            final_tool = "predict_risk" if case.tool_contract == "forecast" else "assess_covenants"
+            valid = final_tool in names and set(names) <= allowed | {"get_financials", final_tool}
+        check("tool_contract", valid, str(names))
     assessments = []
     for call in answer.tool_trace:
         outcome = call.model_dump(mode="json")["outcome"]
         if isinstance(outcome, dict) and "code" in outcome:
             check(f"tool_success:{call.name}", False, outcome["code"])
         if case.borrower_id and case.tool_contract in {"compliance", "forecast"}:
-            expected_dates = {
-                "period_end": case.period_end,
-                "information_cutoff": case.information_cutoff,
-            }
-            check(f"dates:{call.name}", call.arguments == expected_dates, str(call.arguments))
+            expected_dates = scenario_dates(case, current_date=current_date)
+            if call.name != "list_financial_periods":
+                check(f"dates:{call.name}", call.arguments == expected_dates, str(call.arguments))
             check(
                 f"borrower:{call.name}",
                 isinstance(outcome, dict) and outcome.get("borrower_id") == case.borrower_id,
             )
-        if isinstance(outcome, dict) and "assessment_run_id" in outcome:
+        if isinstance(call.outcome, RiskAssessment):
             assessments.append(outcome)
     for expected in case.expected_results:
         candidates = [
@@ -269,9 +284,16 @@ def check_answer(case: Scenario, answer: AgentAnswer) -> list[dict]:
             "citation_assessment_coverage",
             all(
                 historical_claim_link(
-                    answer.answer,
+                    displayed_text,
                     [assessment["assessment_run_id"], result["result_id"]],
-                    [result["compliance_status"], str(result.get("actual_value"))],
+                    [
+                        result["compliance_status"],
+                        *[
+                            str(result[key])
+                            for key in ("actual_value", "threshold", "headroom")
+                            if result.get(key) is not None
+                        ],
+                    ],
                 )
                 for result in assessment.get("results", [])
             )
@@ -287,7 +309,7 @@ def check_answer(case: Scenario, answer: AgentAnswer) -> list[dict]:
             any(
                 doc == document_id
                 and historical_claim_link(
-                    answer.answer,
+                    displayed_text,
                     [doc, cite],
                     [
                         word
@@ -324,7 +346,7 @@ def historical_citation_score(answer: AgentAnswer) -> dict:
     runs = [
         call.outcome.assessment_run_id
         for call in answer.tool_trace
-        if hasattr(call.outcome, "assessment_run_id")
+        if isinstance(call.outcome, RiskAssessment)
     ]
     return {
         "name": "historical_prose_only_v1",
@@ -345,6 +367,7 @@ def verdict(answer: AgentAnswer | None, checks: list[dict], grade: dict) -> str:
 
 async def evaluate_case(case, folder, args, judge, inputs):
     folder.mkdir()
+    capture_date = current_local_date()
     save_json(
         folder / "request.json",
         {
@@ -353,6 +376,7 @@ async def evaluate_case(case, folder, args, judge, inputs):
             "ticker": case.ticker or None,
             "model": args.model,
             "risk_model": case.risk_model,
+            "current_date": capture_date.isoformat(),
         },
     )
     answer, error = None, None
@@ -370,7 +394,7 @@ async def evaluate_case(case, folder, args, judge, inputs):
     save_json(folder / "answer.json", payload)
     response_sha256 = fingerprint(folder / "answer.json")
     checks = (
-        check_answer(case, answer)
+        check_answer(case, answer, current_date=capture_date)
         if answer
         else [{"name": "completed", "passed": False, "detail": error}]
     )
@@ -386,6 +410,9 @@ async def evaluate_case(case, folder, args, judge, inputs):
     if answer and answer.complete and not answer.error and not getattr(args, "skip_judge", False):
         try:
             packet = judge_packet(case, answer)
+            packet["context"]["current_date"] = capture_date.isoformat()
+            if case.information_cutoff == "today":
+                packet["context"]["information_cutoff"] = capture_date.isoformat()
             save_json(folder / "judge-input.json", packet)
             async with asyncio.timeout(args.judge_timeout):
                 judged = await judge.run(json.dumps(packet, ensure_ascii=False), deps=packet)

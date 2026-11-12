@@ -2,6 +2,7 @@
 
 import ast
 import asyncio
+import csv
 import json
 from datetime import date
 from pathlib import Path
@@ -9,7 +10,9 @@ from unittest.mock import AsyncMock, Mock
 
 import nbformat
 import pytest
+from model_helpers import ScriptedModel, model_response
 
+from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.events import AgentEventCallback
 from credit_monitoring.domain import CovenantExtraction, RiskAssessment, ToolExecution, ToolFailure
 from credit_monitoring.domain.agent import AgentAnswer
@@ -22,6 +25,60 @@ NOTEBOOK = Path(__file__).resolve().parents[1] / "03-agents.ipynb"
 def notebook_cells():
     notebook = json.loads(NOTEBOOK.read_text())
     return {cell["id"]: "".join(cell["source"]) for cell in notebook["cells"]}
+
+
+def test_notebook_passes_mapping_question_to_agent(notebook_cells):
+    model = ScriptedModel(
+        response=model_response(
+            answer="No configured relationship links SYN002 to FMC.", answer_kind="scope"
+        )
+    )
+    service = Mock()
+    show_answer = Mock()
+    namespace = {
+        "document_agent": CreditAssessmentAgent(service=service, model=model),
+        "AgentEventCallback": AgentEventCallback,
+        "show_answer": show_answer,
+    }
+    code = compile(
+        notebook_cells["test-issuer-mapping"],
+        "test-issuer-mapping",
+        "exec",
+        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+    )
+    asyncio.run(eval(code, namespace))
+    answer = namespace["issuer_mapping_answer"]
+    assert answer.complete and answer.answer_kind == "scope"
+    assert "SYN002" in answer.answer and "FMC" in answer.answer
+    assert not answer.tool_trace and not answer.evidence
+    show_answer.assert_called_once_with(answer)
+    model.respond.assert_called_once()
+    assert service.mock_calls == []
+
+
+def test_notebook_assessment_passes_structured_dates(notebook_cells):
+    agent = Mock()
+    agent.ask_async = AsyncMock(return_value=AgentAnswer(answer="Assessment complete."))
+    namespace = {
+        "date": date,
+        "BORROWER_ID": "SYN002",
+        "PERIOD_END": "2025-09-30",
+        "INFORMATION_CUTOFF": "2025-09-30",
+        "assessment_agent": agent,
+        "AgentEventCallback": AgentEventCallback,
+        "show_answer": Mock(),
+    }
+    code = compile(
+        notebook_cells["1a5c3405"],
+        "assessment-question",
+        "exec",
+        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+    )
+    asyncio.run(eval(code, namespace))
+    assert agent.ask_async.call_args.kwargs["selected_dates"] == (
+        date(2025, 9, 30),
+        date(2025, 9, 30),
+    )
 
 
 def test_notebook_opt_out_configures_a_working_stub(notebook_cells, tmp_path, monkeypatch):
@@ -202,15 +259,45 @@ def test_rag_notebook_document_processing_in_running_loop(
     cell_id, document_service_factory, generation_response
 ):
     service = document_service_factory()
+    # Multiple records exercise the batch resource guard, which a single filing bypasses.
+    original = service.catalog_record("SYN")
+    with service.source_file.open("w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=list(original))
+        writer.writeheader()
+        writer.writerows([original, {**original, "document_id": "SECOND"}])
+    for suffix in (".md", ".conversion-version"):
+        prefix = "." if suffix == ".conversion-version" else ""
+        source_path = service.markdown_dir / f"{prefix}SYN{suffix}"
+        (service.markdown_dir / f"{prefix}SECOND{suffix}").write_text(source_path.read_text())
     service.model.respond.return_value = generation_response(CovenantExtraction())
     notebook = json.loads((NOTEBOOK.parent / "02-rag.ipynb").read_text())
     cells = {cell["id"]: "".join(cell["source"]) for cell in notebook["cells"]}
+    namespace = {
+        "MODEL": service.model,
+        "source_file": service.source_file,
+        "html_dir": service.html_dir,
+        "markdown_dir": service.markdown_dir,
+        "RUNTIME_DIR": service.markdown_dir.parent,
+        "sec_user_agent": "",
+        "converter": Mock(),
+        "MarkItDown": Mock(side_effect=Mock),
+    }
+    exec(cells["configure-document-service"], namespace)
+    service = namespace["processing_service"]
+    # Inject fresh offline models as the service does for the notebook's model string.
+    respond = service.model.respond
+
+    def model_factory():
+        model = ScriptedModel()
+        model.respond = respond
+        return model
+
+    service.model_factory = model_factory
     # Use the local synthetic filing in place of the public FMC document.
     source = cells[cell_id].replace('"DOC_FMC_AMD3_2025"', '"SYN"')
     if cell_id == "process-catalog-helper":
         source += '\noutcomes = await process_catalog(ticker="SYN")\n'
     code = compile(source, cell_id, "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
-    namespace = {"asyncio": asyncio, "processing_service": service}
 
     async def run_cell():
         await eval(code, namespace)
@@ -218,12 +305,68 @@ def test_rag_notebook_document_processing_in_running_loop(
     asyncio.run(run_cell())
     outcome = service.get_document_extraction("SYN")
     assert outcome.status == "complete" and outcome.result is not None
-    service.model.respond.assert_called_once()
+    expected_calls = 1 if cell_id == "process-complete-fmc-document" else 2
+    assert service.model.respond.call_count == expected_calls
     # Repeating the actual notebook cell reuses the persistent result.
     asyncio.run(run_cell())
-    service.model.respond.assert_called_once()
+    assert service.model.respond.call_count == expected_calls
     if cell_id == "process-complete-fmc-document":
         assert namespace["fmc_document"].cache_hit
     else:
         outcomes = namespace["documents" if cell_id == "ac7bc8f7" else "outcomes"]
-        assert len(outcomes) == 1 and outcomes[0].cache_hit
+        assert [item.document_id for item in outcomes] == ["SYN", "SECOND"]
+        assert all(item.cache_hit for item in outcomes)
+
+
+@pytest.mark.parametrize("show_details", [False, True])
+def test_notebook_answer_keeps_diagnostics_optional(notebook_cells, show_details):
+    source = next(code for code in notebook_cells.values() if "def show_answer(" in code)
+    definition = source.split("# Opt into diagnostics")[0]
+    answer = AgentAnswer(answer="### Evidence matrix\n\nReadable result.", confidence="medium")
+    pandas = Mock()
+    display = Mock()
+    namespace = {"pd": pandas, "display": display, "Markdown": lambda text: text}
+    exec(definition, namespace)
+    namespace["show_answer"](answer, show_details=show_details)
+    assert display.call_args_list[0].args[0] == answer.answer
+    assert pandas.DataFrame.call_count == int(show_details)
+
+
+@pytest.mark.parametrize(
+    "cell_id,agent_name,scope,kind",
+    [
+        ("88d244e0", "document_agent", {"ticker": "FMC"}, "evidence"),
+        ("2e9c25c9", "assessment_agent", {"borrower_id": None}, "clarification"),
+        ("24b132ef", "assessment_agent", {"borrower_id": "SYN006"}, "evidence"),
+    ],
+)
+def test_notebook_question_context_reaches_model_without_policy_gates(
+    notebook_cells, cell_id, agent_name, scope, kind
+):
+    """Check notebook wiring; live regressions check the model's interpretation."""
+    model = ScriptedModel(
+        response=model_response(answer="Model-selected response.", answer_kind=kind)
+    )
+    documents, assessments = Mock(), Mock()
+    agent = CreditAssessmentAgent(service=documents, assessment_service=assessments, model=model)
+    show_answer = Mock()
+    namespace = {
+        agent_name: agent,
+        "TICKER": "FMC",
+        "AgentEventCallback": AgentEventCallback,
+        "show_answer": show_answer,
+    }
+    code = compile(notebook_cells[cell_id], cell_id, "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+    asyncio.run(eval(code, namespace))
+    model.respond.assert_called_once()
+    call = model.respond.call_args.kwargs
+    payload = json.loads(call["messages"][0].parts[0].content)
+    assert all(payload[key] == value for key, value in scope.items())
+    assert payload["selected_dates"] is None
+    names = {tool.name for tool in call["info"].function_tools}
+    assert ("assess_covenants" in names) == bool(scope.get("borrower_id"))
+    answer = namespace[
+        "document_answer" if agent_name == "document_agent" else "covenant_assessment_answer"
+    ]
+    assert answer.complete and answer.answer_kind == kind
+    assert documents.mock_calls == assessments.mock_calls == []

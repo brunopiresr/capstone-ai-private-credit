@@ -26,10 +26,6 @@ class InvalidToolArguments(ValueError):
     pass
 
 
-class TerminalPolicyError(ValueError):
-    """A scope rejection must end the turn instead of consuming tool retries."""
-
-
 class ToolCollection(RootModel[list[DocumentSummary] | list[RetrievedRecord]]):
     """Serialize lists, including [], as data rather than multimodal content sequences."""
 
@@ -60,8 +56,6 @@ def service_errors[**P, T](function: Callable[P, T]) -> Callable[P, Awaitable[T 
     async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T | ToolFailure:
         try:
             return await asyncio.to_thread(function, *args, **kwargs)
-        except TerminalPolicyError as exc:
-            return ToolFailure(code="policy_rejection", message=str(exc), terminal=True)
         except (
             OSError,
             ValueError,

@@ -1,4 +1,4 @@
-"""Shared exact tool contracts and final-answer criteria for live scenarios."""
+"""Shared behavior contracts and final-answer criteria for live scenarios."""
 
 import json
 from collections.abc import Callable
@@ -10,17 +10,21 @@ import pytest
 from credit_monitoring.agents.models import model_identity
 from credit_monitoring.domain.agent import AgentAnswer
 from credit_monitoring.domain.assessment import RiskAssessment
-from credit_monitoring.domain.tool_results import FinancialReview
+from credit_monitoring.domain.tool_results import FinancialPeriodCatalog, FinancialReview
 
 DATES = {"period_end": "2025-09-30", "information_cutoff": "2025-09-30"}
 
 
 def check_assessment_tools(answer, final_tool):
     names = [call.name for call in answer.tool_trace]
-    assert names == ["get_financials", final_tool], names
+    assert final_tool in names, names
+    assert set(names) <= {"list_financial_periods", "get_financials", final_tool}, names
     for call in answer.tool_trace:
-        assert call.arguments == DATES, call
-        assert isinstance(call.outcome, (FinancialReview, RiskAssessment)), call
+        if call.name == "list_financial_periods":
+            assert isinstance(call.outcome, FinancialPeriodCatalog)
+        else:
+            assert call.arguments == DATES, call
+            assert isinstance(call.outcome, (FinancialReview, RiskAssessment)), call
     assessment = next(
         call.outcome for call in reversed(answer.tool_trace) if call.name == final_tool
     )
@@ -39,14 +43,13 @@ def check_missing_financial_inputs_do_not_become_a_compliance_conclusion(
     assert result.threshold == pytest.approx(1.15)
     assert result.operator == ">="
     assert result.resolved_covenant.testing_status == "active"
-    financials = answer.tool_trace[0].outcome
-    assert isinstance(financials, FinancialReview)
-    assert financials.current.metrics["revolver_availability_pct"] == 20
-    assert financials.current.metrics["reported_ebitda"] is None
+    metrics = result.financial_inputs["financial_period"]["metrics"]
+    assert metrics["revolver_availability_pct"] == 20
+    assert metrics["reported_ebitda"] is None
 
 
 def check_missing_dates_trigger_clarification_before_any_tools(answer: AgentAnswer) -> None:
-    assert answer.tool_trace == [], answer.tool_trace
+    assert all(call.name == "list_financial_periods" for call in answer.tool_trace)
 
 
 def check_stub_forecast_is_reported_as_unavailable(answer: AgentAnswer) -> None:
@@ -83,9 +86,9 @@ SCENARIOS = (
         check_missing_financial_inputs_do_not_become_a_compliance_conclusion,
         (
             (
-                "The agent calls get_financials before assess_covenants, with both period_end"
-                " and information_cutoff equal to 2025-09-30 for both calls, and does not "
-                "call predict_risk."
+                "The agent calls assess_covenants with period_end and information_cutoff "
+                "equal to 2025-09-30, and does not call predict_risk. Discovery and "
+                "financial reads are optional."
             ),
             (
                 "The answer explains that 20% revolver availability is below the 25% "
@@ -101,18 +104,18 @@ SCENARIOS = (
     ),
     Scenario(
         "missing_dates",
-        "Is SYN002 okay? Use the latest numbers.",
+        "Assess SYN002 for reporting date 2025-09-30; what information cutoff should I supply?",
         "SYN002",
         check_missing_dates_trigger_clarification_before_any_tools,
         (
             (
-                "The answer explicitly asks the analyst to provide BOTH the reporting date "
-                "and the information cutoff before assessing SYN002."
+                "The answer asks the analyst to choose the information cutoff, retaining "
+                "the supplied reporting date of 2025-09-30."
             ),
             (
-                "The agent makes no tool calls before asking for the missing dates, does not "
-                "guess a date or quarter from 'latest', and reports no current compliance "
-                "conclusion, ratio, or headroom."
+                "The agent performs no financial calculation or forecast and reports no "
+                "current compliance conclusion, ratio, or headroom. Optional period "
+                "discovery is allowed; this is not a latest/current analysis request."
             ),
         ),
     ),
@@ -127,8 +130,8 @@ SCENARIOS = (
         check_stub_forecast_is_reported_as_unavailable,
         (
             (
-                "The agent calls get_financials before predict_risk, with both period_end and"
-                " information_cutoff equal to 2025-09-30 for both calls."
+                "The agent calls predict_risk with period_end and information_cutoff "
+                "equal to 2025-09-30. Discovery and financial reads are optional."
             ),
             (
                 "The answer identifies the configured model as a stub and explains that no "

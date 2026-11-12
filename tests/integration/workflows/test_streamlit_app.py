@@ -93,6 +93,22 @@ def test_initialization_is_once_and_assessment_requires_explicit_execution(worki
     assert "expected_metric" not in assessment.model_dump_json()
 
 
+def test_incomplete_answer_displays_its_markdown_explanation():
+    app = AppTest.from_string(
+        "from credit_monitoring.domain.agent import AgentAnswer\n"
+        "from credit_monitoring.web.assessment import render_answer\n"
+        "render_answer(AgentAnswer(\n"
+        "    answer='### Cannot calculate\\n\\n- The information cutoff is unavailable.',\n"
+        "    complete=False, error='missing_calculation_dates',\n"
+        "))\n"
+    ).run()
+    assert not app.exception
+    assert "missing_calculation_dates" in app.error[0].value
+    assert app.markdown[0].value == (
+        "### Cannot calculate\n\n- The information cutoff is unavailable."
+    )
+
+
 @pytest.mark.parametrize(
     "borrower,period,status,actual,threshold",
     [
@@ -228,17 +244,18 @@ def test_followups_use_real_tools_and_session_owned_conversations(working_app, m
     answer = app.session_state["chat_messages"][-1]["answer"]
     assert answer.complete
     assert answer.tool_trace == []
-    assert "SYN002" in answer.answer and answer.evidence
+    assert answer.answer == "The calculated covenant is compliant." and answer.evidence
     assert "Early-warning quarter" not in answer.model_dump_json()
     first_request = model.respond.call_args_list[0].kwargs
     assert "2025-09-30" in str(first_request["messages"])
     assert {tool.name for tool in first_request["info"].function_tools} == {
+        "list_financial_periods",
         "get_financials",
         "assess_covenants",
         "predict_risk",
     }
     assert app.session_state["active_assessment"] == assessment
-    assert any("Citations used" in item.label for item in app.expander)
+    assert not any("Citations used" in item.label for item in app.expander)
     session_id = conversations[0].session_id
     app.run()
     assert app.session_state["conversation"] is conversations[0]
@@ -342,3 +359,24 @@ def test_expanded_mock_benchmark_lists_each_covenant(working_app, monkeypatch):
     assert set(selected["Covenant"]) == {"LEV", "ICR"}
     assert set(selected["Status"]) == {"COMPLIANT", "BREACH"}
     assert next(m for m in app.metric if m.label == "Borrowers in view").value == "28"
+
+
+def test_structured_answer_matrix_renders_in_streamlit():
+    app = AppTest.from_string("""
+from credit_monitoring.agents.answer_contract import render_content
+from credit_monitoring.domain.agent import AgentAnswer, AnswerDraft, AnswerTable, AnswerTableRow
+from credit_monitoring.web.assessment import render_answer
+content = render_content(AnswerDraft(
+    summary="There are 2 source differences.",
+    tables=[AnswerTable(title="Evidence matrix", columns=["Source", "Wording"], rows=[
+        AnswerTableRow(cells=["DOC_A", "A | B\\n$10 and $20 <script>text</script>"])
+    ])],
+    diligence_questions=["Which schedule applies?"],
+    confidence="medium", confidence_explanation="Missing amendment mapping."
+))
+render_answer(AgentAnswer(**content.model_dump()))
+""").run()
+    assert not app.exception
+    markdown = "\n".join(item.value for item in app.markdown)
+    assert "Evidence matrix" in markdown and r"A \| B<br>" in markdown
+    assert "Which schedule applies?" in markdown and "<script>" not in markdown

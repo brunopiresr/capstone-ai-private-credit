@@ -10,7 +10,7 @@ import re
 
 from pydantic import BaseModel, Field
 
-EVALUATOR_VERSION = "agent-quality-v2"
+EVALUATOR_VERSION = "agent-quality-v4"
 RUBRIC_VERSION = "agent-semantic-v2"
 DIMENSIONS = (
     "execution",
@@ -113,12 +113,17 @@ def dimension_scores(checks: list[dict], grade: dict) -> dict:
 
 def historical_claim_link(text: str, identifiers: list[str], facts: list[str]) -> bool:
     """An unrelated endnote/run ID is insufficient; require an adjacent displayed fact."""
+
+    def contains(paragraph: str, fact: str) -> bool:
+        # Decimal boundaries matter for numbers; sentence punctuation is valid after statuses.
+        numeric = re.fullmatch(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?", fact)
+        if numeric:
+            pattern = r"(?<![\w.])" + re.escape(fact) + r"(?:\.0+)?(?:x|%)?(?!\w|\.\d)"
+            return bool(re.search(pattern, paragraph))
+        return bool(re.search(r"(?<!\w)" + re.escape(fact) + r"(?!\w)", paragraph, re.I))
+
     return any(
         all(identifier in paragraph for identifier in identifiers)
-        and any(
-            re.search(r"(?<![\w.])" + re.escape(fact) + r"(?![\w.])", paragraph)
-            for fact in facts
-            if fact
-        )
+        and any(contains(paragraph, fact) for fact in facts if fact)
         for paragraph in re.split(r"\n\s*\n", text)
     )

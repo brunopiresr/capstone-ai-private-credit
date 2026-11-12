@@ -6,27 +6,22 @@ from datetime import date
 from html import escape
 
 import dotenv
-import pandas as pd
 import streamlit as st
 
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.application.borrower_workflow import (
-    PREDICTION_MODES,
     BorrowerWorkflow,
     SavedAssessmentChat,
     SavedFinancials,
 )
-from credit_monitoring.application.portfolio_service import PortfolioEntry
 from credit_monitoring.config.settings import DEFAULT_APP_PREDICTION_MODE
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.domain.credit_review import CreditReviewResult
 from credit_monitoring.domain.financials import FINANCIAL_METRICS
 from credit_monitoring.persistence.workflow_repository import WorkflowRepository
 from credit_monitoring.web import portfolio as portfolio_page
-from credit_monitoring.web.assessment import (
-    render_answer,
-)
+from credit_monitoring.web.assessment import render_answer, render_prediction
 from credit_monitoring.web.borrower_views import (
     render_calculation_tables,
     render_covenant_table,
@@ -35,7 +30,8 @@ from credit_monitoring.web.borrower_views import (
     render_status,
     render_summary_metrics,
 )
-from credit_monitoring.web.user_guide import TOPICS, navigate
+from credit_monitoring.web.navigation import navigate
+from credit_monitoring.web.user_guide import TOPICS
 from credit_monitoring.web.workspace import ask_about_assessment
 
 
@@ -61,75 +57,8 @@ def select_borrower() -> None:
     )
 
 
-def select_directory_borrower(key: str, borrower_ids: tuple[str, ...]) -> None:
-    selection = st.session_state[key]["selection"]
-    rows = tuple(selection.get("rows", []))
-    cells = tuple(tuple(cell) for cell in selection.get("cells", []))
-    previous = st.session_state.get("analysis_directory_selection", {})
-    if previous.get("key") != key:
-        previous = {}
-    if cells and cells != previous.get("cells", ()):
-        row = cells[0][0]
-    elif rows and rows != previous.get("rows", ()):
-        row = rows[0]
-    else:
-        return
-    if 0 <= row < len(borrower_ids):
-        borrower_id = borrower_ids[row]
-        st.session_state.analysis_borrower = borrower_id
-        st.session_state.portfolio_borrower = borrower_id
-        st.session_state.preview_selected_borrower = borrower_id
-
-
-def render_borrower_directory(entries: list[PortfolioEntry], *, show_results: bool = True) -> None:
-    st.subheader("Borrower directory")
-    query = (
-        st.text_input(
-            "Search borrowers", placeholder="Name or borrower ID", key="analysis_directory_search"
-        )
-        .strip()
-        .casefold()
-    )
-    visible = [
-        e
-        for e in entries
-        if not query or query in e.name.casefold() or query in e.borrower_id.casefold()
-    ]
-    st.caption(
-        f"{len(visible)} of {len(entries)} borrowers · Click a cell or select a row "
-        "to open its analysis below."
-    )
-    if show_results:
-        st.caption("Statuses use the selected reporting period and cutoff.")
-    if not visible:
-        st.info("No borrowers match this search.")
-        return
-    ids = tuple(e.borrower_id for e in visible)
-    key = (
-        f"analysis_directory_{st.session_state.get('analysis_directory_revision', 0)}_"
-        + "_".join(ids)
-    )
-    event = st.dataframe(
-        pd.DataFrame(
-            [
-                portfolio_page.entry_row(e)
-                if show_results
-                else {"Borrower": e.name, "ID": e.borrower_id, "Sector": e.sector}
-                for e in visible
-            ]
-        ),
-        key=key,
-        hide_index=True,
-        width="stretch",
-        row_height=43,
-        selection_mode=["single-row", "single-cell"],
-        on_select=lambda: select_directory_borrower(key, ids),
-    )
-    st.session_state.analysis_directory_selection = {
-        "key": key,
-        "rows": tuple(event.selection.rows),
-        "cells": tuple(tuple(c) for c in event.selection.cells),
-    }
+def select_review_section() -> None:
+    st.session_state.analysis_section = "Review and submit"
 
 
 def select_new_run(assessment: RiskAssessment) -> None:
@@ -170,35 +99,39 @@ def render_handoff(workflow: BorrowerWorkflow, assessment: RiskAssessment) -> No
     run_id = assessment.assessment_run_id
     validated = workflow.validation(run_id)
     validation = validated["payload"] if validated else {}
-    left, right = st.columns([1.25, 1])
-    with left:
-        st.subheader("Validate & prepare your handoff")
-        st.caption("Validation applies to this assessment and its latest saved credit review.")
-        with st.form(f"analysis_validation_{run_id}"):
-            analyst = st.text_input("Analyst name (optional)", value=validation.get("analyst", ""))
-            inputs = st.checkbox("I checked the financial inputs and source references")
-            terms = st.checkbox("I checked the applied terms and calculations")
-            analysis = st.checkbox("I reviewed the analysis and documented any exceptions")
-            notes = st.text_area(
-                "Validation notes / exceptions",
-                value=validation.get("notes", ""),
-                key=f"analysis_validation_notes_{run_id}",
-            )
-            if st.form_submit_button("Mark validated"):
-                action(
-                    lambda: workflow.validate(
-                        run_id, checks=(inputs, terms, analysis), notes=notes, analyst=analyst
-                    ),
-                    "Validation saved.",
-                )
-        if validated:
-            st.success(
-                "Validated with exceptions." if validation["with_exceptions"] else "Validated."
-            )
-        else:
-            st.info("This assessment and review version need validation before submission.")
-    with right:
-        st.subheader("Flag for risk review")
+    drafts = workflow.repository.events(run_id, "draft")
+    submissions = [
+        item
+        for item in workflow.repository.submissions(assessment.borrower_id)
+        if item["run_id"] == run_id
+    ]
+    latest = max(drafts + submissions, key=lambda item: item["created_at"], default={})
+    previous = latest.get("payload", {})
+    st.subheader("1. Record your findings")
+    author = st.text_input(
+        "Analyst name (optional)",
+        value=previous.get("analyst", validation.get("analyst", "")),
+        key=f"analysis_report_author_{run_id}",
+    )
+    report = st.text_area(
+        "Observations and proposed recommendation",
+        value=previous.get("text", ""),
+        key=f"analysis_report_text_{run_id}",
+        height=150,
+    )
+    st.subheader("2. Address risks and exceptions")
+    has_breach = any(result.compliance_status == "breach" for result in assessment.results)
+    triage = (
+        st.text_area(
+            "Breach triage decision (required if no flag for this version)",
+            value=previous.get("triage", ""),
+            key=f"analysis_triage_{run_id}",
+            help="For a breach, add a flag for this version or explain your triage decision.",
+        )
+        if has_breach
+        else previous.get("triage", "")
+    )
+    with st.expander("Add a risk flag", expanded=has_breach):
         with st.form(f"analysis_flag_{run_id}"):
             category = st.selectbox(
                 "Category", ["Covenant breach", "Data quality", "Liquidity", "Performance", "Other"]
@@ -219,39 +152,92 @@ def render_handoff(workflow: BorrowerWorkflow, assessment: RiskAssessment) -> No
                     ),
                     "Flag saved.",
                 )
-    st.subheader("Analyst report")
-    drafts = workflow.repository.events(run_id, "draft")
-    submissions = [
-        s for s in workflow.repository.submissions(assessment.borrower_id) if s["run_id"] == run_id
-    ]
-    latest = max(drafts + submissions, key=lambda item: item["created_at"], default={})
-    previous = latest.get("payload", {})
-    with st.form(f"analysis_report_{run_id}"):
-        author = st.text_input("Report author (optional)", value=previous.get("analyst", ""))
-        report = st.text_area(
-            "Observations and proposed recommendation",
-            value=previous.get("text", ""),
-            key=f"analysis_report_text_{run_id}",
-        )
-        triage = st.text_area(
-            "Breach triage decision (required if no flag for this version)",
-            value=previous.get("triage", ""),
-            key=f"analysis_triage_{run_id}",
-        )
-        save, submit = st.columns(2)
-        draft_clicked = save.form_submit_button("Save draft")
-        submit_clicked = submit.form_submit_button("Send to risk manager", type="primary")
-        if draft_clicked or submit_clicked:
-            action(
-                lambda: workflow.save_report(
-                    run_id, text=report, analyst=author, triage=triage, submit=submit_clicked
-                ),
-                "Report submitted to risk review." if submit_clicked else "Draft saved.",
-            )
-    if submissions:
-        st.success(f"Submitted · {submissions[0]['created_at']}")
-        st.caption("The submitted text, validation, flags and exact analysis versions are frozen.")
     render_flags(workflow, assessment.borrower_id)
+    st.subheader("3. Validate the selected version")
+    st.caption("Check the evidence yourself. A new assessment or AI review needs fresh validation.")
+    review = workflow.portfolio.repository.latest_review(run_id)
+    check_scope = f"{run_id}_{review.review_id if review else 'no_review'}"
+    checks = tuple(
+        st.checkbox(label, value=bool(validated), key=f"analysis_check_{check_scope}_{index}")
+        for index, label in enumerate(
+            (
+                "I checked the financial inputs and source references",
+                "I checked the applied terms and calculations",
+                "I reviewed the analysis and documented any exceptions",
+            )
+        )
+    )
+    notes = st.text_area(
+        "Validation notes / exceptions",
+        value=validation.get("notes", ""),
+        key=f"analysis_validation_notes_{run_id}",
+    )
+    if not all(checks):
+        st.caption("Complete all three review checks before validation.")
+    if not assessment.verification.is_valid or any(
+        issue.severity == "error" for issue in assessment.verification.issues
+    ):
+        st.caption("Resolve structured verification errors in Evidence before validation.")
+    if workflow.needs_review(run_id):
+        st.caption("Sources changed: reassess before validation.")
+    if workflow.needs_exceptions(assessment) and not notes.strip():
+        st.caption("Document the missing data and unresolved exceptions in validation notes.")
+    if st.button("Mark validated", key=f"analysis_validate_{run_id}"):
+        action(
+            lambda: workflow.validate(run_id, checks=checks, notes=notes, analyst=author),
+            "Validation saved.",
+        )
+    if validated:
+        st.success("Validated with exceptions." if validation["with_exceptions"] else "Validated.")
+    else:
+        st.info("This assessment and review version need validation before submission.")
+    st.subheader("4. Save or submit")
+    current_flags = [
+        f
+        for f in workflow.repository.flags(assessment.borrower_id)
+        if f["run_id"] == run_id and f["payload"]["state"] == "open"
+    ]
+    blockers = []
+    if not report.strip():
+        blockers.append("Add analyst observations.")
+    if not validated:
+        blockers.append("Validate this assessment and its current review.")
+    if has_breach and not current_flags and not triage.strip():
+        blockers.append("Flag this breach version or explain the triage decision.")
+    if blockers:
+        st.caption("Before submission: " + " ".join(blockers))
+    changed = (
+        report != previous.get("text", "")
+        or author != previous.get("analyst", "")
+        or triage != previous.get("triage", "")
+    )
+    st.caption(
+        "Unsaved edits · kept during this session. Save draft to keep them after restart."
+        if changed
+        else "Saved draft loaded."
+        if latest
+        else "No saved draft yet."
+    )
+    save, submit = st.columns(2)
+    draft_clicked = save.button("Save draft", key=f"analysis_save_{run_id}")
+    submit_clicked = submit.button(
+        "Send to risk manager", type="primary", key=f"analysis_submit_{run_id}"
+    )
+    if draft_clicked or submit_clicked:
+        action(
+            lambda: workflow.save_report(
+                run_id, text=report, analyst=author, triage=triage, submit=submit_clicked
+            ),
+            "Report submitted to risk review." if submit_clicked else "Draft saved.",
+        )
+    if submissions:
+        st.success(f"Submitted · {portfolio_page.formatted_time(submissions[0]['created_at'])}")
+        st.caption("Submitted versions are frozen. Later edits do not change the handoff.")
+        if st.button("Open risk review", key="analysis_open_risk"):
+            st.session_state.risk_borrower = assessment.borrower_id
+            st.session_state.risk_period = assessment.period_end.isoformat()
+            st.session_state.risk_cutoff = assessment.information_cutoff
+            navigate("Risk review")
 
 
 def chat_state(assessment: RiskAssessment) -> dict:
@@ -467,11 +453,8 @@ def render_borrower_analysis() -> None:
     if not names:
         st.info("No borrowers are registered.")
         return
-    directory = st.container()
-    catalog_entries = [
-        PortfolioEntry(b["borrower_id"], b["borrower_name"], b["industry"], None)
-        for b in service.borrowers
-    ]
+    if st.button("Back to portfolio", key="analysis_back"):
+        navigate("Portfolio")
     pending = st.session_state.pop("_analysis_open_borrower", None)
     if pending:
         st.session_state.analysis_borrower = pending
@@ -481,31 +464,26 @@ def render_borrower_analysis() -> None:
         st.session_state.analysis_borrower = (
             selected_borrower if selected_borrower in names else next(iter(names))
         )
-    borrower_id = st.selectbox(
-        "Borrower",
+    title, switcher, help_column = st.columns([3, 2, 0.8], vertical_alignment="bottom")
+    borrower_id = switcher.selectbox(
+        "Switch borrower",
         list(names),
         format_func=names.get,
         key="analysis_borrower",
         on_change=select_borrower,
     )
-    title, settings_column, help_column = st.columns([5, 1.3, 0.7])
     title.markdown(
         f'<div class="preview-eyebrow">Credit analyst / {escape(borrower_id)}</div>',
         unsafe_allow_html=True,
     )
     title.title(names[borrower_id])
-    settings = settings_column.popover("Assessment settings", width="stretch")
+
     with help_column.popover("Help", width="stretch"):
         st.markdown(TOPICS["Read an assessment"])
         st.markdown(TOPICS["Ask the assistant"])
         if st.button("Open user guide", key="analysis_open_guide"):
             navigate("User guide")
-    run_column, documents_column, cutoff_col, assistant_column = st.columns([1.2, 1, 1.2, 1])
-    show_chat = assistant_column.toggle("Assistant", value=True, key="analysis_show_chat")
-    if documents_column.button("Source documents", key="analysis_documents", width="stretch"):
-        st.session_state._documents_open_borrower = borrower_id
-        st.session_state._preview_next_page = "Documents & data"
-        st.rerun()
+    period_column, cutoff_col, version_column = st.columns(3)
     st.caption(
         f"{borrower_id} · "
         f"{next(b['industry'] for b in service.borrowers if b['borrower_id'] == borrower_id)} · "
@@ -513,8 +491,6 @@ def render_borrower_analysis() -> None:
     )
     periods = service.periods()
     if not periods:
-        with directory:
-            render_borrower_directory(catalog_entries, show_results=False)
         st.info("No reporting periods are available in the source catalog.")
         return
     options = [p.isoformat() for p in reversed(periods)]
@@ -531,18 +507,13 @@ def render_borrower_analysis() -> None:
         )
         st.session_state.analysis_period = candidate if candidate in options else options[0]
     period = date.fromisoformat(
-        settings.selectbox("Reporting period", options, key="analysis_period")
+        period_column.selectbox("Reporting period", options, key="analysis_period")
     )
     cutoff = cutoff_col.date_input(
         "Information cutoff",
         value=remembered.get("cutoff", st.session_state.get("portfolio_cutoff", period)),
         key="analysis_cutoff",
-        label_visibility="collapsed",
     )
-    if not st.session_state.get("analysis_ml_defaults_initialized"):
-        st.session_state.analysis_prediction = DEFAULT_APP_PREDICTION_MODE
-        st.session_state.pop("analysis_version", None)
-        st.session_state.analysis_ml_defaults_initialized = True
     if "analysis_prediction" not in st.session_state:
         st.session_state.analysis_prediction = remembered.get(
             "prediction_mode", DEFAULT_APP_PREDICTION_MODE
@@ -550,7 +521,7 @@ def render_borrower_analysis() -> None:
     requested_mode = st.session_state.pop("_analysis_next_prediction", None)
     if requested_mode:
         st.session_state.analysis_prediction = requested_mode
-    mode = settings.selectbox("Prediction mode", PREDICTION_MODES, key="analysis_prediction")
+    mode = st.session_state.analysis_prediction
     st.session_state.analysis_saved_selection = {
         "borrower_id": borrower_id,
         "period": period.isoformat(),
@@ -558,13 +529,9 @@ def render_borrower_analysis() -> None:
         "prediction_mode": mode,
     }
     if cutoff < period:
-        with directory:
-            render_borrower_directory(catalog_entries, show_results=False)
         st.error("Information cutoff must be on or after the reporting period.")
         return
     entries = service.snapshot(period_end=period, cutoff=cutoff)
-    with directory:
-        render_borrower_directory(entries)
     entry = next(e for e in entries if e.borrower_id == borrower_id)
     versions = [
         (a, t)
@@ -584,11 +551,14 @@ def render_borrower_analysis() -> None:
         ):
             st.session_state.analysis_version = assessment.assessment_run_id
         st.session_state.analysis_version_context = version_context
-        selected = settings.selectbox(
+        selected = version_column.selectbox(
             "Assessment version",
             list(by_id),
             key="analysis_version",
-            format_func=lambda rid: f"{portfolio_page.formatted_time(by_id[rid][1])} · {rid}",
+            format_func=lambda rid: (
+                f"v{len(versions) - list(by_id).index(rid)} · "
+                f"{portfolio_page.formatted_time(by_id[rid][1])}"
+            ),
         )
         assessment = by_id[selected][0]
         entry = replace(
@@ -596,7 +566,29 @@ def render_borrower_analysis() -> None:
         )
     if entry.last_error:
         st.error(entry.last_error)
-    if run_column.button("Run assessment", type="primary", key="analysis_run", width="stretch"):
+    if not versions:
+        version_column.caption("Saved version: none")
+    actions, assistant_column = st.columns([3, 1])
+    if "_analysis_next_section" in st.session_state:
+        st.session_state.analysis_section = st.session_state.pop("_analysis_next_section")
+    with actions, st.container(horizontal=True):
+        run = st.button(
+            "Run new assessment" if assessment else "Run assessment",
+            type="secondary" if assessment else "primary",
+            key="analysis_run",
+        )
+        if assessment:
+            st.button(
+                "Review and submit",
+                type="primary",
+                key="analysis_handoff",
+                on_click=select_review_section,
+            )
+        if st.button("Source documents", key="analysis_documents"):
+            st.session_state._documents_open_borrower = borrower_id
+            navigate("Documents & data")
+    show_chat = assistant_column.toggle("Ask assistant", value=False, key="analysis_show_chat")
+    if run:
         try:
             with st.status("Calculating and saving assessment…"):
                 new = workflow.assess(borrower_id, period, cutoff, prediction_mode=mode)
@@ -604,9 +596,6 @@ def render_borrower_analysis() -> None:
             st.error(f"Assessment failed ({type(error).__name__}). Saved versions are retained.")
         else:
             select_new_run(new)
-    st.caption(
-        "Runs create new versions and require fresh validation. Reading this page runs no agents."
-    )
     if assessment is None:
         st.info("Not assessed. Run an assessment for these dates. Missing inputs remain explicit.")
         return
@@ -648,8 +637,10 @@ def render_borrower_analysis() -> None:
     render_summary_metrics(assessment)
     main, assistant = st.columns([3, 1.15]) if show_chat else (st.container(), None)
     with main:
-        overview, calculations, credit, handoff, history = st.tabs(
-            ["Overview", "Calculations", "Credit analysis", "Analyst handoff", "History"]
+        overview, calculations, handoff, history = st.tabs(
+            ["Overview", "Evidence", "Review and submit", "History"],
+            key="analysis_section",
+            on_change="rerun",
         )
         with overview:
             st.subheader("The current credit picture")
@@ -659,12 +650,23 @@ def render_borrower_analysis() -> None:
                 f"Saved period {assessment.period_end} · Cutoff {assessment.information_cutoff}"
             )
             render_covenant_table(assessment, key="analysis_covenant_overview")
-            if entry.review:
-                portfolio_page.render_agent_result(entry.review)
-            else:
-                st.info("No credit review is saved for this version.")
+            if entry.review and entry.review.recommendation:
+                st.subheader("AI recommendation")
+                st.write(entry.review.recommendation.rationale)
+                st.caption(
+                    f"Advisory · {entry.review.recommendation.action} · "
+                    f"Confidence: {entry.review.recommendation.confidence}"
+                )
+            with st.expander("AI review", expanded=False):
+                portfolio_page.render_review_controls(
+                    entry, service, bool(os.getenv("OPENAI_API_KEY", "").strip())
+                )
             render_saved_trend(assessment)
+            with st.expander("Next-quarter forecast", expanded=False):
+                render_prediction(assessment)
             st.subheader("Items requiring attention")
+            if entry.needs_data:
+                st.warning("Data gaps or verification issues need review in Evidence.")
             render_flags(workflow, borrower_id)
         with calculations:
             render_calculation_tables(assessment)
@@ -721,10 +723,6 @@ def render_borrower_analysis() -> None:
                             )
                         else:
                             select_new_run(new)
-        with credit:
-            portfolio_page.render_review_controls(
-                entry, service, bool(os.getenv("OPENAI_API_KEY", "").strip())
-            )
         with handoff:
             render_handoff(workflow, assessment)
         with history:
@@ -743,7 +741,16 @@ def render_borrower_analysis() -> None:
                 with st.expander(
                     f"Submitted {submission['created_at']} · {submission['submission_id']}"
                 ):
-                    st.json(submission["payload"], expanded=False)
+                    payload = submission["payload"]
+                    st.write(payload["text"])
+                    st.caption(
+                        f"Analyst: {payload.get('analyst') or 'Unspecified'} · "
+                        f"Flags: {len(payload.get('flags', []))}"
+                    )
+                    if payload.get("triage"):
+                        st.write(payload["triage"])
+                    with st.expander("Raw submission record"):
+                        st.json(payload, expanded=False)
     if assistant is not None:
         with assistant, st.container(border=True):
             heading, expand, hide = st.columns([2, 1, 0.8])

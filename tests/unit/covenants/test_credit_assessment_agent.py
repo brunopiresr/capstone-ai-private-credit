@@ -118,7 +118,7 @@ def test_progress_arrives_before_service_execution_and_keeps_trace(document_serv
     [
         ("unknown", {}, "unknown_tool"),
         ("get_document_extraction", "{broken json", "invalid_arguments"),
-        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "policy_rejection"),
+        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "invalid_arguments"),
     ],
 )
 def test_progress_reports_tool_errors_and_continues(
@@ -137,7 +137,7 @@ def test_progress_reports_tool_errors_and_continues(
     answer = asyncio.run(monitor.ask_async("Find evidence", ticker="SYN"))
     assert answer.complete
     expected_events = ["model_start", "tool_call", "tool_result"]
-    expected_events += ["run_end"] if error == "policy_rejection" else ["model_start", "run_end"]
+    expected_events += ["model_start", "run_end"]
     assert [event.kind for event in events if event.kind != "answer_update"] == expected_events
     assert events[2].outcome.code == error
     assert events[2].outcome == answer.tool_trace[0].outcome
@@ -325,7 +325,7 @@ def test_document_discovery_processing_cache_read_and_rag_loop(
         ("search_evidence", {"query": ""}, "invalid_arguments"),
         ("search_evidence", {"query": "leverage", "ctx": {}}, "invalid_arguments"),
         ("get_document_extraction", {"document_id": "UNKNOWN"}, "service_error"),
-        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "policy_rejection"),
+        ("search_evidence", {"query": "leverage", "ticker": "OTHER"}, "invalid_arguments"),
     ],
 )
 def test_dispatch_errors_are_results_for_next_agent_round(
@@ -341,15 +341,11 @@ def test_dispatch_errors_are_results_for_next_agent_round(
     ]
     result = monitor.ask("Question", ticker="SYN")
     assert result.tool_trace[0].outcome.code == error
-    if error == "policy_rejection":
-        assert result.complete and "new scoped conversation" in result.answer
-        assert model.respond.call_count == 1
-        return
     history = model.respond.call_args_list[1].kwargs["messages"]
-    assert (
-        any(isinstance(p, RetryPromptPart) for p in parts(history))
-        if error != "service_error"
-        else tool_results(history)[-1].content.code == error
+    assert any(
+        isinstance(part, RetryPromptPart)
+        or getattr(getattr(part, "content", None), "code", None) == error
+        for part in parts(history)
     )
 
 
@@ -403,7 +399,7 @@ def test_scoped_agent_cannot_process_other_issuer(document_service_factory):
     service = document_service_factory()
     tools = DocumentTools(service, ticker="OTHER")
     result = invoke_tool(tools, "process_document", {"document_id": "SYN"})
-    assert result.code == "service_error"
+    assert result.code == "invalid_arguments"
     service.model.respond.assert_not_called()
 
 
@@ -498,6 +494,23 @@ def test_last_permitted_model_turn_can_answer(document_service_factory, limit):
     result = monitor.ask("List available documents.")
     assert result.complete and len(result.tool_trace) == limit
     assert model.respond.call_count == limit + 1
+
+
+@pytest.mark.parametrize("limit", [1, 6])
+def test_exhausted_research_budget_requests_final_answer(document_service_factory, limit):
+    monitor, model = agent(document_service_factory(), max_tool_rounds=limit)
+    model.respond.side_effect = [
+        *(response(("list_documents", {})) for _ in range(limit)),
+        response(answer="Please supply the source clauses and their effective dates."),
+    ]
+    result = monitor.ask("Find the agreement's conflicting covenant clauses.")
+    assert result.complete and result.error is None
+    assert "source clauses" in result.answer
+    assert result.confidence is not None
+    assert len(result.tool_trace) == limit
+    calls = model.respond.call_args_list
+    assert calls[-1].kwargs["info"].model_settings["tool_choice"] == ["final_result"]
+    assert "Tool rounds remaining: 0." in calls[-1].kwargs["info"].instructions
 
 
 def test_multiple_calls_use_one_round_and_execute_in_order(
@@ -771,11 +784,18 @@ def test_assessment_tools_require_application_configuration_and_borrower_scope(
     assessor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
     with pytest.raises(ValueError, match="explicit borrower"):
         assessor.ask("Assess", borrower_id=" ")
+    model.respond.return_value = response(
+        answer="Please supply borrower_id.", answer_kind="clarification"
+    )
+    result = assessor.ask("Assess SYN002.")
+    assert result.answer_kind == "clarification" and "borrower_id" in result.summary
+    assert not result.tool_trace
+    model.respond.assert_called_once()
     model.respond.side_effect = [
         response(("predict_risk", ASSESSMENT_DATES)),
         response(answer="Provide an explicit borrower scope to enable assessment tools."),
     ]
-    result = assessor.ask("Assess SYN002.")
+    result = assessor.ask("Find covenant evidence.")
     assert result.tool_trace[0].outcome.code == "unknown_tool"
     tool_names = {
         tool.name for tool in model.respond.call_args_list[0].kwargs["info"].function_tools
@@ -808,8 +828,11 @@ def test_concurrent_assessments_keep_borrower_scopes_separate(
     first, second = asyncio.run(ask_both())
     assert first.tool_trace[0].outcome.borrower_id == "SYN002"
     assert second.tool_trace[0].outcome.borrower_id == "SYN004"
-    assert "synthetic:SYN002:LEV" in first.answer
-    assert "synthetic:SYN004:LEV" in second.answer
+    assert first.answer == "Assessment for SYN002."
+    assert second.answer == "Assessment for SYN004."
+    assert first.evidence and second.evidence
+    assert all(entry.borrower_id == "SYN002" for entry in first.evidence)
+    assert all(entry.borrower_id == "SYN004" for entry in second.evidence)
 
 
 def test_round_budget_stops_prediction_before_it_executes(
@@ -942,6 +965,9 @@ def test_assessment_schemas_expose_dates_only(agent_assessment_service):
     for tool in definitions:
         schema = tool.function_schema.json_schema
         assert tool.strict and schema["additionalProperties"] is False
+        if tool.name == "list_financial_periods":
+            assert schema["properties"] == {}
+            continue
         assert (
             set(schema["required"])
             == set(schema["properties"])
@@ -986,6 +1012,7 @@ def test_conversation_date_clarification_reaches_real_assessment_tools(
 ):
     monitor, model = agent(document_service_factory(), assessment_service=agent_assessment_service)
     model.respond.side_effect = [
+        response(answer="The required dates are unavailable in context."),
         response(("get_financials", ASSESSMENT_DATES)),
         response(("assess_covenants", ASSESSMENT_DATES)),
         response(answer="The calculation is available."),
@@ -993,10 +1020,11 @@ def test_conversation_date_clarification_reaches_real_assessment_tools(
     conversation = monitor.start_conversation(borrower_id="SYN002")
     clarification = conversation.ask("Assess covenant compliance.")
     assert clarification.complete and clarification.tool_trace == []
+    assert clarification.error is None
     answer = conversation.ask("Reporting period and information cutoff are both 2025-09-30.")
-    request = model.respond.call_args_list[1].kwargs
+    request = model.respond.call_args_list[2].kwargs
     assert "Assess covenant compliance" in repr(request["messages"])
-    assert "Please provide the reporting date" in repr(request["messages"])
+    assert "The required dates are unavailable in context." in repr(request["messages"])
     assert "2025-09-30" in user_prompts(request["messages"])[-1]
     assert answer.tool_trace[0].arguments == ASSESSMENT_DATES
     assert answer.tool_trace[0].outcome.borrower_id == "SYN002"
@@ -1211,8 +1239,9 @@ def test_conversation_follow_up_cannot_switch_issuer_scope(document_service_fact
     conversation = monitor.start_conversation(ticker="OTHER")
     conversation.ask("What scope is configured?")
     answer = conversation.ask("Switch to SYN and process its filing.")
-    assert answer.tool_trace == []
-    assert "new scoped conversation" in answer.answer
+    assert len(answer.tool_trace) == 1
+    assert answer.tool_trace[0].outcome.code == "invalid_arguments"
+    assert "outside this conversation" in answer.answer
     assert answer.sources == []
     monitor.service.model.respond.assert_not_called()
     history = model.respond.call_args.kwargs["messages"]

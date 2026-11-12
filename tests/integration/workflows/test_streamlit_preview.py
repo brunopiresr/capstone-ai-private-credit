@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from portfolio_helpers import portfolio_inputs
 from streamlit.testing.v1 import AppTest
+from workspace_ui_helpers import page
 
 from credit_monitoring.web import portfolio as portfolio_page
 
@@ -17,12 +18,6 @@ def control(controls, label):
 
 def click(app, label):
     control(app.button, label).click().run()
-    assert not app.exception
-    return app
-
-
-def page(app, name):
-    app.radio(key="preview_page").set_value(name).run()
     assert not app.exception
     return app
 
@@ -61,7 +56,13 @@ def test_all_pages_render_without_services_and_borrower_list_filters(preview):
     assert "Pioneer Security" in app.dataframe[0].value["Borrower"].tolist()
     app.text_input(key="portfolio_search").set_value("no-such-borrower").run()
     assert any("No borrowers match" in item.value for item in app.info)
-    for name in ("Borrower analysis", "Documents & data", "Risk review", "Board report"):
+    for name in (
+        "Borrower analysis",
+        "Documents & data",
+        "Risk review",
+        "Board report",
+        "Settings",
+    ):
         page(app, name)
         assert not any("Illustrative" in item.value for item in app.markdown)
         if name == "Risk review":

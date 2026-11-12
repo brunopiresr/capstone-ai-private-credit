@@ -6,7 +6,7 @@
 | `batch.py` | All-company grouping instructions, v2.1 |
 | `narrative.py` | Source-stated monitoring notes |
 | `assembly.py` | Shared JSON evidence envelopes |
-| `credit_assessment.py` | Evidence, scope, citations, confidence, and conditional assessment-date rules |
+| `credit_assessment.py` | Shared task reasoning, contextual defaults, structured output and citations |
 | `credit_review.py` | Bullish, bearish, and recommendation roles with cited arguments |
 
 Tool docstrings define tool/argument guidance. Assessment results carry model and

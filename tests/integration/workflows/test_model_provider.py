@@ -159,10 +159,10 @@ def test_provider_receives_scoped_instructions_and_relocated_tool_guidance(
     assert answer.error == "model_incomplete" and answer.tool_trace == []
     assert len(requests) == 1
     payload = requests[0]
-    assert payload["instructions"].startswith(
-        build_credit_assessment_instructions(assessment_enabled=assessment_enabled)
-    )
+    assert payload["instructions"].startswith(build_credit_assessment_instructions())
     tools = {tool["name"]: tool for tool in payload["tools"]}
+    assert "clarification/missing inputs" in tools["final_result"]["description"]
+    assert "first action" in tools["final_result"]["description"]
     assert "including unprocessed ones" in tools["list_documents"]["description"]
     extraction = tools["get_document_extraction"]["description"]
     assert "complete covenant terms and fiscal-quarter schedules" in extraction
@@ -171,15 +171,17 @@ def test_provider_receives_scoped_instructions_and_relocated_tool_guidance(
     processing = tools["process_document"]["description"]
     assert "entire catalog document" in processing and "cache" in processing
     if assessment_enabled:
-        assert "before requesting calculations" in tools["get_financials"]["description"]
+        assert "no calculations" in tools["get_financials"]["description"]
         assert "ML is disabled" in tools["assess_covenants"]["description"]
         forecast = tools["predict_risk"]
-        assert "Keep the analyst's input dates unchanged" in forecast["description"]
+        assert "standalone operation" in forecast["description"]
+        assert tools["list_financial_periods"]["parameters"]["properties"] == {}
         assert "service determines the forecast horizon" in forecast["description"]
         assert "predicted risk" in forecast["description"]
         assert "not generated prose" in forecast["description"]
         parameters = forecast["parameters"]["properties"]
-        assert "Analyst-supplied reporting date" in parameters["period_end"]["description"]
+        period_description = parameters["period_end"]["description"]
+        assert "period discovery" in period_description
         assert "on or after period_end" in parameters["information_cutoff"]["description"]
     else:
         assert not {"get_financials", "assess_covenants", "predict_risk"} & tools.keys()

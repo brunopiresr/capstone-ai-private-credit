@@ -7,13 +7,8 @@ Calendar dates are never inferred from a fiscal calendar.
 
 import json
 import re
-from typing import TYPE_CHECKING
 
 from credit_monitoring.calculations.leverage import CalculationInputError, adjusted_ebitda
-from credit_monitoring.domain.agent import MaterialClaim
-
-if TYPE_CHECKING:
-    from credit_monitoring.agents.evidence import EvidenceRegistry
 
 PRESENTATION_VERSION = "assessment-explanations-v1"
 
@@ -102,67 +97,3 @@ def calculation_details(data: dict) -> dict:
                 "scale": financials.get("scale"),
             }
     return details
-
-
-def forecast_label(prediction: dict) -> str:
-    quarters = prediction["horizon_quarters"]
-    horizon = "next-quarter horizon" if quarters == 1 else f"{quarters}-quarter horizon"
-    return (
-        f"Forecast as of {prediction['period_end']}, {horizon}. "
-        "Target period end is not supplied; no fiscal calendar is inferred."
-    )
-
-
-def required_claims(registry: EvidenceRegistry, assessment_ids: set[str]) -> list[MaterialClaim]:
-    claims = []
-    prediction_ids = {
-        e.data.get("prediction", {}).get("prediction_id")
-        for e in registry.entries
-        if e.kind == "assessment"
-        and e.data["assessment_run_id"] in assessment_ids
-        and e.data.get("prediction")
-    }
-    for entry in registry.entries:
-        data = entry.data
-        if entry.kind == "calculation" and data["assessment_run_id"] in assessment_ids:
-            paths = ["issues"]
-            if data.get("resolved_covenant"):
-                paths += [
-                    "covenant_version",
-                    "resolved_covenant.testing_status",
-                    "resolved_covenant.measurement_basis",
-                ]
-            owner = registry.get("assessment:" + data["assessment_run_id"])
-            if entry.period_end == owner.period_end:
-                for section, values in data["presentation"].items():
-                    if isinstance(values, dict):
-                        paths += [
-                            f"presentation.{section}.{key}"
-                            for key in values
-                            if key not in {"version", "method"}
-                        ]
-        elif entry.kind == "assessment" and data["assessment_run_id"] in assessment_ids:
-            paths = ["verification.is_valid", "verification.issues", "ml_status"]
-        elif entry.kind == "prediction" and data["prediction_id"] in prediction_ids:
-            paths = [
-                "model_name",
-                "model_version",
-                "prediction_status",
-                "period_end",
-                "horizon_quarters",
-                "snapshot_id",
-                "breach_probability",
-                "error",
-            ]
-        else:
-            continue
-        claims.extend(
-            MaterialClaim(
-                claim_id=f"policy:{entry.evidence_id}:{path}",
-                kind="fact",
-                evidence_ids=[entry.evidence_id],
-                field_path=path,
-            )
-            for path in paths
-        )
-    return claims
