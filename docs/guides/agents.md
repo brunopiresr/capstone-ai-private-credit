@@ -1,159 +1,174 @@
-# Agents
+# Agents and credit reviews
 
-The application uses a tool-calling credit-assessment assistant, three independent
-credit-review roles, and a follow-up-question generator. They use PydanticAI with
-explicit application services and typed outputs. Financial calculations belong to
-the deterministic assessment service; agent interpretations remain advisory.
+The analyst needs calculations it can inspect and interpretations it can challenge.
+The POC separates those jobs: application services calculate; PydanticAI agents
+gather evidence and explain results. Start with the [worked example](../worked-example.md)
+or [Notebook 03](../../notebooks/03-agents.ipynb).
 
 ## Roles and responsibilities
 
-| Agent | Inputs and purpose | Output and capabilities |
+| Agent | Supplied evidence and responsibility | Output |
 | --- | --- | --- |
-| [`CreditAssessmentAgent`](../../src/credit_monitoring/agents/credit_assessment.py) | An analyst's question, application-selected borrower or issuer scope, optional reporting dates, and available services. Investigates source evidence and explains assessments. | `AgentAnswer` with Markdown, findings, tables, gaps, citations, evidence, usage, and actual tool outcomes. Can discover/read/search/process documents and read financials, calculate compliance, or request a forecast when those services are configured. |
-| [`BullishCreditAgent`](../../src/credit_monitoring/agents/credit_review.py) | A frozen assessment evidence snapshot and optional exposure-decision criteria. Develops the strongest supported favorable interpretation while retaining counterevidence and gaps. | `PerspectiveResult` containing a structured `PerspectiveAssessment` and execution metadata. No retrieval or calculation tools. |
-| [`BearishCreditAgent`](../../src/credit_monitoring/agents/credit_review.py) | The same snapshot and criteria. Develops the strongest supported cautious interpretation while retaining counterevidence and gaps. | The same perspective contract and execution metadata. Runs independently of the bullish agent and has no retrieval or calculation tools. |
-| [`CreditRecommendationAgent`](../../src/credit_monitoring/agents/credit_review.py) | The original snapshot, decision criteria, both perspective results, and allowed actions. Judges every supplied argument and explains the proposed action. | `CreditRecommendation` plus execution metadata. Actions are `maintain`, `increase`, `reduce`, `review`, or `defer`; exposure sizing is excluded. No retrieval or calculation tools. |
-| [`FollowUpQuestionAgent`](../../src/credit_monitoring/agents/follow_up_questions.py) | A saved assessment and its matching credit review, when available. Suggests specific questions that help an analyst understand or challenge those results. | One to three distinct questions, each with a reason and JSON-pointer references to supplied findings. It generates questions without answering them or executing tools. |
+| [CreditAssessmentAgent](../../src/credit_monitoring/agents/credit_assessment.py) | A question, application-owned borrower/issuer scope, and configured service tools | `AgentAnswer`: Markdown, structured findings/tables, gaps, confidence, sources, and actual tool trace |
+| [BullishCreditAgent](../../src/credit_monitoring/agents/credit_review.py) | A frozen assessment and analyst criteria; strongest supported favorable interpretation | `PerspectiveResult`, with arguments, evidence references, counterevidence, and gaps |
+| [BearishCreditAgent](../../src/credit_monitoring/agents/credit_review.py) | The same snapshot and criteria; strongest supported cautious interpretation | The same structured perspective contract |
+| [CreditRecommendationAgent](../../src/credit_monitoring/agents/credit_review.py) | Original snapshot, both full perspectives, criteria, and allowed actions | An explained `CreditRecommendation` and execution metadata |
+| [FollowUpQuestionAgent](../../src/credit_monitoring/agents/follow_up_questions.py) | Saved assessment and matching review | One to three questions with reasons and references to supplied findings |
 
-The analyst and risk-manager chat interfaces reuse the assessment assistant with
-their configured scope and services. Their display names do not introduce separate
-agent implementations. For exact tool arguments, availability, returned objects,
-and saved-data effects, see the [agent tools reference](agent_tools.md).
+Web V2's **Analyst Assistant** and **Risk Copilot** reuse the assessment assistant;
+their names do not identify separate implementations. They use a saved-assessment
+adapter with recalculation disabled and no document service. The broader document
+and financial tool combinations are demonstrated in notebooks. See the
+[tool reference](../reference/agent-tools.md).
 
 ## Assessment assistant
 
-Configure at least one of `service` (`DocumentProcessingService`) and
-`assessment_service` (`AssessmentService`). Document tools become available with
-the document service; the four financial tools also require an explicit
-`borrower_id`. `document_tool_names` can restrict document capabilities.
+Configure at least one of `service` (document processing) and `assessment_service`.
+Financial tools also need explicit `borrower_id`. `ticker` limits issuer research;
+`selected_dates` fixes the dates accepted by financial tools. Naming another
+borrower in chat does not change application selection.
 
-Issuer scope (`ticker`) and borrower selection are distinct. Synthetic borrowers
-are not automatically linked to real SEC issuers. The application enforces scope;
-naming another borrower in a question does not switch it. `selected_dates`, when
-provided, fixes the reporting period and information cutoff accepted by financial
-tools. See [dates and scope](agent_tools.md#shared-date-arguments) and
-[document-backed calculations](ml_early_warning.md#consume-stored-document-covenants).
-
-Each `ask(...)` or `ask_async(...)` call starts fresh. Use
-`start_conversation(...)` for follow-ups: it retains successful tool evidence,
-citations, message history, and a stable telemetry session in memory. Scope stays
-fixed, one question runs at a time, and tool budgets reset each turn. Start another
-conversation to change borrower or issuer. `close()` and exact `close`, `done`, or
-`quit` messages clear local conversation context. Completed service writes remain
-saved even if a later model step fails.
-
-For example, in a notebook with the [document service configured](document_processing.md#process-and-search-documents):
+In a notebook with the [document service](document-processing.md#process-and-search-documents)
+configured:
 
 ```python
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
 
 agent = CreditAssessmentAgent(service=service, model=service.model)
+answer = await agent.ask_async(
+    "Show the leverage covenant schedule with citations.", ticker="FMC"
+)
+print(answer.answer)
+print(answer.complete, answer.error, answer.tool_trace)
+```
+
+Independent `ask(...)` and `ask_async(...)` calls start fresh. Use synchronous
+methods outside an active event loop. For retained multi-turn context in Python:
+
+```python
 conversation = agent.start_conversation(ticker="FMC")
 try:
-    answer = await conversation.ask_async("Show the leverage covenant schedule with citations.")
-    print(answer.answer)
-    print(answer.complete, answer.error, answer.tool_trace)
-    follow_up = await conversation.ask_async("Which source supports that schedule?")
-    print(follow_up.answer)
+    first = await conversation.ask_async("Find the leverage schedule.")
+    follow_up = await conversation.ask_async("Which source supports it?")
 finally:
     conversation.close()
 ```
 
-Use synchronous `ask(...)` outside an active event loop. The
-[agents notebook](../../notebooks/03-agents.ipynb) also demonstrates financial
-questions, predictions, and conversations.
+A conversation retains successful messages, evidence, and citations in memory,
+with one question at a time and fixed scope. Exact `close`, `done`, or `quit`
+messages also close it. Tool budgets reset per turn. Completed service writes
+remain saved if a later model step fails. V2's per-question calls do not retain
+this multi-turn model history; its [visible transcript](web-v2-workflow.md#ask-the-assistant-and-rate-an-answer)
+is browser-session state.
 
-The default budget is six tool rounds and eight model requests, including output
-validation retries; `max_tool_rounds` changes those limits. Refusals, invalid
-outputs, model failures, and exhausted limits produce an incomplete answer with an
-error code. Inspect `complete` and `error` alongside the response.
+Defaults allow six tool rounds and eight model requests, including output-validation
+retries. Failures and exhausted limits return an incomplete answer: inspect
+`complete` and `error`. Sources and traces show available/executed evidence, not
+semantic verification of every claim. Confidence describes evidence support,
+not credit risk or a calibrated probability.
 
-Answers are structured before the backend renders Markdown. `sources`, `evidence`,
-and `tool_trace` retain executed or previously retained evidence; they do not prove
-every sentence is true. Confidence describes evidence support rather than a credit
-risk probability. See the [rendering decision](../project/decisions/002-agent-markdown-rendering.md).
-
-`stream_async(...)` emits `model_start`, `tool_call`, `tool_result`,
-`answer_update`, and `run_end`. Updates are provisional; `run_end.answer` is the
-final result. Use `contextlib.aclosing` when consuming streams that may stop early.
-An optional async `event_stream_handler` receives public progress without private
-model reasoning. See [streaming and diagnostics](document_processing.md#streaming-and-diagnostics).
+`stream_async(...)` emits `model_start`, `tool_call`, `tool_result`, `answer_update`,
+and `run_end`. Updates are provisional; `run_end.answer` is final. Use
+`contextlib.aclosing` for streams that may stop early. An optional async
+`event_stream_handler` receives public progress without private model reasoning.
 
 ## Credit-review workflow
 
-[`CreditReviewService`](../../src/credit_monitoring/application/credit_review_service.py)
-orchestrates the three review roles. Create it with
-`create_credit_review_service(...)` from `credit_monitoring.application.bootstrap`.
-It can review a supplied assessment or calculate one first when an assessment
-service is configured.
+The [credit-review service](../../src/credit_monitoring/application/credit_review_service.py):
 
-1. Build a frozen evidence snapshot from the assessment and check identity and
-   verification. Generated assessment narratives and benchmark labels are excluded.
-2. Run bullish and bearish reviews concurrently against that same evidence.
-3. Give both full analyses and the original evidence to the recommendation agent.
-4. Return the analyses, recommendation, execution metadata, gaps, and issues for
-   human review.
+1. Builds a frozen evidence snapshot and checks assessment identity and verification.
+2. Runs bullish and bearish reviews concurrently, without sharing their conclusions.
+3. Gives both full analyses and original evidence to recommendation synthesis.
+4. Returns arguments, judgments, gaps, recommendation, and execution metadata.
 
-Invalid identity or verification blocks the agents and defers the decision.
-Missing criteria, unsupported evidence, or failed roles can also require deferral;
-successful analyses remain available. A completed workflow may still recommend
-`defer`. Reference validation checks evidence IDs and argument coverage, not the
-truth of all generated prose. The default news provider reports unavailable and
-performs no external search.
+Review agents have no retrieval or calculation tools. Generated assessment prose,
+benchmark labels, and financial/catalog notes are excluded from their evidence.
+Independent histories encourage contrasting arguments; they do not establish
+statistical independence or measured analytical benefit.
 
-Defaults are 60 seconds per role and one output-validation retry. Shared and
-per-role models, `CreditReviewSettings`, a news provider, and progress callbacks
-are configurable through the factory. See the [credit-review guide](credit_review.md)
-for API examples, result statuses, decision criteria, and failure behavior, or try
-the [credit-review notebook](../../notebooks/04-credit-review.ipynb).
+## Review an existing assessment
 
-## Suggested follow-up questions
+With a `RiskAssessment` and provider credentials configured:
 
-[`FollowUpQuestionService`](../../src/credit_monitoring/application/follow_up_question_service.py)
-checks that the supplied review matches the assessment's borrower, run, reporting
-period, and cutoff. It caches validated questions in the working directory's
-`follow_up_questions/` folder, keyed by analysis content, model, and prompt version.
-Changing those inputs or requesting regeneration produces a fresh generation.
+```python
+from credit_monitoring.application.bootstrap import create_credit_review_service
+from credit_monitoring.domain.credit_review import ExposureDecisionContext
 
-The question agent has a 60-second timeout, at most two requests, and one
-validation retry. Validation checks analysis IDs, distinct questions, and references
-to existing supplied findings. Suggested questions explain saved results; they
-do not expand the answering assistant's available tools or scope.
+reviews = create_credit_review_service()
+decision = ExposureDecisionContext(
+    question="Review the existing exposure and identify missing credit context.",
+    credit_criteria=("Check compliance, headroom trends, and evidence gaps.",),
+    constraints=("No numerical exposure sizing.",),
+)
+result = await reviews.review_assessment_async(assessment, decision_context=decision)
+print(result.model_dump_json(indent=2))
+```
 
-## Supporting model calls and homework agents
+Use `review_assessment(...)` synchronously. With an assessment service configured,
+`review(...)`/`review_async(...)` first creates an assessment, then reviews it.
+Construction makes no model calls; execution incurs usage.
 
-Two other application paths use PydanticAI without a tool-calling conversation:
+## Results and boundaries
 
-- [Document extraction](../../src/credit_monitoring/covenants/extraction.py)
-  converts supplied source records into typed covenant facts. Document processing
-  calls it for document sections and persists results. Automatic post-extraction
-  verification is disabled; see [processing and reuse](document_processing.md#processing-and-reuse).
-- [RAG narrative generation](../../src/credit_monitoring/application/rag_service.py)
-  answers from retrieved passages supplied by the application. Retrieval happens
-  before generation; the narrative model has no retrieval tools.
+| Action | Meaning |
+| --- | --- |
+| `maintain` | Advise retaining the current exposure |
+| `increase` / `reduce` | Advise a direction without sizing |
+| `review` | Request analyst reassessment |
+| `defer` | Evidence, criteria, or completed reviews are insufficient |
 
-The [monitoring homework](../../homework/monitoring/README.md) adds two chat modes:
-**Evidence Search** reuses `CreditAssessmentAgent` with only listing and search;
-**Credit Analysis** uses a separate chat agent with `list_borrowers` and
-`run_credit_review` tools. The latter delegates assessment and the three review
-roles to application services. Its limits are eight requests and six tool calls.
-See [monitoring tools](agent_tools.md#monitoring-homework-tools).
+These actions are advisory. Covenant evidence alone does not establish repayment
+capacity, valuation, portfolio suitability, or the adequacy of exposure advice.
+`complete` means the workflow finished; it may still recommend `defer`.
 
-Evaluation judge agents score saved outputs separately from the application
-workflow. See [evaluation](../homework/evaluation.md),
-[LLM judges](../homework/llm_judges.md), and the
-[live scenario results](../../data/evaluation/agent_scenarios/README.md).
+| Condition | Behavior |
+| --- | --- |
+| Invalid identity or verification | Block agents and defer |
+| Missing criteria or supported evidence | Defer and retain available analysis |
+| Reviewer or recommendation failure | Return incomplete; preserve successful work and defer |
+| Missing news or ML | Disclose the gap and preserve calculation evidence |
 
-## Models and observability
+Display both perspectives, recommendation, issues, and limits together. Reference
+checks validate identifiers and argument coverage, not every sentence's truth.
 
-Application agents default to `openai-responses:gpt-4o-mini`; model arguments allow
-overrides, and app entry points also read `LLM_MODEL`. Configure `OPENAI_API_KEY`
-for the default provider. Constructing agents and browsing saved outputs makes no
-model requests; executing an agent incurs provider usage. Uncached SEC downloads
-also require an identifying `SEC_USER_AGENT`.
+## Configuration and supporting calls
 
-Optional [Logfire telemetry](logfire_setup.md) links model calls, tool activity,
-usage, and review execution to sessions. Offline tests use scripted models and
-check behavior; they do not establish live answer quality. Deterministic
-calculations can run without AI credentials, and people retain responsibility for
-credit decisions.
+The default is `openai-responses:gpt-4o-mini`. The factory accepts shared/per-role
+models, `CreditReviewSettings`, an optional news provider, and progress callbacks.
+Defaults are 60 seconds per role and one output-validation retry. Cancellation
+propagates. The default news provider reports unavailable and performs no search.
+Injected news requires explicit borrower mapping and publication provenance;
+unknown and post-cutoff publication times are excluded.
+
+Follow-up generation checks matching borrower, run, period, cutoff, and references
+to existing findings. Validated questions are cached under the workspace's
+`follow_up_questions/` by analysis content, model, and prompt version. It has a
+60-second timeout, at most two requests, and one validation retry. Suggestions do
+not expand the answering assistant's tools.
+
+[Extraction](../../src/credit_monitoring/covenants/extraction.py) produces typed
+facts from supplied sections. [RAG generation](../../src/credit_monitoring/application/rag_service.py)
+answers from passages retrieved before the model call. Evaluation judges score
+captured outputs separately; see [LLM judges](../evaluation/llm-judges.md). Additional
+coursework tools are distinguished in the [reference](../reference/agent-tools.md#monitoring-homework-tools).
+
+## Validation and model evaluation
+
+```bash
+uv run --locked pytest tests/integration/workflows/test_credit_review.py
+```
+
+Scripted-model tests cover orchestration, evidence flow, serialization, and failures.
+They do not measure live interpretation quality. Saved live results and known
+limitations are in the [results overview](../evaluation/results.md).
+
+For optional question-generation evaluation on a saved review:
+
+```bash
+uv run --locked python scripts/evaluate_follow_up_questions.py --live \
+  --run-id YOUR_SAVED_ASSESSMENT_ID --output /tmp/follow-up-quality.json
+```
+
+This makes model calls and exports questions with a human scoring rubric. Merely
+generating questions is not a quality result. See [monitoring](monitoring.md) for
+traces and usage.

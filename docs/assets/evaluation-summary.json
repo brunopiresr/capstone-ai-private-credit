@@ -1,0 +1,134 @@
+{
+  "captured_on": "2026-11-13",
+  "baseline_60": {
+    "total": 60,
+    "fail": 50,
+    "pass": 9,
+    "execution_error": 1,
+    "pass_rate": 0.15
+  },
+  "smoke_10": {
+    "execution_complete": 10,
+    "deterministic_pass_count": 10,
+    "judge_labels": {
+      "unavailable": 10
+    },
+    "overall": {
+      "total": 10,
+      "needs_review": 10,
+      "pass_rate": 0.0
+    }
+  },
+  "exercise_50": {
+    "total_scenarios": 50,
+    "passed": 35,
+    "failed": 15,
+    "pass_rate_pct": 70.0,
+    "breakdown_by_type": {
+      "happy_path": {
+        "total": 14,
+        "pass": 13,
+        "fail": 1
+      },
+      "varied_phrasing": {
+        "total": 10,
+        "pass": 8,
+        "fail": 2
+      },
+      "edge_case": {
+        "total": 10,
+        "pass": 9,
+        "fail": 1
+      },
+      "out_of_scope": {
+        "total": 8,
+        "pass": 2,
+        "fail": 6
+      },
+      "breaking": {
+        "total": 8,
+        "pass": 3,
+        "fail": 5
+      }
+    },
+    "breakdown_by_failure_category": {
+      "none": 35,
+      "incomplete": 5,
+      "calculation-error": 2,
+      "wrong-scope": 6,
+      "unverified-data-acceptance": 1,
+      "uncalibrated-certainty": 1
+    }
+  },
+  "judge_agreement": {
+    "accuracy": 0.54,
+    "precision_bad": 0.3947,
+    "recall_bad": 1.0,
+    "f1_score": 0.566,
+    "specificity_good": 0.3429,
+    "confusion_matrix": {
+      "true_positive_bad": 15,
+      "false_positive_bad": 23,
+      "true_negative_good": 12,
+      "false_negative_good": 0
+    },
+    "by_scenario_type": {
+      "happy_path": {
+        "total": 14,
+        "agree": 7,
+        "gt_bad": 1,
+        "judge_bad": 8,
+        "tp": 1,
+        "fp": 7,
+        "tn": 6,
+        "fn": 0
+      },
+      "varied_phrasing": {
+        "total": 10,
+        "agree": 6,
+        "gt_bad": 2,
+        "judge_bad": 6,
+        "tp": 2,
+        "fp": 4,
+        "tn": 4,
+        "fn": 0
+      },
+      "edge_case": {
+        "total": 10,
+        "agree": 2,
+        "gt_bad": 1,
+        "judge_bad": 9,
+        "tp": 1,
+        "fp": 8,
+        "tn": 1,
+        "fn": 0
+      },
+      "out_of_scope": {
+        "total": 8,
+        "agree": 7,
+        "gt_bad": 6,
+        "judge_bad": 7,
+        "tp": 6,
+        "fp": 1,
+        "tn": 1,
+        "fn": 0
+      },
+      "breaking": {
+        "total": 8,
+        "agree": 5,
+        "gt_bad": 5,
+        "judge_bad": 8,
+        "tp": 5,
+        "fp": 3,
+        "tn": 0,
+        "fn": 0
+      }
+    }
+  },
+  "source_sha256": {
+    "data/evaluation/agent_scenarios/results/2026-11-09-baseline/summary.json": "bfdebdcfe7595f9f80441d62457d86eda51376cf701aaab879ef7b79be8eebc3",
+    "data/evaluation/agent_scenarios/results/2026-11-09-poc-final/summary.json": "414bc278d4606c06782318308f15f953ee462bf5d6918140de1749f5f92ab4f5",
+    "evaluations/eval_results.json": "289a34384b97e3b2e80eb59e90bdbc53a05013f469e69d4c3d32d54974921518",
+    "evaluations/judge_results.json": "7f0a94a9fa17b48e6a289c239c27e36bf41427b6586a87e6f6f044fc0493b063"
+  }
+}

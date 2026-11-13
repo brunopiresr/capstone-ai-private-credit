@@ -36,7 +36,7 @@ and timestamps. Skips are saved separately and excluded from evaluated counts.
 
 ## Telemetry and checks
 
-Optional [Logfire](../../docs/guides/logfire_setup.md) links requests and feedback by
+Optional [Logfire](../../docs/guides/monitoring.md) links requests and feedback by
 `chat_id`, `case_id`, and `interaction_id`. Filter `event_name = 'user.feedback'`.
 Question/comment content follows `LOGFIRE_CAPTURE_CONTENT`; local feedback always
 retains the submitted comment. Local saving works without telemetry credentials.

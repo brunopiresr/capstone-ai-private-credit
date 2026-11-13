@@ -23,7 +23,7 @@ diagnostic automatic labels, not independently validated accuracy estimates.
 - [Summary](summary.json): overall, category and topic counts; no dropped failures.
 - [Manifest](manifest.json): exact configuration, timestamps, revision, dirty-tree
   status, code/input/lockfile hashes, and judge instructions.
-- [Per-case evidence](cases/): original requests, answers, ordered tool traces,
+- [Per-case evidence](cases): original requests, answers, ordered tool traces,
   checks, judge packets and judgments, including failed executions.
 - [Suite guide](../../README.md): full setup, interpretation and limitations.
 

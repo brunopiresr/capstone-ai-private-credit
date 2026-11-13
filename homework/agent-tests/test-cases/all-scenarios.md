@@ -357,12 +357,12 @@ These documents define the scenarios. The [agent test suite](../README.md) imple
 ## Project references
 
 - [Project overview and current implementation status](../../../README.md)
-- [Credit analyst persona and intended capabilities](../../../docs/archive/06_POC_Code_Agent_Implementation_Spec.md)
-- [Document processing, tools, conversations, and verification limits](../../../docs/guides/document_processing.md)
-- [Assessment workflow, stub behavior, and data limits](../../../docs/guides/ml_early_warning.md)
-- [Borrower comparison plan: not implemented](../../../docs/project/borrower_comparison_implementation_plan.md)
+- [Credit analyst persona and intended capabilities](../../../v2-plan/archive/implementation/initial-poc-specification.md)
+- [Document processing, tools, conversations, and verification limits](../../../docs/guides/document-processing.md)
+- [Assessment workflow, stub behavior, and data limits](../../../docs/guides/covenant-assessment.md)
+- [Borrower comparison plan: not implemented](../../../v2-plan/proposals/borrower-comparison.md)
 - [Assessment tool signatures](../../../src/credit_monitoring/agents/tools/assessment.py)
 - [Document tool signatures](../../../src/credit_monitoring/agents/tools/documents.py)
 - [Agent evidence, scope, date, and confidence instructions](../../../src/credit_monitoring/agents/prompts/credit_assessment.py)
 - [Existing agent tests](../../../tests/unit/covenants/test_credit_assessment_agent.py)
-- [Offline answer evaluation](../../../docs/homework/llm_judges.md)
+- [Offline answer evaluation](../../../docs/evaluation/llm-judges.md)

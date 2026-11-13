@@ -1,10 +1,15 @@
-# Capstone Evaluation Scenarios
+# Fifty-case evaluation exercise
 
 A simplified benchmark suite of 50 evaluation scenarios designed specifically for the AI Private Credit Monitoring agents.
 
+These responses use automated heuristic labels. They are separate from the
+60-case suite, and their pass rate is not human-verified accuracy. Start with the
+[results overview](../docs/evaluation/results.md#fifty-case-exercise-and-judge-agreement)
+for the limitations and observed judge agreement.
+
 ## Overview
 
-The dataset in [eval_scenarios.csv](file:///workspaces/capstone-ai-private-credit/evaluations/eval_scenarios.csv) evaluates agent accuracy, robustness, and epistemic humility across core credit assessment workflows.
+The dataset in [eval_scenarios.csv](eval_scenarios.csv) evaluates agent accuracy, robustness, and epistemic humility across core credit assessment workflows.
 
 ### Schema
 
@@ -31,7 +36,7 @@ The dataset in [eval_scenarios.csv](file:///workspaces/capstone-ai-private-credi
 - `coverage_definitions`: Interest coverage (ICR), fixed charge coverage (FCCR), and EBITDA addback caps.
 - `springing_tests`: Revolver availability trigger boundaries and conditional covenant activation.
 - `amendments_waivers`: Contractual amendments, covenant holiday waivers, and waiver expirations.
-- `risk_forecasts`: Machine learning default/breach probability modeling and horizon disclosures.
+- `risk_forecasts`: Synthetic next-quarter covenant-breach modeling and horizon disclosures.
 - `evidence_retrieval`: Locating definitions and clauses in credit agreements and compliance filings.
 - `out_of_scope`: Domain negative controls.
 - `breaking`: Guardrail integrity and hallucination resistance.

@@ -1,294 +1,165 @@
 # AI Credit Monitoring
 
-## Problem
+Private-credit analysts check whether borrowers meet the financial conditions in
+their loan agreements. A review means finding the right terms, checking financial
+inputs, calculating ratios, and explaining exceptions to a risk manager. Amendments,
+waivers, missing figures, and scattered evidence make this work difficult to verify.
 
-Private-credit lenders need to check whether borrowers comply with loan covenants:
-contractual conditions such as limits on leverage or minimum interest coverage.
-Analysts must gather financial reports and loan terms, identify which conditions
-apply to the reporting period, calculate ratios against those limits, and explain
-the results to risk managers.
+This proof of concept applies the **From RAG to Agents** course to that problem.
+It combines evidence retrieval, deterministic calculations, AI interpretations, and
+a saved analyst-to-manager handoff. People remain responsible for the conclusions.
 
-The evidence can be spread across filings, amendments, and financial records.
-Missing inputs, conflicting figures, changing thresholds, and unclear source
-references make assessments harder to verify and can obscure emerging compliance
-issues. Reviewers need to understand both the calculation and the evidence behind
-it before deciding how to manage an exposure.
+| Reader or user | What to look for |
+| --- | --- |
+| Credit analyst | Evidence, covenant calculations, remaining headroom, and findings to submit. |
+| Risk manager | The analyst's submission, unresolved flags, and a recorded review decision. |
+| Board or credit committee | A saved report of exceptions, pending work, and manager recommendations. |
+| Project reviewer | Guided notebooks, prompts, tests, saved evaluation answers, and monitoring evidence. |
 
-## Impact of the solution
+The broader ambition is continuous credit monitoring across legal terms, private
+financials, public information, and portfolio history. This POC demonstrates one
+part: **covenant assessment and review**. It does not establish better credit decisions
+or measured time savings. See the [POC overview](docs/poc-overview.md).
 
-This proof of concept brings source evidence, deterministic covenant calculations,
-and human review into one workflow. It supports the review process in four ways:
+## See the case
 
-- **Traceable assessments:** inspect inputs, applied terms, ratios, compliance, and
-  headroom alongside source references and visible evidence gaps.
-- **Reusable evidence:** search filing passages and reuse saved extracted facts
-  when investigating questions or reviewing a later assessment.
-- **Broader credit review:** compare bullish and bearish AI interpretations of the
-  same assessment, then inspect their synthesized recommendation.
-- **Clear handoffs:** save analyst observations and validation, submit a frozen
-  assessment for risk-manager review, and prepare board reports from saved cases.
+For fictional borrower **SYN002**, an analyst asks: “Is the borrower still compliant,
+and how much room remains before it breaches its leverage limit?”
 
-The intended impact is less repeated evidence gathering and clearer, more
-consistent review. These are POC capabilities; reductions in review time and
-improvements in credit outcomes have not been measured. AI reviews remain advisory,
-and people make the decisions.
+At 30 September 2025, the prepared inputs give:
 
-The demo includes **37 fictional borrowers**, **172 quarterly financial records**, and
-**69 public SEC source references**. Synthetic borrowers are separate from real SEC issuers.
+```text
+Net leverage = (145 debt − 10 eligible cash) / 26 adjusted EBITDA
+             = 5.1923x
+Limit        = 5.5000x
+Headroom     = 0.3077x
+Result       = compliant, with less cushion than in the prior quarters
+```
 
-### Long-term vision
+The [worked example](docs/worked-example.md) follows this case from inputs through
+analyst findings, risk-manager review, and board reporting. It includes an actual
+Web V2 answer and screenshots. The no-key answer is a **rule-based fallback**;
+[saved live agent answers](data/evaluation/agent_scenarios/results/2026-11-09-baseline/results.csv)
+show model behavior separately.
 
-The ambition is an AI Credit Monitoring platform that continuously combines legal
-terms, borrower financials, public information, historical performance, and analyst
-feedback to help credit teams identify deterioration earlier and monitor larger
-portfolios efficiently. It would extend beyond covenant compliance into broader
-credit-risk analysis, portfolio prioritization, specialized agents, private-data
-integrations, and production workflows.
+![Web V2 assessment of SYN002](docs/assets/v2-assessment.png)
 
-The capstone demonstrates a foundation for that vision: evidence retrieval,
-deterministic calculations, advisory agent reviews, and analyst-to-manager handoffs.
-Continuous monitoring, integrated private data, and the broader risk-analysis
-capabilities remain future work.
+The bundle contains **37 fictional borrowers, 172 quarterly financial records, and
+69 public SEC source references**. Fictional borrowers and real issuers are separate.
+Public filings support a separate retrieval/extraction demonstration; they do not
+automatically supply the fictional borrowers' calculation inputs.
 
-## Target personas
+## How the course methods serve the problem
 
-| Persona | Need | How the platform helps |
+| Method | Task it supports | Inspect it |
 | --- | --- | --- |
-| Credit analyst | Investigate borrower compliance and prepare a defensible assessment. | Retrieve evidence, inspect calculations, ask follow-up questions, record observations, and validate and submit a case. |
-| Risk manager | Review the analyst's conclusions and resolve issues before completing a case. | Inspect the submitted evidence and AI perspectives, record a recommendation, and request further analysis. |
-| Board or credit committee member | Understand reviewed cases, unresolved risks, and proposed actions. | Read reports containing case summaries, open flags, analyst observations, and manager recommendations. |
+| RAG and lexical retrieval | Find filing passages and answer with source references. | [RAG notebook](notebooks/02-rag.ipynb), [document processing](docs/guides/document-processing.md) |
+| Structured extraction | Save covenant terms, schedules, and reported facts for reuse. | [Extraction prompt](src/credit_monitoring/agents/prompts/extraction.py) |
+| Agent tools | Discover sources and periods, read inputs, calculate covenants, and request forecasts. | [Agents notebook](notebooks/03-agents.ipynb), [tool reference](docs/reference/agent-tools.md) |
+| Multi-agent review | Compare favorable and cautious interpretations of the same assessment, then synthesize a recommendation. | [Credit-review notebook](notebooks/04-credit-review.ipynb), [agents guide](docs/guides/agents.md) |
+| Synthetic ML baseline | Demonstrate a next-quarter covenant-breach forecast alongside current calculations. | [Assessment and ML](docs/guides/covenant-assessment.md#synthetic-ml-baseline) |
+| Evaluation and LLM judges | Separate software checks from observed answer quality and judge agreement. | [Evaluation](docs/evaluation/README.md), [results](docs/evaluation/results.md) |
+| Monitoring and feedback | Trace work, inspect failures and usage, and rate individual V2 answers. | [Monitoring](docs/guides/monitoring.md) |
 
-## From RAG to Agents: course concepts in the project
+Financial calculations run in Python. AI agents interpret results; they do not
+replace the calculation service. The [architecture](docs/architecture.md) explains
+these boundaries and links to the implementation.
 
-This capstone for **From RAG to Agents** applies the course concepts to a
-private-credit business case: helping analysts turn financial documents and source
-evidence into traceable covenant assessments and advisory credit reviews. Each
-technique below addresses a specific step in that review.
+## Try the notebooks
 
-| Course topic | What was developed | Business purpose |
-| --- | --- | --- |
-| RAG | [Retrieve filing excerpts and generate cited monitoring notes](src/credit_monitoring/application/rag_service.py). | Answer analysts' questions using supplied source evidence and disclose missing information. |
-| Evidence search | [MinSearch lexical retrieval](src/credit_monitoring/retrieval/lexical/sec.py) over local Markdown, with issuer filters. | Locate passages supporting covenant terms and disclosures for analyst inspection. |
-| Document processing and extraction | [Convert HTML filings to Markdown, extract structured covenant facts from document sections, and persist results in SQLite](docs/guides/document_processing.md#processing-and-reuse). | Make reported terms and threshold schedules reusable for repeatable document review. |
-| Agents | [A credit-assessment assistant](src/credit_monitoring/agents/credit_assessment.py) with bounded tool calls and follow-up conversations. | Let analysts investigate evidence and ask follow-up questions within an explicit borrower or issuer scope. |
-| Agent tools | [Document tools](src/credit_monitoring/agents/tools/documents.py) discover, read, search, and process sources; [assessment tools](src/credit_monitoring/agents/tools/assessment.py) retrieve financials, assess covenants, and request optional risk predictions. | Give the assistant access to application services for evidence gathering and deterministic calculations. |
-| Multi-agent workflow | [Independent bullish and bearish reviews followed by a recommendation agent](docs/guides/credit_review.md). All three use the same saved assessment evidence; the recommendation also receives both analyses. | Compare supporting and opposing arguments before an analyst decides how to manage the exposure. |
-
-The [agents guide](docs/guides/agents.md) describes each agent's role, inputs,
-outputs, conversation behavior, and how the credit-review agents work together.
-The [agent tools reference](docs/guides/agent_tools.md) documents every application
-and monitoring-demo tool, including its purpose, arguments, results, scope, and
-effects on saved data. Use it to understand how the assistants gather evidence,
-calculate compliance, and request forecasts or credit reviews.
-
-For example, an analyst investigating a leverage covenant retrieves supporting
-filing passages and inspects the extracted terms and threshold schedule. With
-explicitly linked borrower inputs and supported calculation rules, the analyst
-runs a deterministic covenant assessment, compares the bullish and bearish reviews
-and their synthesized recommendation, then submits the analyst's conclusion for
-manager review. Source-to-borrower links must be explicit; synthetic borrowers are
-not automatically matched to real SEC issuers.
-
-RAG produces evidence-backed narrative notes; extraction produces structured facts;
-the calculation service determines supported ratios, headroom, and compliance.
-AI recommendations remain advisory. For the course progression, inspect the
-[RAG notebook](notebooks/02-rag.ipynb), then the
-[agents notebook](notebooks/03-agents.ipynb), then the
-[bullish and bearish credit review](notebooks/04-credit-review.ipynb). The
-[workspace walkthrough](docs/guides/ui_preview.md) shows the analyst and manager workflow.
-
-## Test the platform with notebooks
-
-The [notebooks](notebooks/) are the simplest way for project reviewers to test the
-platform's capabilities. They contain guided examples and many questions to try,
-covering retrieval, evidence inspection, agent tools, covenant calculations,
-predictions, follow-up conversations, and multi-agent credit review.
-
-Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
+Requires **Python 3.14** and **uv**. From the repository root:
 
 ```bash
 uv sync --group notebooks --group dev --extra ml --locked
 uv run --locked --group notebooks --extra ml jupyter lab notebooks/
 ```
 
-Select the project's `.venv` kernel and run each notebook's cells in order. Start
-with setup, then follow the sequence below; notebooks 03 and 04 can also run independently.
-Change the example questions to explore other capabilities and inspect the answers,
-source evidence, and tool traces.
+Choose the project's `.venv` kernel and run cells in order:
 
-| Notebook | What to test |
-| --- | --- |
-| [01 — Setup](notebooks/01-setup.ipynb) | Check the environment and model connection. |
-| [02 — RAG](notebooks/02-rag.ipynb) | Retrieve SEC filing evidence, generate cited answers, and extract covenant facts. |
-| [03 — Agents](notebooks/03-agents.ipynb) | Ask research and assessment questions; inspect tool calls, calculations, predictions, and follow-ups. |
-| [04 — Credit review](notebooks/04-credit-review.ipynb) | Calculate an assessment, compare bullish and bearish analyses, and inspect the recommendation. |
+| Notebook | What it demonstrates | External requirements |
+| --- | --- | --- |
+| [01 — Setup](notebooks/01-setup.ipynb) | Environment and model connection | API key for the greeting |
+| [02 — RAG](notebooks/02-rag.ipynb) | Filing retrieval, cited answers, and document extraction | API key for generation/extraction; SEC identity for uncached downloads |
+| [03 — Agents](notebooks/03-agents.ipynb) | Tool calls, scope, assessments, forecasts, and follow-ups | API key for agent answers; source preparation for document questions |
+| [04 — Credit review](notebooks/04-credit-review.ipynb) | Calculation, bullish/bearish reviews, and recommendation | Sections 1–4 work without keys; section 5 onward makes model calls |
 
-Set `OPENAI_API_KEY` in the root `.env` file for model calls. Uncached SEC downloads
-also need `SEC_USER_AGENT` with your name or organization and contact email. Model
-calls incur API usage. Notebook 04's sections 1–4 run without API credentials or
-SEC downloads. Use the [app walkthrough](docs/guides/ui_preview.md) to test the
-analyst, manager, and board-reporting screens.
+Model calls incur provider usage. To review without spending money, read the
+[worked example](docs/worked-example.md), [saved evaluation results](docs/evaluation/results.md),
+or run Notebook 04 through section 4. Full prerequisites are in the
+[setup guide](docs/guides/setup.md).
 
-## Run the app
-
-Requires Python 3.14 and [uv](https://docs.astral.sh/uv/). From the repository root:
+## Run Web V2
 
 ```bash
 uv sync --group dev --extra ml --locked
-make preview
+make preview-v2
 ```
 
-Open the URL printed in the terminal. In **Portfolio**, choose reporting dates and a
-borrower, choose **Open borrower**, then **Run assessment**. Calculations and the bundled Logistic Regression model
-work without API keys, downloads, or training. Saved work stays in `data/runtime/portfolio/`.
+Open the printed URL. Select **Credit Analyst**, reporting period **2025-09-30**,
+information cutoff **2025-09-30**, and **SYN002**. Open **Run Analysis & Covenants**
+and choose **Run Full Assessment**. Calculations and the bundled synthetic-trained
+model work without keys, downloads, or training.
 
-| Page | Use it to |
-| --- | --- |
-| Portfolio | Find borrowers and open their workspace; run portfolio batches |
-| Borrower workspace (from Portfolio) | Assess, inspect evidence, ask questions, validate, and submit |
-| Documents | Register and link sources, process HTML filings, and inspect evidence |
-| Risk review | Record manager decisions and request further analysis |
-| Board reports | Save and finalize a report from reviewed cases and pending items |
+For Docker, run `docker compose up --build` and open
+[localhost:8501](http://localhost:8501). Both launch Web V2. Follow the
+[workflow guide](docs/guides/web-v2-workflow.md) for flags, submissions, manager
+review, documents, and board reports.
 
-Open **Help** in the sidebar for help, or read the [walkthrough](docs/guides/ui_preview.md).
-The original single-borrower app is available with `make run`; its prediction mode starts at **Off**.
-The main workspace starts with **Logistic Regression** selected.
+Optional services use the root `.env`; copy [.env.example](.env.example) and set
+only what you need: `OPENAI_API_KEY` for generative AI, `SEC_USER_AGENT` for SEC
+downloads, and `LOGFIRE_TOKEN` for telemetry. `LLM_MODEL` overrides the default
+`openai-responses:gpt-4o-mini`. See [setup](docs/guides/setup.md) for storage and configuration.
 
-The task-focused V3 interface is available with `make preview-v3`. It adds analyst
-work queues, editable document checklists, a wide assistant, and separate risk-manager
-case pages while sharing existing saved work. See the [V3 walkthrough](docs/guides/ui_v3.md).
+## Evaluation results and checks
 
-### Search evidence
+These are historical observations from different experiments, not comparable
+before-and-after scores or current accuracy estimates.
 
-In the main workspace (`make preview`), open **Documents → Evidence index**. Enter
-a term or phrase in **Search evidence**, such as `maximum leverage` or
-`interest coverage`, then choose **Search index**. Results show matching source
-passages and citations for inspection.
+| Experiment | Recorded result | Interpretation |
+| --- | --- | --- |
+| 60-case baseline, 9 Nov 2026 | 9 automatic passes, 50 failures, 1 execution error | Diagnostic checks plus an uncalibrated model judge |
+| 10-case smoke, 9 Nov 2026 | 10/10 deterministic passes | Semantic grading unavailable; not 100% answer accuracy |
+| 42-case SEC snapshot, 18 Oct 2026 | 37 failing comparisons, 5 supported-fact matches | Extraction, source coverage, and matching limitations remain open |
+| 50-case exercise, 9–10 Nov 2026 | 35/50 heuristic passes; judge agreed on 27/50 | Agreement with automated labels, not human-verified accuracy |
 
-Search covers all cataloged sources with local Markdown text, including unlinked
-sources and sources linked to other borrowers. The selected borrower does not
-filter this search, and no document selection is required. MinSearch ranks matches
-using lexical retrieval and returns up to ten passages, with at most two per filing.
-
-Searching existing local text requires no API key, model call, or download. If no
-passages match, try different terms or use **Inventory & processing** to process a
-source into local Markdown (processing requires `OPENAI_API_KEY`; uncached SEC
-downloads also require `SEC_USER_AGENT`). Search results persist across page
-reruns until another search replaces them. Retrieved passages are excerpts; inspect
-the source and stored extraction for complete covenant schedules. See
-[document processing and search](docs/guides/document_processing.md#process-and-search-documents)
-for the Python API and optional ticker filtering.
-
-### User feedback
-
-The V2 analyst and risk-manager assistants let users rate individual answers. Start
-V2 with `make preview-v2`, open an assistant, and ask a question. Under its answer:
-
-- **Rate this answer:** choose thumbs up or thumbs down, then **Send feedback**.
-- **Add detailed review:** choose a **Review score (1–5)** and **Review category**,
-  optionally enter a message of up to 2,000 characters, then **Submit review**.
-  Categories are Helpful, Accuracy, Relevance, Completeness, Clarity,
-  Evidence/citations, and Other.
-
-Each answer accepts one thumbs rating and one detailed review, in either order.
-Submitted controls become disabled without running the assistant again. Feedback
-stays in the current chat transcript; **Clear Chat** removes that local state.
-Rule-based fallback answers can also be rated; errors and status messages cannot.
-
-With Logfire configured, feedback is exported as evaluation events linked to the
-original response, with borrower, assessment, and session context. Written review
-messages are included even when `LOGFIRE_CAPTURE_CONTENT=false`. Submission works
-without telemetry, but there is no durable feedback queue or retry, and the thank-you
-message does not confirm cloud delivery. See [Logfire response feedback](docs/guides/logfire_setup.md#v2-response-feedback)
-for setup, event fields, and queries.
-
-## Run with Docker Compose
-
-Requires Docker Engine or Docker Desktop with Compose 2.24 or newer. From the
-repository root:
+Read [results and representative failures](docs/evaluation/results.md) before
+interpreting these numbers. Synthetic ML has no demonstrated real-world forecasting
+performance. Citation formatting and structured validation do not establish the
+truth of every generated statement.
 
 ```bash
-docker compose up --build
-```
-
-Open [http://localhost:8501](http://localhost:8501). The image includes Python 3.14,
-locked application and ML dependencies, the borrower data, SEC source catalog, and
-trained model. SQLite runs inside the app; no separate database service is needed.
-The default demo works without a `.env` file. To enable AI reviews or SEC downloads,
-configure the settings below, then recreate the container with `docker compose up -d`.
-The optional `.env` file is passed at runtime and excluded from the image.
-
-Named volumes preserve saved assessments, reports, working databases, and downloaded
-SEC sources across container replacement. `docker compose down` stops and removes
-the container while keeping those volumes. `docker compose down --volumes` deletes
-the saved Docker data. Local runs under `data/runtime/` use separate storage.
-
-Use `docker compose ps` to check health and `docker compose logs -f app` to read logs.
-To run in the background and wait for health, use `docker compose up --build -d --wait`.
-If port 8501 is occupied, set `APP_PORT=8502` in `.env` and open port 8502 instead.
-The service binds to the local machine's loopback interface.
-
-To check the bundled model, all six pages, and storage persistence without AI calls:
-
-```bash
-docker compose exec -T app python scripts/check_container.py
-docker compose up -d --force-recreate --wait
-docker compose exec -T app python scripts/check_container.py --verify-saved
-```
-
-The check saves one SYN002 assessment and small verification markers in the Docker
-volumes. See [container verification](docs/guides/docker.md) for details.
-
-## Optional services
-
-Copy [.env.example](.env.example) to `.env` and fill in only the settings you need.
-
-| Setting | Enables |
-| --- | --- |
-| `OPENAI_API_KEY` | AI reviews, assistant replies, extraction, and generated follow-up questions |
-| `LLM_MODEL` | Model override; default: `openai-responses:gpt-4o-mini` |
-| `SEC_USER_AGENT` | SEC downloads; use your name or organization and contact email |
-| `LOGFIRE_TOKEN` | Optional telemetry; see [Logfire setup](docs/guides/logfire_setup.md) |
-
-Model requests incur provider usage. Browsing saved results does not run assessments
-or agents. Keep `.env` and local runtime files out of shared commits.
-
-## Scope and limits
-
-Financial calculations are deterministic. Missing inputs, conflicts, waivers, and
-unavailable forecasts remain visible. AI reviews are advisory. The risk model is trained
-on synthetic data; its scores do not establish real-world forecasting performance.
-Automatic post-extraction verification is disabled, and public-source extraction has
-[known quality gaps](docs/reviews/public_sec_benchmark_triage.md).
-
-This local POC has no authentication, external notifications, or PDF export.
-
-## Find your way around
-
-- [Documentation](docs/README.md): guides, architecture, decisions, and historical notes.
-- [Data](data/README.md): inputs, benchmarks, models, and local storage.
-- [Notebooks](notebooks/): guided capability testing and reviewer questions.
-- [Homework](homework/README.md): monitoring demo and evaluation exercises.
-- [Source](src/credit_monitoring/), [scripts](scripts/), and [tests](tests/).
-
-## Check the project
-
-```bash
-make test-all      # Offline app, notebook, and homework checks; live scenarios skip
+make test-all   # Offline app, notebook, and homework checks; live cases skip
 make lint
 ```
 
-GitHub Actions runs these checks on every push and pull request using locked
-dependencies. The Python 3.14 job includes the ML extra; a separate Python 3.13
-job runs `make lint-judges` and `make test-judges` with the judge lockfile.
-CI requires no API keys and leaves live evaluations disabled. See the
-[CI workflow](.github/workflows/ci.yml) for the commands.
+[CI](.github/workflows/ci.yml) runs locked offline checks without API keys, with a
+separate Python 3.13 job for optional Evidently judges. [Monitoring instructions](docs/guides/monitoring.md)
+cover traces, dashboard navigation, and V2 feedback. A [local trace capture](docs/assets/README.md#monitoring-evidence)
+is available without hosted-project access.
 
-See [evaluation](docs/homework/evaluation.md) for optional ML, live, and judge checks.
-Offline tests check behavior; they do not measure live answer quality.
+## Repository map
 
-The [60-scenario live evaluation](data/evaluation/agent_scenarios/README.md) includes
-the scenario CSV, saved answers and traces, and a report of the observed failures.
+| Location | Contents |
+| --- | --- |
+| [src/credit_monitoring](src/credit_monitoring/) | Services, agents, prompts, calculations, storage, and Web V2 |
+| [notebooks](notebooks/) | Guided demonstrations |
+| [tests](tests/), [scripts](scripts/) | Automated checks and command-line tools |
+| [data](data/README.md) | Bundled inputs, evaluation evidence, training data, and model |
+| [docs](docs/README.md) | Current POC documentation |
+| [homework](homework/README.md) | Course exercises and evaluation tools |
+| [v2-plan](v2-plan/README.md) | Historical records and future proposals |
 
-See the [capstone rubric review and open-issue plan](docs/project/rubric_gap_resolution_plan.md)
-for current evidence, verification findings, and prioritized follow-up work.
+## Self-evaluation
+
+| Criterion | Evidence and remaining gap |
+| --- | --- |
+| Problem and users | Personas and a worked covenant-review case; business benefit has not been measured. |
+| Retrieval and agents | Working notebooks, scoped tools, and inspectable prompts; no measured full-corpus retrieval winner. |
+| Testing | Offline checks and CI; passing tests do not establish live answer quality. |
+| Evaluation | Saved answers, traces, judges, and failures; independent human calibration and a final held-out evaluation remain open. |
+| Monitoring | Instrumentation, V2 feedback, and local exported traces; hosted-dashboard inspection is separate. |
+| Reproducibility | Locked dependencies, bundled data/model, no-key path, and Docker; live work needs credentials. |
+
+This is an evidence-based self-review. The Module 5 project scorer was unavailable
+and has not been run. Extraction quality acceptance remains open, and the POC has
+no authentication, external notifications, or PDF export.

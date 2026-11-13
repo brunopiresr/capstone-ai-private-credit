@@ -1,50 +1,34 @@
-# Documentation
+# POC documentation
 
-Start with the [project README](../README.md) to install and run the app.
+Start with the [project README](../README.md). The documented application is **Web V2**.
 
-## Usage guides
+## Understand the problem
 
-- [Workspace walkthrough](guides/ui_preview.md): assessment through board reporting.
-- [Docker Compose](guides/docker.md): container setup and persistence verification.
-- [Document processing](guides/document_processing.md): extraction, search, and assistant APIs.
-- [Agents](guides/agents.md): roles, inputs and outputs, conversations, and review orchestration.
-- [Agent tools reference](guides/agent_tools.md): all tools, arguments, results, scope, and saved-data effects.
-- [Quarterly assessment and ML](guides/ml_early_warning.md): calculations and synthetic forecasts.
-- [Credit reviews](guides/credit_review.md): bullish, bearish, and recommendation agents.
-- [Logfire setup](guides/logfire_setup.md): optional telemetry and validation.
+- [POC overview](poc-overview.md): users, terminology, scope, data, and the wider vision.
+- [Worked example](worked-example.md): follow one fictional borrower from calculation to review.
+- [Architecture](architecture.md): services, evidence flow, storage, and design choices.
 
-## Project reference
+## Reproduce the demonstration
 
-- [Scope](project/poc_definition.md) and [architecture](project/architecture.md).
-- [Agent quality improvement plan](project/agent_quality_improvement_plan.md):
-  prioritized fixes, acceptance criteria, evaluation repairs, and measured rollout.
-- [Capstone rubric review and open-issue plan](project/rubric_gap_resolution_plan.md):
-  scoring evidence, verification findings, and priorities for submission and future work.
-- [Data sources](project/data_sources.md) and [data layout](../data/README.md).
-- [Credit-risk documentation audit](reviews/credit_risk_documentation_audit_2026-11-04.md):
-  POC findings and recommended follow-up, reviewed 4 November 2026.
-- [Dataset integration](project/dataset_expansion_plan.md).
-- [Credit review decisions](project/decisions/001-credit-review-agents.md) and
-  [Logfire decisions](project/decisions/logfire_implementation_decisions.md).
-- [Agent Markdown rendering decision](project/decisions/002-agent-markdown-rendering.md):
-  structured output, shared backend formatting, and direct Markdown display in clients.
-- [Borrower comparison proposal](project/borrower_comparison_implementation_plan.md) and
-  [deferred simplification](project/deferred-simplification-plan.md).
+- [Setup](guides/setup.md): notebooks, Web V2, Docker, and optional services.
+- [Web V2 workflow](guides/web-v2-workflow.md): analyst work, manager review, and board reports.
+- [Screenshots and capture details](assets/README.md): inspect the demonstration without API calls.
 
-## Exercises and evaluation
+## Inspect how it works
 
-- [Notebooks](../notebooks/): guided platform testing and reviewer questions.
-- [Homework](../homework/README.md): demos and evaluation exercises.
-- [Evaluation](homework/evaluation.md) and [optional LLM judges](homework/llm_judges.md).
-- [Public SEC findings](reviews/public_sec_benchmark_triage.md): extraction limits and recorded results.
+- [Document processing](guides/document-processing.md): HTML extraction, local search, and reuse.
+- [Covenant assessment and ML](guides/covenant-assessment.md): formulas, interpretation, and synthetic forecasts.
+- [Agents and credit reviews](guides/agents.md): responsibilities, orchestration, and Python examples.
+- [Agent tools](reference/agent-tools.md): arguments, results, scope, and saved-data effects.
+- [Data layout](../data/README.md): runtime inputs, evaluation evidence, and training assets.
+- [Prompts](../src/credit_monitoring/agents/prompts/README.md): generation instructions and their owners.
 
-## Historical records
+## Assess the evidence
 
-These describe earlier work; use the guides above for current commands and behavior.
+- [Evaluation](evaluation/README.md): what each check measures and how to repeat it.
+- [Results](evaluation/results.md): dated measurements, known failures, and saved answers.
+- [LLM judges](evaluation/llm-judges.md): snapshot capture, scoring, and judge limitations.
+- [Monitoring](guides/monitoring.md): trace inspection and V2 answer feedback.
 
-- [Application delivery plan](project/final_application_implementation_plan.md) and
-  [in-app guide plan](project/in_app_user_guide_plan.md).
-- [Simplification review](reviews/poc_simplification_review.md),
-  [cleanup review](reviews/capstone_cleanup_review.md), and
-  [cleanup results](reviews/capstone_cleanup_f05_f12_implementation_results.md).
-- [Archived plans](archive/README.md).
+Past implementation records and future proposals live in [v2-plan](../v2-plan/README.md).
+They are not instructions for running the current POC.

@@ -33,5 +33,5 @@ ignored `data/runtime/judges-homework-*`. Failed judgments are saved before asse
 
 The recorded streaming-refactor run passed eight helper checks and six live scenarios.
 This historical result is not a current reliability claim; later runs may fail.
-`make test-homework` includes offline helpers. See [evaluation](../../docs/homework/evaluation.md)
+`make test-homework` includes offline helpers. See [evaluation](../../docs/evaluation/README.md)
 for the separate Evidently environment and other measurement options.

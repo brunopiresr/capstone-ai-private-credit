@@ -1,0 +1,3077 @@
+{
+  "captured_on": "2026-11-13",
+  "interface": "web_v2",
+  "cloud_export": false,
+  "live_model_calls": false,
+  "source": "Logfire TestExporter attached to actual isolated Web V2 execution",
+  "records": [
+    {
+      "name": "credit.assessment",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5a70fb2f108cdb1e",
+      "parent_span_id": null,
+      "start_time_ns": 1794600714897638007,
+      "end_time_ns": 1794600715582213286,
+      "duration_ms": 684.575,
+      "attributes": {
+        "borrower_id": "SYN002",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "assessment started",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "7b5186b93606df98",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600714923678920,
+      "end_time_ns": 1794600714923678920,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "assessment",
+        "status": "started",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f153cddeb4fa3adb",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600714931902057,
+      "end_time_ns": 1794600714948094045,
+      "duration_ms": 16.192,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants started ",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d5c70d06b4c6feaa",
+      "parent_span_id": "f153cddeb4fa3adb",
+      "start_time_ns": 1794600714933760201,
+      "end_time_ns": 1794600714933760201,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "synthetic_version complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5355a93b381c5e32",
+      "parent_span_id": "f153cddeb4fa3adb",
+      "start_time_ns": 1794600714934318757,
+      "end_time_ns": 1794600714934318757,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "synthetic_version",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "synthetic_testing complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f1b835aa5c3ed041",
+      "parent_span_id": "f153cddeb4fa3adb",
+      "start_time_ns": 1794600714935281665,
+      "end_time_ns": 1794600714935281665,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "synthetic_testing",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "covenant_resolution complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "8e9a66fc122de431",
+      "parent_span_id": "f153cddeb4fa3adb",
+      "start_time_ns": 1794600714944851735,
+      "end_time_ns": 1794600714944851735,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "covenant_resolution",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants complete  elapsed_s=0.01",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "4768255807b082cb",
+      "parent_span_id": "f153cddeb4fa3adb",
+      "start_time_ns": 1794600714945642512,
+      "end_time_ns": 1794600714945642512,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b56d824ae952bbc5",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600714948358830,
+      "end_time_ns": 1794600715122998392,
+      "duration_ms": 174.64,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "1187ea746b1d234a",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600714948751037,
+      "end_time_ns": 1794600714948751037,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a9b18ffbcc023244",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600714953418284,
+      "end_time_ns": 1794600714953418284,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "05a563a0124506ba",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600714963116329,
+      "end_time_ns": 1794600714963116329,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d59bc982fda6fa95",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600714963716892,
+      "end_time_ns": 1794600714963716892,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f75374f6a64893b8",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600714968348203,
+      "end_time_ns": 1794600714968348203,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "9647e8b9699a811a",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600714975963590,
+      "end_time_ns": 1794600714975963590,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "69e7da7ff0c833bc",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600714976573953,
+      "end_time_ns": 1794600714976573953,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d6e01fd707d4e951",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600715119369093,
+      "end_time_ns": 1794600715119369093,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "6623fefcebec9264",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600715121456465,
+      "end_time_ns": 1794600715121456465,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.17",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "447cfe1f0ba3e888",
+      "parent_span_id": "b56d824ae952bbc5",
+      "start_time_ns": 1794600715122745865,
+      "end_time_ns": 1794600715122745865,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b077a8d640979ef8",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715123219450,
+      "end_time_ns": 1794600715125899290,
+      "duration_ms": 2.68,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants started ",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a6e25c7485afd873",
+      "parent_span_id": "b077a8d640979ef8",
+      "start_time_ns": 1794600715123515105,
+      "end_time_ns": 1794600715123515105,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "synthetic_version complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b57c72b9b42dc7e0",
+      "parent_span_id": "b077a8d640979ef8",
+      "start_time_ns": 1794600715123904818,
+      "end_time_ns": 1794600715123904818,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "synthetic_version",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "synthetic_testing complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "e2a217d6f56db7fc",
+      "parent_span_id": "b077a8d640979ef8",
+      "start_time_ns": 1794600715124506617,
+      "end_time_ns": 1794600715124506617,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "synthetic_testing",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "covenant_resolution complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "04a5ab1eaa4b73df",
+      "parent_span_id": "b077a8d640979ef8",
+      "start_time_ns": 1794600715125149575,
+      "end_time_ns": 1794600715125149575,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "covenant_resolution",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants complete  elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "bdc5d6da44eb6cf4",
+      "parent_span_id": "b077a8d640979ef8",
+      "start_time_ns": 1794600715125712340,
+      "end_time_ns": 1794600715125712340,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "40bbe2d479ba7cdb",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715126100561,
+      "end_time_ns": 1794600715134755278,
+      "duration_ms": 8.655,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "1c92e1478deae588",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715126374666,
+      "end_time_ns": 1794600715126374666,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "7db84efb1e66a745",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715126842187,
+      "end_time_ns": 1794600715126842187,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b1aa6f29510e081e",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715127223749,
+      "end_time_ns": 1794600715127223749,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f7e37789b0178750",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715127693939,
+      "end_time_ns": 1794600715127693939,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d3b6723081a4dc0b",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715128166533,
+      "end_time_ns": 1794600715128166533,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "2ec1ef3639727f1f",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715128586536,
+      "end_time_ns": 1794600715128586536,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d4207b5583acd683",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715129127536,
+      "end_time_ns": 1794600715129127536,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "37348667f4558a01",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715129543597,
+      "end_time_ns": 1794600715129543597,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "7b9f5a31a178de0b",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715131509954,
+      "end_time_ns": 1794600715131509954,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.01",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "4777cc880c8999bf",
+      "parent_span_id": "40bbe2d479ba7cdb",
+      "start_time_ns": 1794600715133438546,
+      "end_time_ns": 1794600715133438546,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "beb89162085ef4c9",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715135010569,
+      "end_time_ns": 1794600715137775408,
+      "duration_ms": 2.765,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants started ",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b0250452120af6bf",
+      "parent_span_id": "beb89162085ef4c9",
+      "start_time_ns": 1794600715135323642,
+      "end_time_ns": 1794600715135323642,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "synthetic_version complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "77a750d70b519195",
+      "parent_span_id": "beb89162085ef4c9",
+      "start_time_ns": 1794600715135707973,
+      "end_time_ns": 1794600715135707973,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "synthetic_version",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "synthetic_testing complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "08edade661c3d197",
+      "parent_span_id": "beb89162085ef4c9",
+      "start_time_ns": 1794600715136358008,
+      "end_time_ns": 1794600715136358008,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "synthetic_testing",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "covenant_resolution complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "cd537eeefe1be296",
+      "parent_span_id": "beb89162085ef4c9",
+      "start_time_ns": 1794600715137027682,
+      "end_time_ns": 1794600715137027682,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "covenant_resolution",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Resolve covenants complete  elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "7fd42d06f8c24e68",
+      "parent_span_id": "beb89162085ef4c9",
+      "start_time_ns": 1794600715137594589,
+      "end_time_ns": 1794600715137594589,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "018e94a1f69b448a",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715137922331,
+      "end_time_ns": 1794600715141020131,
+      "duration_ms": 3.098,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "3212a7b86419497e",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715138121842,
+      "end_time_ns": 1794600715138121842,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "916eacd6187983c1",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715138428164,
+      "end_time_ns": 1794600715138428164,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "c65ffb16b5e25452",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715138729762,
+      "end_time_ns": 1794600715138729762,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5ff53b4d50b53201",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715138997567,
+      "end_time_ns": 1794600715138997567,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "0debc766b96850df",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715139256266,
+      "end_time_ns": 1794600715139256266,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "0c476112510acb16",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715139495963,
+      "end_time_ns": 1794600715139495963,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a4e01bc437dbbd0b",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715139753319,
+      "end_time_ns": 1794600715139753319,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "08a290f67c6ca550",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715139992956,
+      "end_time_ns": 1794600715139992956,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "3c53fc4aaba0b110",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715140427366,
+      "end_time_ns": 1794600715140427366,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a6b4702382b81435",
+      "parent_span_id": "018e94a1f69b448a",
+      "start_time_ns": 1794600715140893758,
+      "end_time_ns": 1794600715140893758,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "983facb7da3d1af0",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715141345495,
+      "end_time_ns": 1794600715144559889,
+      "duration_ms": 3.214,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "8cbb1dfcccafc3c3",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715141579760,
+      "end_time_ns": 1794600715141579760,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a8bffae299203777",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715141907377,
+      "end_time_ns": 1794600715141907377,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "6d19ff08ed45b4e7",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715142176392,
+      "end_time_ns": 1794600715142176392,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b2ac54fd32c0010d",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715142423509,
+      "end_time_ns": 1794600715142423509,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "66ee845f967a7620",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715142754481,
+      "end_time_ns": 1794600715142754481,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "319c8f8b2dd353e2",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715143051422,
+      "end_time_ns": 1794600715143051422,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "63e11ef445c3b150",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715143306777,
+      "end_time_ns": 1794600715143306777,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d01b23aadab526d4",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715143547342,
+      "end_time_ns": 1794600715143547342,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "189fd296e5e345b1",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715144011543,
+      "end_time_ns": 1794600715144011543,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "0a7ea4c38361b055",
+      "parent_span_id": "983facb7da3d1af0",
+      "start_time_ns": 1794600715144436745,
+      "end_time_ns": 1794600715144436745,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "8e1baac7992d01ba",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715144795091,
+      "end_time_ns": 1794600715149141381,
+      "duration_ms": 4.346,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "25d6bb16531a5ce5",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715145001006,
+      "end_time_ns": 1794600715145001006,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "510b39a0e31b01a7",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715145278081,
+      "end_time_ns": 1794600715145278081,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "610abe991d9621f8",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715145525823,
+      "end_time_ns": 1794600715145525823,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "1d41c066552575db",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715145841228,
+      "end_time_ns": 1794600715145841228,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "1ab3b415fa01069b",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715146108455,
+      "end_time_ns": 1794600715146108455,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "116351f2e0bd1643",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715146361809,
+      "end_time_ns": 1794600715146361809,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "e826d0ee9c25605a",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715146595973,
+      "end_time_ns": 1794600715146595973,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "1390f36cf47c52cf",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715147383700,
+      "end_time_ns": 1794600715147383700,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "dc2778c715bb8a99",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715148165677,
+      "end_time_ns": 1794600715148165677,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "9c77c442afb027e6",
+      "parent_span_id": "8e1baac7992d01ba",
+      "start_time_ns": 1794600715148941289,
+      "end_time_ns": 1794600715148941289,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5c75bb03f16c6754",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715149435855,
+      "end_time_ns": 1794600715154221372,
+      "duration_ms": 4.786,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "43d106dfcd2b90b7",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715149769112,
+      "end_time_ns": 1794600715149769112,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "39f0701f9c922774",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715150216322,
+      "end_time_ns": 1794600715150216322,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "504300b75ea97ece",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715150698184,
+      "end_time_ns": 1794600715150698184,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "fc1f175a3b950b8d",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715151096686,
+      "end_time_ns": 1794600715151096686,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "066259d48ee0903f",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715151488813,
+      "end_time_ns": 1794600715151488813,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "51bd9e249b836037",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715151900070,
+      "end_time_ns": 1794600715151900070,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "6aa1a3a3d9092bcd",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715152291043,
+      "end_time_ns": 1794600715152291043,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f14de372bd57bea9",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715152676015,
+      "end_time_ns": 1794600715152676015,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "2b83d37f7377b66e",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715153317963,
+      "end_time_ns": 1794600715153317963,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "0d7b19b0953dada2",
+      "parent_span_id": "5c75bb03f16c6754",
+      "start_time_ns": 1794600715154035838,
+      "end_time_ns": 1794600715154035838,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Build risk features",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5a123a61ddc97b9b",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715159053505,
+      "end_time_ns": 1794600715160262691,
+      "duration_ms": 1.209,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Build risk features started ",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "3b9a005eb7528690",
+      "parent_span_id": "5a123a61ddc97b9b",
+      "start_time_ns": 1794600715159309191,
+      "end_time_ns": 1794600715159309191,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "risk_features complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d53f0c3ea28a2e3c",
+      "parent_span_id": "5a123a61ddc97b9b",
+      "start_time_ns": 1794600715159836257,
+      "end_time_ns": 1794600715159836257,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "risk_features",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Build risk features complete  elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "203c4c5bf13d4d77",
+      "parent_span_id": "5a123a61ddc97b9b",
+      "start_time_ns": 1794600715160135182,
+      "end_time_ns": 1794600715160135182,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a4f972cb75868153",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715549393275,
+      "end_time_ns": 1794600715554589202,
+      "duration_ms": 5.196,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "54a52be7869581db",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715549967151,
+      "end_time_ns": 1794600715549967151,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a109915f95fc583c",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715550488920,
+      "end_time_ns": 1794600715550488920,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f8f009389d4902f4",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715550943774,
+      "end_time_ns": 1794600715550943774,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "995457e4025b7983",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715551346134,
+      "end_time_ns": 1794600715551346134,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "fd7f72fb99a55e74",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715551769229,
+      "end_time_ns": 1794600715551769229,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "16edf53d837ea520",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715552156894,
+      "end_time_ns": 1794600715552156894,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "119fe1f689c154fe",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715552538085,
+      "end_time_ns": 1794600715552538085,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "7263fa526590199e",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715552926736,
+      "end_time_ns": 1794600715552926736,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "86cc924e64c91cd2",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715553701922,
+      "end_time_ns": 1794600715553701922,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "0ded772d6992ff87",
+      "parent_span_id": "a4f972cb75868153",
+      "start_time_ns": 1794600715554406393,
+      "end_time_ns": 1794600715554406393,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "7269a7ddd0d828e6",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715554888039,
+      "end_time_ns": 1794600715560042080,
+      "duration_ms": 5.154,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "ef3dc82fe719f30d",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715555260566,
+      "end_time_ns": 1794600715555260566,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "533e186f900372d2",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715555745163,
+      "end_time_ns": 1794600715555745163,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "daf51f0b6f8c7e8e",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715556182069,
+      "end_time_ns": 1794600715556182069,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b2a3cc643645b4db",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715556602386,
+      "end_time_ns": 1794600715556602386,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b004816ef1d4cad1",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715557128891,
+      "end_time_ns": 1794600715557128891,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5dee3405a9736675",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715557577675,
+      "end_time_ns": 1794600715557577675,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "936b87130df617e0",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715558016144,
+      "end_time_ns": 1794600715558016144,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "31c149c093cc7e1a",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715558405533,
+      "end_time_ns": 1794600715558405533,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5844ab13791afa77",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715559107945,
+      "end_time_ns": 1794600715559107945,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "9edc87340c83e7e2",
+      "parent_span_id": "7269a7ddd0d828e6",
+      "start_time_ns": 1794600715559856859,
+      "end_time_ns": 1794600715559856859,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "751929d78d0d35fe",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715560337551,
+      "end_time_ns": 1794600715566291282,
+      "duration_ms": 5.954,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d539088b5673180c",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715560642812,
+      "end_time_ns": 1794600715560642812,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d86da87d638387b0",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715561070481,
+      "end_time_ns": 1794600715561070481,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "81cd40c8618dbfbe",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715561522909,
+      "end_time_ns": 1794600715561522909,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "2eec7364808aab04",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715561969060,
+      "end_time_ns": 1794600715561969060,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f8552d8737364afe",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715562422250,
+      "end_time_ns": 1794600715562422250,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5af2cd99b921f991",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715562883159,
+      "end_time_ns": 1794600715562883159,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "430f59b01aed9126",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715564108784,
+      "end_time_ns": 1794600715564108784,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "cc6518c5af32e5cf",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715564582426,
+      "end_time_ns": 1794600715564582426,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "c8993987b31a2818",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715565313226,
+      "end_time_ns": 1794600715565313226,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.01",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "2d5050b2fd245285",
+      "parent_span_id": "751929d78d0d35fe",
+      "start_time_ns": 1794600715566081100,
+      "end_time_ns": 1794600715566081100,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "69c2f3fb86b539b2",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715569506611,
+      "end_time_ns": 1794600715574042803,
+      "duration_ms": 4.536,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "82a4635c36b61355",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715569897754,
+      "end_time_ns": 1794600715569897754,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "764ee9151d73f26c",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715570637642,
+      "end_time_ns": 1794600715570637642,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a4c1dedd111a14b2",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715571088619,
+      "end_time_ns": 1794600715571088619,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "483dca282c03e5dc",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715571499713,
+      "end_time_ns": 1794600715571499713,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "fdf66592cfc74d97",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715571944395,
+      "end_time_ns": 1794600715571944395,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "d8a8e52c357dcd89",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715572337097,
+      "end_time_ns": 1794600715572337097,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "fdfa119e7869fc2a",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715572714232,
+      "end_time_ns": 1794600715572714232,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "65a8eb593be1b7ad",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715572972600,
+      "end_time_ns": 1794600715572972600,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "fbacd7119477da9f",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715573456661,
+      "end_time_ns": 1794600715573456661,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f58db9c09433eae0",
+      "parent_span_id": "69c2f3fb86b539b2",
+      "start_time_ns": 1794600715573918958,
+      "end_time_ns": 1794600715573918958,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "c47f5f5938b096ef",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715574273889,
+      "end_time_ns": 1794600715577316555,
+      "duration_ms": 3.043,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "e4345610f0128bf2",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715574477688,
+      "end_time_ns": 1794600715574477688,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "36e0b40e7919e1a9",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715574805809,
+      "end_time_ns": 1794600715574805809,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "3539960b509d58c7",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715575086526,
+      "end_time_ns": 1794600715575086526,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "f30219018c2c410b",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715575336554,
+      "end_time_ns": 1794600715575336554,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "36306de582567c10",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715575596673,
+      "end_time_ns": 1794600715575596673,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "b17e4cc196cd6332",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715575854199,
+      "end_time_ns": 1794600715575854199,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "9ca80fd5d27937d5",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715576083437,
+      "end_time_ns": 1794600715576083437,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "29764b5a98b0d65e",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715576313132,
+      "end_time_ns": 1794600715576313132,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "9c36996fc7029dc7",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715576757601,
+      "end_time_ns": 1794600715576757601,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-03-31",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5ee19975a79018c8",
+      "parent_span_id": "c47f5f5938b096ef",
+      "start_time_ns": 1794600715577195967,
+      "end_time_ns": 1794600715577195967,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "68d1d99a81ec01a1",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715577517382,
+      "end_time_ns": 1794600715581573987,
+      "duration_ms": 4.057,
+      "attributes": {
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant started covenant_id=synthetic:SYN002:LEV",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "47facad07593da87",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715577735295,
+      "end_time_ns": 1794600715577735295,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5a735e5a68cb3ea6",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715578003553,
+      "end_time_ns": 1794600715578003553,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "6ecdd217b226e81f",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715578268527,
+      "end_time_ns": 1794600715578268527,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_addback_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5ae7de016fc55581",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715578516201,
+      "end_time_ns": 1794600715578516201,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_addback_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "debt_sources complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "128268f7bfc96ce4",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715578784728,
+      "end_time_ns": 1794600715578784728,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "debt_sources",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "0bb47a43279dbaa7",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715579089037,
+      "end_time_ns": 1794600715579089037,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "financial_metric complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "9daeb932f4d2f1aa",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715579501162,
+      "end_time_ns": 1794600715579501162,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "financial_metric",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "apply_cash_cap complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "a9a5411dcc44be8a",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715579972555,
+      "end_time_ns": 1794600715579972555,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "apply_cash_cap",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "calculate_covenant complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "bd79dee5bd142c80",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715580667879,
+      "end_time_ns": 1794600715580667879,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-06-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "calculate_covenant",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "Calculate covenant complete covenant_id=synthetic:SYN002:LEV elapsed_s=0.00",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "5cf4846f7d836f8c",
+      "parent_span_id": "68d1d99a81ec01a1",
+      "start_time_ns": 1794600715581384110,
+      "end_time_ns": 1794600715581384110,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "assessment complete",
+      "trace_id": "01a1d689c29cee53935439f6bbaa4ad0",
+      "span_id": "7d3c4166cfecb797",
+      "parent_span_id": "5a70fb2f108cdb1e",
+      "start_time_ns": 1794600715581903515,
+      "end_time_ns": 1794600715581903515,
+      "duration_ms": 0.0,
+      "attributes": {
+        "logfire.span_type": "log",
+        "logfire.level_num": 9,
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "borrower_id": "SYN002",
+        "period_end": "2025-09-30",
+        "information_cutoff": "2025-09-30",
+        "operation": "assessment",
+        "status": "complete",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "314ca9c1-0b88-49fc-a38c-833daf3022ee"
+      }
+    },
+    {
+      "name": "assistant.fallback",
+      "trace_id": "01a1d689d0619b958fea80f9a1167356",
+      "span_id": "535e8f628077f415",
+      "parent_span_id": null,
+      "start_time_ns": 1794600718433343346,
+      "end_time_ns": 1794600718433951795,
+      "duration_ms": 0.608,
+      "attributes": {
+        "borrower_id": "SYN002",
+        "assessment_run_id": "97955ef8-b4a8-4424-808e-723366852d46",
+        "response_origin": "structured_fallback",
+        "logfire.span_type": "span",
+        "session.id": "8baf3bc2-8951-4008-b577-17cb28b3225b",
+        "gen_ai.conversation.id": "fd84f235-c207-42d8-a451-25bda4d2613e"
+      }
+    }
+  ]
+}

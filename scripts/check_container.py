@@ -65,20 +65,22 @@ def main() -> None:
     assert prediction.breach_probability is not None, prediction
 
     # A healthy HTTP server alone does not prove that the Streamlit pages execute.
-    app = AppTest.from_file(str(ROOT / "src/credit_monitoring/web/preview.py"), default_timeout=60)
+    app = AppTest.from_file(str(ROOT / "src/credit_monitoring/web_v2/app.py"), default_timeout=60)
     app.run()
     assert not app.exception, app.exception
     assert len(app.dataframe[0].value) == 37, "Portfolio page did not load the bundled borrowers."
-    for page in (
-        "Borrower analysis",
-        "Documents & data",
-        "Risk review",
-        "Board report",
-        "User guide",
-    ):
-        app.session_state._preview_next_page = page
-        app.run()
-        assert not app.exception, (page, app.exception)
+    app.selectbox(key="v2_period_select").set_value("2025-09-30")
+    app.date_input(key="v2_cutoff_select").set_value(date(2025, 9, 30))
+    app.selectbox(key="v2_selected_borrower").set_value("SYN002").run()
+    next(button for button in app.button if "Run Full Assessment" in button.label).click().run()
+    assert not app.exception, app.exception
+    assert any("Assessment completed" in message.value for message in app.success)
+    app.segmented_control(key="v2_active_role").set_value("🛡️ Risk Manager").run()
+    assert not app.exception, app.exception
+    assert any("Board Report Studio" in message.value for message in app.markdown)
+    app.segmented_control(key="v2_active_role").set_value("📁 Documents & Data").run()
+    assert not app.exception, app.exception
+    assert any("Document & Evidence Workspace" in message.value for message in app.markdown)
 
     assert not Path("/app/.env").exists(), "Credentials must not be baked into the image."
     print(
@@ -89,7 +91,9 @@ def main() -> None:
                 "borrowers": len(service.borrowers),
                 "assessment_run_id": assessment.assessment_run_id,
                 "model": prediction.model_name,
-                "pages_checked": 6,
+                "interface": "web_v2",
+                "roles_checked": ["Credit Analyst", "Risk Manager", "Documents & Data"],
+                "board_report_studio_checked": True,
             }
         )
     )

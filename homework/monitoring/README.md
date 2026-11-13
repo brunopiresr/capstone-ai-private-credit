@@ -2,7 +2,7 @@
 
 A Streamlit exercise for observing shared agents and user activity with optional Logfire.
 For the main project workspace, use the [README](../../README.md).
-The [agent tools reference](../../docs/guides/agent_tools.md#monitoring-homework-tools)
+The [agent tools reference](../../docs/reference/agent-tools.md#monitoring-homework-tools)
 documents the demo's borrower-discovery and credit-review tools and reused evidence tools.
 
 ```bash
@@ -11,7 +11,7 @@ uv run --locked streamlit run homework/monitoring/app.py
 ```
 
 Configure `OPENAI_API_KEY` in the root `.env`; `LLM_MODEL` overrides the default
-`openai-responses:gpt-4o-mini`. See [Logfire setup](../../docs/guides/logfire_setup.md)
+`openai-responses:gpt-4o-mini`. See [Logfire setup](../../docs/guides/monitoring.md)
 for telemetry. Chat needs model credentials; telemetry is optional.
 
 ## Modes

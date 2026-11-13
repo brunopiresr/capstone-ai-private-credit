@@ -1,0 +1,64 @@
+{
+  "captured_on": "2026-11-13",
+  "branch": "docs/client-ready-web-v2",
+  "base_revision": "b61362b35e6cfe1412bf8edc041b56b30b94f2c2",
+  "working_tree_contains_documentation_changes": true,
+  "interface": "web_v2",
+  "browser": "Chromium via Playwright",
+  "viewport": {
+    "width": 1500,
+    "height": 1100
+  },
+  "borrower_id": "SYN002",
+  "period_end": "2025-09-30",
+  "information_cutoff": "2025-09-30",
+  "storage": "isolated temporary copy of bundled data",
+  "ai_response_origin": "structured_fallback",
+  "live_model_calls": false,
+  "sec_downloads": false,
+  "cloud_telemetry_export": false,
+  "human_credit_review": false,
+  "review_notes": "Authored POC demonstration notes entered into the actual workflow.",
+  "monitoring": {
+    "records": 158,
+    "traces": 2,
+    "web_sessions": 1,
+    "exporter": "Logfire TestExporter"
+  },
+  "source_sha256": {
+    "Dockerfile": "f48c490af78e59c5a2fe0e4fdec0485aeff37cfc817d30ab620e176b153ed781",
+    "compose.yaml": "8819154a84ddaec654ff6ad26d2e5f071d208257cee4ce6e5e23d04ac3763db1",
+    "scripts/check_container.py": "60264792700bfa4dc318d569631766456d8aa582bb12d05bdc57bda53d8da15b",
+    "src/credit_monitoring/web_v2/app.py": "cfeebd22235cc4ae3efd37540554895f0629ee752262d458aae56624085761a7",
+    "src/credit_monitoring/web_v2/views/analyst.py": "5f291921cdf5e65e2dec09898e6cb6f6f9e3368d77a9cd733cae4fb11fb66272",
+    "src/credit_monitoring/web_v2/views/risk_manager.py": "c36eea9ca68eedadd3d1f5dfd378279ed0ca6442a48f81e909dd730947f96eb3",
+    "src/credit_monitoring/web_v2/components/chat.py": "87bcb3ad74586b442cd754dcde13f69aa078eb10fde27b6c1ae0985b2b751e3e",
+    "src/credit_monitoring/calculations/covenants.py": "77a74028a662e3d5e34c935f17dc6871abb150aa5050bb3da3efd18270224b8d",
+    "uv.lock": "da3c6a5f8bb2c92b1295b888d7af1fd0253e5455944ab3c9f96fd3645276a973",
+    "data/app/synthetic/synthetic_quarterly_financials.csv": "269f990070836f89b26bf7b6b6589daadeb0de8aefb35c11bacd362f5deb79ef",
+    "data/app/synthetic/synthetic_covenant_terms.csv": "21ef9631522a75396a6021324db9b4b2fe2952eb61fb7bfa9ce9cc6c01be7f60",
+    "data/app/synthetic/synthetic_borrowers.csv": "ffa1bdf4512ed6b91c5fe5945c450b44095e3b530dd63864bb32e144faf3d4cf",
+    "data/app/sec/public_sec_documents.csv": "ec1569f007cbe2f227ce2addb0f10a7dc9a33757cae5a6713b879a93b45f5c2a"
+  },
+  "artifact_sha256": {
+    "README.md": "62b000d2751f77b38d83e8866ee5b779102e55ca526aa956c39f7a293348e733",
+    "evaluation-summary.json": "f27da6256b373029c059e045e5c3dfc23856594f4a6022f4ad0db70c33dc9e8a",
+    "evaluation.html": "c32e74395aa0fd26aa0d7a072e9b61b5b5d08643e25a551a1f208415e8c1c281",
+    "evaluation.png": "11d8c29477c2d93a8bcc0ca2e6141cdff33c096a8bf9a7912e319753876908f5",
+    "monitoring.html": "a2aa299ae10caaaf2d197e28874200a1fc1973e5391b8f12ff46556d2a5f212c",
+    "monitoring.png": "e1afcd0ee4165c50b72b552105b54bf63ceb318d233b7ee6eccc4d0e01975d7c",
+    "v2-assessment.png": "9debe21d21e35ca0c105b3af5dfb13fd3c9083b6ec70e7c07229315450df9ab9",
+    "v2-assistant.png": "0137b77efff837bdb5ca1b26623ee2c20eb0b8c5e713ca62935a4ab6f8152b09",
+    "v2-board-report.png": "a710082457594fb6463959688ba62c1b4ae5745eee4fb73dd912e7505786b9d6",
+    "v2-fallback-answer.md": "09461965fc1e90fed7a55947a4ec0623550d4e75288f981e2e43b33a340aecf4",
+    "v2-manager-review.png": "a1c7439d9b2ec4a3447d4221107f45d6ed75e24fe0cb21462b21c6afa9402b53",
+    "v2-monitoring.json": "36563dafa93c57f0f5a566d20f0ec7b8b30e3373ab40922668c757681fa5f1aa"
+  },
+  "verification": {
+    "v2_integration_tests_passed": 34,
+    "notebook_tests_passed": 34,
+    "no_key_notebook_sections": "04 sections 1-4; socket.connect blocked",
+    "offline_logfire_validator_records": 1046,
+    "lint": "passed"
+  }
+}

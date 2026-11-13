@@ -7,7 +7,7 @@ two phrasing variants, with additional edge and breaking cases.
 The [9 November baseline report](results/2026-11-09-baseline/REPORT.md) records the
 completed live batch: 9 automatic passes, 50 failures and one execution error.
 See the [saved results CSV](results/2026-11-09-baseline/results.csv) for every answer.
-The [agent quality improvement plan](../../../docs/project/agent_quality_improvement_plan.md)
+The [agent quality improvement plan](../../../v2-plan/proposals/agent-quality.md)
 turns these findings into implementation packages, tests and release criteria.
 
 The [final POC smoke](results/2026-11-09-poc-final/REPORT.md) completed 10/10 cases
@@ -32,7 +32,7 @@ future-information leakage, ignored caps, and an obsolete answer-key assertion.
 For a small POC check without semantic grading, add `--skip-judge --cases H01,H07,H08,H11,H15,H16,E04,B10,B11,B12`
 to the run command below. Missing semantic grades remain visible. The command exits
 nonzero if execution or a deterministic check fails. See the
-[POC implementation notes](../../../docs/project/agent_quality_implementation.md)
+[POC implementation notes](../../../v2-plan/archive/quality/agent-quality-implementation.md)
 for the implemented scope and deferred evaluation work.
 
 From the repository root, using the locked Python 3.14 environment:

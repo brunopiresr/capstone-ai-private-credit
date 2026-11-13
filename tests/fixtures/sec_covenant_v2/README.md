@@ -20,4 +20,4 @@ inputs exclude descriptive catalog notes.
 `fmc_amendment_schedule.md` preserves all 19 leverage and 17 interest-coverage quarters
 from `DOC_FMC_AMD3_2025`, including continuation rows. Mocked pipeline checks verify
 complete input delivery. The optional local SEC regression skips if its ignored
-Markdown source is absent. See [public benchmark findings](../../../docs/reviews/public_sec_benchmark_triage.md).
+Markdown source is absent. See [public benchmark findings](../../../v2-plan/archive/quality/public-sec-benchmark-triage.md).
