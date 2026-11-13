@@ -187,6 +187,14 @@ def render_v2_style() -> None:
             border-color: #94a3b8;
         }
 
+        /* Keep complete suggested questions readable on narrow screens. */
+        [class*="_chat_suggestions"] button [data-testid="stMarkdownContainer"],
+        [class*="_chat_suggestions"] button p {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+        }
+
         /* Clean tabs styling */
         [data-testid="stTabs"] [role="tablist"] {
             gap: 24px;

@@ -20,15 +20,25 @@ def render_prompt_chips(
     prompts: list[str],
     on_select: Callable[[str], None],
     key_prefix: str,
+    *,
+    disabled: bool = False,
 ) -> None:
     """Render clickable prompt chips."""
-    st.caption("Suggested Questions:")
-    # Render chips in a compact wrap or 2x2 grid
-    cols = st.columns(min(len(prompts), 3))
-    for idx, prompt in enumerate(prompts):
-        col = cols[idx % len(cols)]
-        if col.button(prompt, key=f"{key_prefix}_chip_{idx}", use_container_width=True):
-            on_select(prompt)
+    if not prompts:
+        return
+    with st.container(key=f"{key_prefix}_chat_suggestions"):
+        st.caption("Suggested Questions:")
+        cols = st.columns(min(len(prompts), 3))
+        for idx, prompt in enumerate(prompts):
+            col = cols[idx % len(cols)]
+            col.button(
+                prompt,
+                key=f"{key_prefix}_chip_{idx}",
+                use_container_width=True,
+                disabled=disabled,
+                on_click=on_select,
+                args=(prompt,),
+            )
 
 
 def generate_structured_fallback(assessment: RiskAssessment, question: str) -> str:
@@ -47,11 +57,20 @@ def generate_structured_fallback(assessment: RiskAssessment, question: str) -> s
         lines.append("\n**Current Covenant Status & Headroom:**")
         for res in assessment.results:
             status = res.compliance_status.upper()
-            val_str = f"{res.actual_value:.2f}{res.unit or ''}"
-            limit_str = f"{res.operator or ''} {res.threshold:.2f}{res.unit or ''}"
+            val_str = (
+                f"{res.actual_value:.2f}{res.unit or ''}"
+                if res.actual_value is not None
+                else "Unavailable"
+            )
+            limit_str = (
+                f"{res.operator or ''} {res.threshold:.2f}{res.unit or ''}"
+                if res.threshold is not None
+                else "Unavailable"
+            )
+            headroom_str = f"{res.headroom:.2f}" if res.headroom is not None else "Unavailable"
             lines.append(
                 f"- **{res.covenant_type}**: Status `{status}`, Actual: `{val_str}`, "
-                f"Threshold: `{limit_str}`, Headroom: `{res.headroom:.2f}`"
+                f"Threshold: `{limit_str}`, Headroom: `{headroom_str}`"
             )
             if res.compliance_status == "breach":
                 lines.append("  ⚠️ **Breach Warning**: Actual exceeds contractual limit.")
@@ -84,6 +103,24 @@ def generate_structured_fallback(assessment: RiskAssessment, question: str) -> s
     return "\n".join(lines)
 
 
+def _answer_question(workflow: BorrowerWorkflow, assessment: RiskAssessment, question: str) -> dict:
+    """Answer from one immutable assessment using the existing agent or offline fallback."""
+    if not os.getenv("OPENAI_API_KEY", "").strip():
+        return {"role": "assistant", "content": generate_structured_fallback(assessment, question)}
+    review = workflow.portfolio.repository.latest_review(assessment.assessment_run_id)
+    adapter = SavedAssessmentChat(workflow, assessment)
+    adapter.allow_recalculation = False
+    adapter.reason = f"Chat query: {question}"
+    adapter.prediction_mode = "Logistic Regression"
+    conversation = CreditAssessmentAgent(
+        assessment_service=adapter, model=os.getenv("LLM_MODEL") or DEFAULT_MODEL
+    ).start_conversation(borrower_id=assessment.borrower_id)
+    answer = ask_about_assessment(conversation, question, assessment, review=review)
+    if answer:
+        return {"role": "assistant", "answer": answer}
+    return {"role": "assistant", "content": "Assistant completed conversation turn."}
+
+
 def render_chat_widget(
     workflow: BorrowerWorkflow,
     assessment: RiskAssessment | None,
@@ -91,100 +128,94 @@ def render_chat_widget(
     key_prefix: str = "assistant",
     title: str = "AI Copilot",
     context_description: str | None = None,
+    transcript_height: int = 320,
 ) -> None:
-    """Render the full interactive conversational assistant."""
+    """Render a conversation whose pending work and input lock belong to one assessment."""
+    scope = f"{key_prefix}_{assessment.assessment_run_id}" if assessment else None
+    active_scope_key = f"{key_prefix}_active_chat_scope"
+    previous_scope = st.session_state.get(active_scope_key)
+    if previous_scope != scope:
+        # Discard unsent work on context changes, retaining each assessment's transcript.
+        if previous_scope:
+            st.session_state.pop(f"{previous_scope}_pending_question", None)
+            st.session_state.pop(f"{previous_scope}_chat_busy", None)
+        st.session_state[active_scope_key] = scope
+
     with st.container(border=True):
         st.subheader(f"💬 {title}")
         if context_description:
             st.caption(context_description)
-
         if assessment is None:
             st.info("Run or select a borrower assessment above to activate the AI copilot.")
             return
 
         state_key = f"{key_prefix}_chat_history_{assessment.assessment_run_id}"
-        if state_key not in st.session_state:
-            st.session_state[state_key] = []
+        pending_key = f"{scope}_pending_question"
+        busy_key = f"{scope}_chat_busy"
+        input_key = f"{key_prefix}_input_{assessment.assessment_run_id}"
+        st.session_state.setdefault(state_key, [])
+        # A consumed request cannot be replayed after an interrupted Streamlit run.
+        busy = bool(st.session_state.get(pending_key))
+        st.session_state[busy_key] = busy
 
-        # Handle queued prompt selection from chips
-        pending_key = f"{key_prefix}_pending_question"
-        queued_question = st.session_state.pop(pending_key, None)
+        def enqueue_question(prompt: str) -> None:
+            if st.session_state.get(active_scope_key) != scope:
+                return
+            if st.session_state.get(busy_key) or not prompt.strip():
+                return
+            st.session_state[pending_key] = prompt.strip()
+            st.session_state[busy_key] = True
+            st.session_state[state_key].append({"role": "user", "content": prompt.strip()})
 
-        def handle_chip_select(prompt: str) -> None:
-            st.session_state[pending_key] = prompt
-            st.rerun()
+        def enqueue_input() -> None:
+            enqueue_question(st.session_state.get(input_key) or "")
 
-        # Render suggested prompt chips
-        render_prompt_chips(suggested_prompts, handle_chip_select, key_prefix)
+        def clear_history() -> None:
+            if not st.session_state.get(busy_key):
+                st.session_state[state_key] = []
 
-        # Message history display container
-        with st.container(height=320):
+        render_prompt_chips(suggested_prompts, enqueue_question, scope, disabled=busy)
+        with st.container(height=transcript_height):
             if not st.session_state[state_key]:
                 st.caption(
                     "Ask any question regarding covenant calculations, evidence, or credit risks."
                 )
-            for msg in st.session_state[state_key]:
-                with st.chat_message(msg["role"]):
-                    if "answer" in msg:
-                        render_answer(msg["answer"])
+            for message in st.session_state[state_key]:
+                with st.chat_message(message["role"]):
+                    if "answer" in message:
+                        render_answer(message["answer"])
                     else:
-                        st.markdown(msg["content"])
+                        st.markdown(message["content"])
 
-        # Input row
-        question_input = st.chat_input(
+        st.chat_input(
             f"Ask about {assessment.borrower_id}…",
-            key=f"{key_prefix}_input_{assessment.assessment_run_id}",
+            key=input_key,
+            disabled=busy,
+            on_submit=enqueue_input,
         )
-
-        active_question = queued_question or question_input
-        if active_question:
-            st.session_state[state_key].append({"role": "user", "content": active_question})
-            has_credentials = bool(os.getenv("OPENAI_API_KEY", "").strip())
-            review = workflow.portfolio.repository.latest_review(assessment.assessment_run_id)
-
-            if has_credentials:
-                try:
-                    adapter = SavedAssessmentChat(workflow, assessment)
-                    adapter.allow_recalculation = False
-                    adapter.reason = f"Chat query: {active_question}"
-                    adapter.prediction_mode = "Logistic Regression"
-
-                    conv = CreditAssessmentAgent(
-                        assessment_service=adapter,
-                        model=os.getenv("LLM_MODEL") or DEFAULT_MODEL,
-                    ).start_conversation(borrower_id=assessment.borrower_id)
-
-                    with st.spinner("Synthesizing evidence and calculations…"):
-                        answer = ask_about_assessment(
-                            conv, active_question, assessment, review=review
-                        )
-
-                    if answer:
-                        st.session_state[state_key].append({"role": "assistant", "answer": answer})
-                    else:
-                        st.session_state[state_key].append(
-                            {
-                                "role": "assistant",
-                                "content": "Assistant completed conversation turn.",
-                            }
-                        )
-                except Exception as err:
-                    # Graceful fallback on LLM connection error
-                    fallback_msg = generate_structured_fallback(assessment, active_question)
-                    err_notice = f"\n\n*(Agent notice: {type(err).__name__})*"
-                    st.session_state[state_key].append(
-                        {
-                            "role": "assistant",
-                            "content": f"{fallback_msg}{err_notice}",
-                        }
-                    )
-            else:
-                fallback_msg = generate_structured_fallback(assessment, active_question)
-                st.session_state[state_key].append({"role": "assistant", "content": fallback_msg})
-
-            st.rerun()
-
         if st.session_state[state_key]:
-            if st.button("Clear Chat", key=f"{key_prefix}_clear_{assessment.assessment_run_id}"):
-                st.session_state[state_key] = []
-                st.rerun()
+            st.button(
+                "Clear Chat",
+                key=f"{key_prefix}_clear_{assessment.assessment_run_id}",
+                disabled=busy,
+                on_click=clear_history,
+            )
+
+        # Controls above are already disabled and the user message is visible when work starts.
+        question = st.session_state.pop(pending_key, None)
+        if question:
+            try:
+                with st.spinner("Answering…"):
+                    try:
+                        message = _answer_question(workflow, assessment, question)
+                    except Exception as error:
+                        try:
+                            fallback = generate_structured_fallback(assessment, question)
+                            content = f"{fallback}\n\n*(Agent notice: {type(error).__name__})*"
+                        except Exception:
+                            content = "Unable to answer this question. Please try again."
+                        message = {"role": "assistant", "content": content}
+                    st.session_state[state_key].append(message)
+            finally:
+                st.session_state[busy_key] = False
+            st.rerun()

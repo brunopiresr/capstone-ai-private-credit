@@ -28,24 +28,34 @@ RISK_COPILOT_SUGGESTED_PROMPTS = [
     "Compare leverage and headroom across flagged borrowers",
 ]
 
+RISK_TABS = ["⚠️ Flagged Borrowers Queue", "✍️ Review & Sign-Off", "📑 Board Report Studio"]
+
+
+def _open_queue_review(borrower_ids: tuple[str, ...]) -> None:
+    """Route a queue button click using the displayed dataframe's row order."""
+    click = st.session_state.get("v2_risk_review_click")
+    if click is None:
+        return
+    row = click["row"]
+    if 0 <= row < len(borrower_ids):
+        st.session_state.v2_risk_selected_borrower = borrower_ids[row]
+        st.session_state.v2_risk_tabs = RISK_TABS[1]
+
 
 def render_flagged_queue_table(
     items: list[dict],
-    selected_borrower_id: str,
-) -> str:
+) -> None:
     """Render priority queue table of flagged borrowers and untriaged breaches."""
     st.markdown("### Priority Exception Queue")
     if not items:
         st.info(
             "No flagged borrowers or covenant breaches requiring triage in this reporting scope."
         )
-        return selected_borrower_id
+        return
 
     rows = []
-    bids = []
     for item in items:
         bid = item["borrower_id"]
-        bids.append(bid)
         flags = item.get("flags", [])
         severity = max(
             (f["payload"]["severity"] for f in flags),
@@ -60,6 +70,7 @@ def render_flagged_queue_table(
 
         rows.append(
             {
+                "Review": "Review",
                 "Borrower": item["name"],
                 "ID": bid,
                 "Priority": severity,
@@ -76,7 +87,7 @@ def render_flagged_queue_table(
     # Sort priority: Critical -> High -> Medium -> Low
     priority_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3, "Untriaged": 4}
     df["sort_key"] = df["Priority"].map(lambda p: priority_order.get(p, 5))
-    df = df.sort_values("sort_key").drop(columns=["sort_key"])
+    df = df.sort_values("sort_key", kind="stable").drop(columns=["sort_key"]).reset_index(drop=True)
 
     key = "v2_risk_queue_table"
     st.dataframe(
@@ -84,20 +95,18 @@ def render_flagged_queue_table(
         width="stretch",
         hide_index=True,
         key=key,
+        column_config={
+            "Review": st.column_config.ButtonColumn(
+                "Action",
+                width="small",
+                pinned=True,
+                help="Open this borrower's review and sign-off.",
+                key="v2_risk_review_click",
+                on_click=_open_queue_review,
+                args=(tuple(df["ID"]),),
+            ),
+        },
     )
-
-    default_idx = bids.index(selected_borrower_id) if selected_borrower_id in bids else 0
-    picked_case = st.selectbox(
-        "Select Flagged Borrower to Review or Sign-Off",
-        options=bids,
-        index=default_idx,
-        format_func=lambda bid: next(
-            (f"{it['name']} ({bid})" for it in items if it["borrower_id"] == bid), bid
-        ),
-        key="v2_risk_case_picker",
-    )
-
-    return picked_case
 
 
 def render_manager_signoff_panel(
@@ -261,6 +270,12 @@ def render_board_report_studio(
     reports = manager.repository.board_reports()
     report_lookup = {r["report_id"]: r for r in reports}
 
+    # Apply generated-report navigation before instantiating the selector widget.
+    generated_report_id = st.session_state.pop("_v2_board_next_report", None)
+    if generated_report_id in report_lookup:
+        st.session_state.v2_board_report_select = generated_report_id
+        st.success(f"Report draft {generated_report_id} generated!")
+
     st.markdown("### Board Report Studio")
     st.caption("Generate, edit, and freeze formal quarterly credit risk reports for the Board.")
 
@@ -290,8 +305,7 @@ def render_board_report_studio(
         )
         if st.button("Generate Draft from Current Portfolio", type="primary"):
             new_id = reporting.generate(scope_period, cutoff, title=title)
-            st.session_state.v2_board_report_select = new_id
-            st.success(f"Report draft {new_id} generated!")
+            st.session_state._v2_board_next_report = new_id
             st.rerun()
         return
 
@@ -427,31 +441,28 @@ def render_risk_manager_view(
     with col4:
         render_kpi_card("Total Monitored", metrics["borrowers"], "In reporting scope")
 
-    # 2. Main tabs: Queue, Review, Board Report
-    tab_queue, tab_review, tab_board = st.tabs(
-        ["⚠️ Flagged Borrowers Queue", "✍️ Review & Sign-Off", "📑 Board Report Studio"]
-    )
-
     # Active flagged borrower selection
-    if "v2_risk_selected_borrower" not in st.session_state:
+    names = {item["borrower_id"]: f"{item['name']} ({item['borrower_id']})" for item in items}
+    if st.session_state.get("v2_risk_selected_borrower") not in names:
         st.session_state.v2_risk_selected_borrower = items[0]["borrower_id"] if items else ""
+
+    # Stateful tabs let the queue action open the review without losing other navigation.
+    tab_queue, tab_review, tab_board = st.tabs(RISK_TABS, key="v2_risk_tabs", on_change="rerun")
 
     # TAB 1: Flagged Queue
     with tab_queue:
-        active_id = render_flagged_queue_table(items, st.session_state.v2_risk_selected_borrower)
-        if active_id != st.session_state.v2_risk_selected_borrower:
-            st.session_state.v2_risk_selected_borrower = active_id
-            st.rerun()
-
-    # Active item for review
-    selected_bid = st.session_state.v2_risk_selected_borrower
-    selected_item = next(
-        (it for it in items if it["borrower_id"] == selected_bid), items[0] if items else None
-    )
+        render_flagged_queue_table(items)
 
     # TAB 2: Review & Sign-Off
     with tab_review:
-        if selected_item:
+        if items:
+            selected_bid = st.selectbox(
+                "Select Flagged Borrower to Review or Sign-Off",
+                options=list(names),
+                format_func=names.get,
+                key="v2_risk_selected_borrower",
+            )
+            selected_item = next(item for item in items if item["borrower_id"] == selected_bid)
             render_manager_signoff_panel(manager, selected_item, scope_period, cutoff)
 
             # Embedded Risk Copilot for the selected borrower / portfolio
@@ -471,8 +482,8 @@ def render_risk_manager_view(
             )
         else:
             st.info(
-                "No flagged borrower selected. "
-                "Open the **Flagged Queue** tab to pick an exception."
+                "No flagged borrowers are available for review in this reporting scope. "
+                "Choose another reporting period or information cutoff."
             )
 
     # TAB 3: Board Report Studio

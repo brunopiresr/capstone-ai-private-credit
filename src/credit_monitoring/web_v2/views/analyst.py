@@ -8,10 +8,12 @@ import streamlit as st
 from credit_monitoring.application.borrower_workflow import BorrowerWorkflow
 from credit_monitoring.application.portfolio_service import PortfolioEntry
 from credit_monitoring.domain.assessment import RiskAssessment
+from credit_monitoring.domain.credit_review import ExposureDecisionContext
 from credit_monitoring.web.borrower_views import render_saved_trend
-from credit_monitoring.web.portfolio import render_agent_result
+from credit_monitoring.web.portfolio import DEFAULT_CRITERIA
 from credit_monitoring.web_v2.components.chat import render_chat_widget
 from credit_monitoring.web_v2.components.metrics import render_kpi_card
+from credit_monitoring.web_v2.components.review import render_credit_review
 
 
 def _fmt(value: float | None, unit: str | None = None) -> str:
@@ -31,8 +33,7 @@ ANALYST_SUGGESTED_PROMPTS = [
 
 def render_loan_portfolio_table(
     entries: list[PortfolioEntry],
-    selected_borrower_id: str,
-) -> str:
+) -> None:
     """Render search, status filters, and the interactive loan portfolio table."""
     # 1. Summary KPI row
     col1, col2, col3, col4 = st.columns(4)
@@ -94,13 +95,11 @@ def render_loan_portfolio_table(
 
     if not filtered:
         st.info("No loans match the current search or filter criteria.")
-        return selected_borrower_id
+        return
 
     # Table rows
     table_data = []
-    borrower_ids = []
     for e in filtered:
-        borrower_ids.append(e.borrower_id)
         primary_covenant = "—"
         actual_str = "—"
         threshold_str = "—"
@@ -140,20 +139,6 @@ def render_loan_portfolio_table(
         hide_index=True,
         key=key,
     )
-
-    names_map = {e.borrower_id: f"{e.name} ({e.borrower_id}) - {e.compliance}" for e in filtered}
-    default_idx = (
-        borrower_ids.index(selected_borrower_id) if selected_borrower_id in borrower_ids else 0
-    )
-    picked_borrower = st.selectbox(
-        "Select Active Loan to Inspect or Run Analysis",
-        options=borrower_ids,
-        index=default_idx,
-        format_func=lambda bid: names_map.get(bid, bid),
-        key="v2_analyst_borrower_picker",
-    )
-
-    return picked_borrower
 
 
 def render_covenants_card(assessment: RiskAssessment) -> None:
@@ -309,120 +294,200 @@ def render_credit_analyst_view(
     selected_period: date | None,
     cutoff: date,
 ) -> None:
-    """Main view for Credit Analyst persona."""
+    """Main view for Credit Analyst persona with one shared borrower context."""
     portfolio_service = workflow.portfolio
-    entries = portfolio_service.snapshot(period_end=selected_period, cutoff=cutoff)
-
+    try:
+        entries = portfolio_service.snapshot(period_end=selected_period, cutoff=cutoff)
+    except ValueError as error:
+        st.error(str(error))
+        return
     if not entries:
         st.warning("No loan portfolio entries are available for the selected dates.")
         return
 
-    # Keep track of active borrower
-    if "v2_selected_borrower" not in st.session_state:
+    names = {e.borrower_id: f"{e.name} ({e.borrower_id})" for e in entries}
+    if st.session_state.get("v2_selected_borrower") not in names:
         st.session_state.v2_selected_borrower = entries[0].borrower_id
+    active_id = st.selectbox(
+        "Select Active Loan to Inspect or Run Analysis",
+        options=list(names),
+        format_func=names.get,
+        key="v2_selected_borrower",
+    )
+    active_entry = next(e for e in entries if e.borrower_id == active_id)
+    active_assessment = active_entry.assessment
+    st.caption(
+        f"Selected: {names[active_id]} · Sector: {active_entry.sector} · "
+        f"Reporting period: {active_entry.period_end or 'No eligible period'} · "
+        f"Information cutoff: {cutoff} · Assessment status: {active_entry.compliance}"
+    )
 
-    # 3 Main Workflow Tabs
     tab_portfolio, tab_analysis, tab_flagging = st.tabs(
         ["📊 Loan Portfolio", "🔬 Run Analysis & Covenants", "🚩 Flag & Triage"]
     )
-
-    # TAB 1: Loan Portfolio
     with tab_portfolio:
-        selected_id = render_loan_portfolio_table(entries, st.session_state.v2_selected_borrower)
-        if selected_id != st.session_state.v2_selected_borrower:
-            st.session_state.v2_selected_borrower = selected_id
+        render_loan_portfolio_table(entries)
+
+    with tab_analysis:
+        st.markdown(f"### Analysis for {active_entry.name}")
+        effective_period = selected_period or active_entry.period_end
+        eligible_periods = {
+            period.period_end
+            for period in portfolio_service.financial_repository.get_period_history(
+                active_id, as_of=cutoff
+            )
+        }
+        can_assess = effective_period is not None and effective_period in eligible_periods
+        # Feedback belongs to a borrower/date scope and survives assessment replacement.
+        feedback_key = f"v2_feedback_{active_id}_{effective_period}_{cutoff}"
+        review_open_key = (
+            f"v2_review_open_{active_assessment.assessment_run_id}" if active_assessment else None
+        )
+        col_assess, col_review = st.columns(2)
+        with col_assess:
+            run_assess = st.button(
+                "⚡ Run Full Assessment",
+                type="primary",
+                use_container_width=True,
+                disabled=not can_assess,
+            )
+        with col_review:
+            if st.button(
+                "🤖 AI Credit Review",
+                use_container_width=True,
+                disabled=active_assessment is None,
+            ):
+                st.session_state[review_open_key] = True
+
+        if not can_assess:
+            st.info(
+                "No eligible financial reporting period is available for this borrower and "
+                "date scope. Choose another reporting period or information cutoff."
+            )
+
+        if run_assess and can_assess:
+            try:
+                with st.status(
+                    f"Running financial and covenant assessment for {active_entry.name}…",
+                    expanded=True,
+                ):
+                    new_assessment = workflow.assess(
+                        active_id,
+                        effective_period,
+                        cutoff,
+                        prediction_mode="Logistic Regression",
+                        reason="Analyst requested full assessment.",
+                    )
+            except Exception as error:
+                feedback = {
+                    "level": "error",
+                    "kind": "assessment",
+                    "message": f"Assessment failed for {active_entry.name} "
+                    f"({type(error).__name__}). "
+                    "Earlier saved results are retained. Check the reporting period and "
+                    "available financial data, then retry.",
+                }
+            else:
+                feedback = {
+                    "level": "success",
+                    "kind": "assessment",
+                    "message": f"Assessment completed for {active_entry.name} · "
+                    f"Reporting period: {new_assessment.period_end} · "
+                    f"{len(new_assessment.results)} covenant tests saved.",
+                }
+            st.session_state[feedback_key] = feedback
             st.rerun()
 
-    # Retrieve current active assessment
-    active_id = st.session_state.v2_selected_borrower
-    active_entry = next((e for e in entries if e.borrower_id == active_id), entries[0])
-    active_assessment: RiskAssessment | None = active_entry.assessment
-
-    # TAB 2: Run Analysis & Covenants
-    with tab_analysis:
-        st.markdown(
-            f"""
-            <div class="cm-banner">
-                <div style="font-size:1.15rem; font-weight:700; color:#0f172a;">
-                    {active_entry.name}
-                    <span style="font-size:0.85rem; color:#64748b;">({active_id})</span>
-                </div>
-                <div style="font-size:0.82rem; color:#475569; margin-top:3px;">
-                    Sector: <b>{active_entry.sector}</b> ·
-                    Period: <b>{active_entry.period_end or "Latest"}</b> ·
-                    Status: <b>{active_entry.compliance}</b>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Action bar to run assessment
-        col_act1, col_act2, col_act3 = st.columns([1.2, 1.2, 2])
-        with col_act1:
-            run_assess = st.button(
-                "⚡ Run Full Assessment", type="primary", use_container_width=True
-            )
-        with col_act2:
-            run_agent = st.button("🤖 Run AI Credit Review", use_container_width=True)
-
-        if run_assess:
-            with st.spinner(f"Running financial and covenant assessment for {active_entry.name}…"):
-                eff_period = selected_period or active_entry.period_end or date(2024, 9, 30)
-                new_assessment = workflow.assess(
-                    active_id,
-                    eff_period,
-                    cutoff,
-                    prediction_mode="Logistic Regression",
-                    reason="Analyst requested full assessment.",
+        submit_review = False
+        if active_assessment and st.session_state.get(review_open_key):
+            run_id = active_assessment.assessment_run_id
+            with st.form(f"v2_review_form_{run_id}"):
+                st.markdown("#### Configure AI Credit Review")
+                review_question = st.text_input(
+                    "Credit review question",
+                    "Assess covenant compliance and exposure actions.",
+                    key=f"v2_review_question_{run_id}",
                 )
-                st.session_state[f"v2_assessment_{active_id}"] = new_assessment
-                st.success("Assessment completed successfully!")
+                review_criteria = st.text_area(
+                    "Credit criteria",
+                    DEFAULT_CRITERIA,
+                    height=130,
+                    key=f"v2_review_criteria_{run_id}",
+                )
+                submit_col, cancel_col = st.columns(2)
+                submit_review = submit_col.form_submit_button("Submit Review", type="primary")
+                cancel_review = cancel_col.form_submit_button("Cancel")
+            if cancel_review:
+                st.session_state[review_open_key] = False
                 st.rerun()
 
-        if run_agent and active_assessment:
-            with st.spinner("Executing Bull/Bear credit review agents…"):
-                workflow.portfolio.credit_review_service.review_assessment(
-                    active_assessment,
-                    question="Assess covenant compliance and exposure actions.",
-                )
-                st.success("AI Credit Review generated!")
+        if submit_review:
+            criteria = tuple(line.strip() for line in review_criteria.splitlines() if line.strip())
+            if not review_question.strip() or not criteria:
+                st.error("Supply a review question and at least one credit criterion.")
+            else:
+                try:
+                    with st.status(
+                        f"Running AI Credit Review for {active_entry.name}…", expanded=True
+                    ):
+                        review = portfolio_service.review(
+                            active_assessment.assessment_run_id,
+                            ExposureDecisionContext(
+                                question=review_question.strip(), credit_criteria=criteria
+                            ),
+                        )
+                except Exception as error:
+                    feedback = {
+                        "level": "error",
+                        "kind": "review",
+                        "message": f"Agent review failed ({type(error).__name__}). "
+                        "The assessment and earlier reviews are retained. Retry Submit Review.",
+                    }
+                else:
+                    feedback = {
+                        "level": "success" if review.status == "complete" else "info",
+                        "kind": "review",
+                        "message": f"AI Credit Review for {active_entry.name}: "
+                        f"{review.status.title()}. Results are below the covenant table.",
+                    }
+                    st.session_state[review_open_key] = False
+                st.session_state[feedback_key] = feedback
                 st.rerun()
 
-        # Display calculations & headroom
+        feedback = st.session_state.get(feedback_key)
+        if feedback:
+            getattr(st, feedback["level"])(feedback["message"])
+            if st.button("Dismiss message", key=f"{feedback_key}_dismiss"):
+                del st.session_state[feedback_key]
+                st.rerun()
+
         if active_assessment:
-            col_cov, col_chat = st.columns([1.3, 1])
-            with col_cov:
-                render_covenants_card(active_assessment)
-                with st.expander("Historical Headroom Trends", expanded=True):
-                    render_saved_trend(active_assessment)
-
-            with col_chat:
-                # Embedded AI Assistant
-                render_chat_widget(
-                    workflow=workflow,
-                    assessment=active_assessment,
-                    suggested_prompts=ANALYST_SUGGESTED_PROMPTS,
-                    key_prefix="analyst",
-                    title="Analyst Assistant",
-                    context_description=f"Copilot for {active_entry.name} calculations & evidence.",
-                )
-
-            # AI Credit Review snapshot if available
-            latest_review = workflow.portfolio.repository.latest_review(
+            render_covenants_card(active_assessment)
+            latest_review = portfolio_service.repository.latest_review(
                 active_assessment.assessment_run_id
             )
             if latest_review:
-                st.divider()
-                st.markdown("#### AI Agent Perspective: Bull vs Bear Review")
-                render_agent_result(latest_review)
+                if feedback and feedback["kind"] == "review" and feedback["level"] == "error":
+                    st.caption("Showing the earlier saved review; the latest attempt failed.")
+                render_credit_review(latest_review)
+            with st.expander("Historical Headroom Trends", expanded=True):
+                render_saved_trend(active_assessment)
         else:
             st.info(
                 "No assessment has been run yet for this borrower and period. "
                 "Click **⚡ Run Full Assessment** above to evaluate covenants."
             )
 
-    # TAB 3: Flag & Triage
+        render_chat_widget(
+            workflow=workflow,
+            assessment=active_assessment,
+            suggested_prompts=ANALYST_SUGGESTED_PROMPTS,
+            key_prefix="analyst",
+            title="Analyst Assistant",
+            context_description=f"Copilot for {active_entry.name} calculations & evidence.",
+            transcript_height=500,
+        )
+
     with tab_flagging:
         if active_assessment:
             render_flagging_tab(workflow, active_assessment)
