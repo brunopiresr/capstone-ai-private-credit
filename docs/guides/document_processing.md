@@ -4,6 +4,8 @@ The document service downloads cataloged HTML, converts it to Markdown, extracts
 supported facts from every section, and stores results in SQLite. Search retrieves
 local passages; the assistant uses scoped tools to answer questions with evidence.
 For app controls, see [Documents & data](ui_preview.md#manage-documents-and-data).
+For every tool's arguments, results, scope, and effects, see the
+[agent tools reference](agent_tools.md).
 
 ## Process and search documents
 
@@ -76,7 +78,7 @@ print(answer.answer, answer.sources, answer.tool_trace)
 ```
 
 Use `ask(...)` in synchronous code. Each independent call starts fresh. The default
-allows six tool rounds and seven model requests, including output-validation retries.
+allows six tool rounds and eight model requests, including output-validation retries.
 Limit, refusal, or output failures return explicit incomplete results.
 
 Document tools list sources, read extractions, search evidence, and process a document.

@@ -60,3 +60,7 @@ include = [
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+# The root logfire/ directory stores SQL assets, not the installed Python package.
+known-third-party = ["logfire"]

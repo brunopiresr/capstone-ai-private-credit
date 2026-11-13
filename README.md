@@ -74,6 +74,11 @@ technique below addresses a specific step in that review.
 | Agent tools | [Document tools](src/credit_monitoring/agents/tools/documents.py) discover, read, search, and process sources; [assessment tools](src/credit_monitoring/agents/tools/assessment.py) retrieve financials, assess covenants, and request optional risk predictions. | Give the assistant access to application services for evidence gathering and deterministic calculations. |
 | Multi-agent workflow | [Independent bullish and bearish reviews followed by a recommendation agent](docs/guides/credit_review.md). All three use the same saved assessment evidence; the recommendation also receives both analyses. | Compare supporting and opposing arguments before an analyst decides how to manage the exposure. |
 
+The [agent tools reference](docs/guides/agent_tools.md) documents every application
+and monitoring-demo tool, including its purpose, arguments, results, scope, and
+effects on saved data. Use it to understand how the assistants gather evidence,
+calculate compliance, and request forecasts or credit reviews.
+
 For example, an analyst investigating a leverage covenant retrieves supporting
 filing passages and inspects the extracted terms and threshold schedule. With
 explicitly linked borrower inputs and supported calculation rules, the analyst

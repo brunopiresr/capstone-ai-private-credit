@@ -2,6 +2,8 @@
 
 A Streamlit exercise for observing shared agents and user activity with optional Logfire.
 For the main project workspace, use the [README](../../README.md).
+The [agent tools reference](../../docs/guides/agent_tools.md#monitoring-homework-tools)
+documents the demo's borrower-discovery and credit-review tools and reused evidence tools.
 
 ```bash
 uv sync --extra ml --group dev --locked
