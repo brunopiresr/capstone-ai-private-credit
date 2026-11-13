@@ -205,7 +205,12 @@ async def test_batch_saves_actual_answers_judgments_and_execution_errors(tmp_pat
     assert json.loads((args.output / "summary.json").read_text())["overall"]["total"] == 2
 
 
-def test_v3_citation_scoring_reads_escaped_display_text():
+@pytest.mark.parametrize("citation", ["Source [note]_table | $10", "Section <a> & **notes**"])
+@pytest.mark.parametrize(
+    "placement,expected",
+    [("adjacent", True), ("inline", True), ("detached", False), ("missing", False)],
+)
+def test_v3_citation_scoring_reads_escaped_display_text(citation, placement, expected):
     from credit_monitoring.agents.answer_contract import render_content
     from credit_monitoring.domain.agent import (
         AnswerDraft,
@@ -218,7 +223,6 @@ def test_v3_citation_scoring_reads_escaped_display_text():
     case = next(
         case for case in read_scenarios(SUITE / "scenarios.csv") if case.scenario_id == "V11"
     )
-    citation = "Source [note]_table | $10"
     record = RetrievedRecord(
         document_id="EVAL_DEMO_Q1",
         citation=citation,
@@ -235,6 +239,13 @@ def test_v3_citation_scoring_reads_escaped_display_text():
             ]
         )
     )
+    if placement == "inline":
+        content.answer = content.answer.replace("\n\nSource: ", "\nSource: ")
+    elif placement == "detached":
+        content.answer = content.answer.replace("\n\nSource: ", "\n\nUnrelated note.\n\nSource: ")
+    elif placement == "missing":
+        # Structured references alone cannot establish a citation in the displayed answer.
+        content.answer = record.text
     answer = AgentAnswer(
         **content.model_dump(),
         sources=[SourceReference(document_id=record.document_id, citation=citation)],
@@ -248,9 +259,10 @@ def test_v3_citation_scoring_reads_escaped_display_text():
         ],
     )
     checks = check_answer(case, answer)
-    assert next(check for check in checks if check["name"] == "source_citation:EVAL_DEMO_Q1")[
-        "passed"
-    ]
+    assert (
+        next(check for check in checks if check["name"] == "source_citation:EVAL_DEMO_Q1")["passed"]
+        is expected
+    )
 
 
 @pytest.mark.parametrize("with_discovery", [False, True])

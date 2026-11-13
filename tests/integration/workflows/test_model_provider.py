@@ -161,8 +161,10 @@ def test_provider_receives_scoped_instructions_and_relocated_tool_guidance(
     payload = requests[0]
     assert payload["instructions"].startswith(build_credit_assessment_instructions())
     tools = {tool["name"]: tool for tool in payload["tools"]}
-    assert "clarification/missing inputs" in tools["final_result"]["description"]
-    assert "first action" in tools["final_result"]["description"]
+    output_description = tools["final_result"]["description"]
+    assert "explain missing information" in output_description
+    assert "findings for facts" in output_description
+    assert "tables for financial calculations" in output_description
     assert "including unprocessed ones" in tools["list_documents"]["description"]
     extraction = tools["get_document_extraction"]["description"]
     assert "complete covenant terms and fiscal-quarter schedules" in extraction

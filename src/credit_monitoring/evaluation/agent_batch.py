@@ -217,6 +217,9 @@ def check_answer(
     if answer.schema_version == "agent-answer-v3":
         # Assess the literal source text the renderer displays, including escaped source IDs.
         displayed_text = unescape(re.sub(r"\\([\\`*_{}\[\]<>|$#!+\.\-)])", r"\1", displayed_text))
+        # The renderer places a finding's source line in its own adjacent paragraph.
+        # Keep it with the preceding claim for scoring, without merging other endnotes.
+        displayed_text = re.sub(r"\n[ \t]*\n(?=Source: )", "\n", displayed_text)
 
     def check(name, passed, detail=""):
         checks.append({"name": name, "passed": bool(passed), "detail": detail})
