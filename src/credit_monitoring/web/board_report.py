@@ -11,6 +11,7 @@ from credit_monitoring.domain.credit_review import CreditReviewResult
 from credit_monitoring.web.portfolio import formatted_time, render_agent_result
 from credit_monitoring.web.review_requests import run_action
 from credit_monitoring.web.risk_review import get_manager
+from credit_monitoring.web.telemetry import with_web_session
 
 
 def select_report(report_id: str) -> None:
@@ -191,7 +192,7 @@ def render_board_report_page() -> None:
         "Report",
         ["new", *lookup],
         key="board_report_selection",
-        on_change=change_report_selection,
+        on_change=with_web_session(change_report_selection),
         format_func=lambda rid: (
             "Create a new report"
             if rid == "new"

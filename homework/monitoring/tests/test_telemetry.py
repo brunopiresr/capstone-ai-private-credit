@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 
-def test_both_modes_share_trace_and_reset_isolates(data_root, tmp_path):
+def test_modes_share_web_identity_with_separate_interaction_traces(data_root, tmp_path):
     result = subprocess.run(
         [
             sys.executable,

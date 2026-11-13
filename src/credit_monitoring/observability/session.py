@@ -1,4 +1,4 @@
-"""Retain session identity and resume its completed anchor between execution scopes."""
+"""Correlate conversation activity without retaining a trace parent between calls."""
 
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -14,10 +14,9 @@ from credit_monitoring.observability.configuration import is_observability_confi
 
 @dataclass
 class SessionContext:
-    """One conversation's identity, first-use display name, and propagation state."""
+    """One conversation's identity and display name, independent of trace lifetime."""
 
     session_id: str = field(default_factory=lambda: str(uuid4()))
-    carrier: dict[str, str] | None = field(default=None, repr=False)
     name: str = field(default="Credit assessment", kw_only=True)
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC), kw_only=True)
 
@@ -40,16 +39,6 @@ def get_active_session() -> SessionContext | None:
     return _current_session.get()
 
 
-@logfire.instrument(
-    "{session_name}",
-    span_name="agent.session",
-    new_trace=True,
-    extract_args=["session_name"],
-)
-def _capture_session_trace(session_name: str) -> dict[str, str]:
-    return logfire.get_context()
-
-
 @contextmanager
 def session_scope(session: SessionContext | None = None) -> Iterator[SessionContext]:
     """Preserve nested parents; restore caller context after every execution scope."""
@@ -65,9 +54,6 @@ def session_scope(session: SessionContext | None = None) -> Iterator[SessionCont
             yield session
             return
         with logfire.set_baggage(**{"gen_ai.conversation.id": session.session_id}):
-            if session.carrier is None:
-                session.carrier = _capture_session_trace(session.name)
-            with logfire.attach_context(session.carrier):
-                yield session
+            yield session
     finally:
         _current_session.reset(token)

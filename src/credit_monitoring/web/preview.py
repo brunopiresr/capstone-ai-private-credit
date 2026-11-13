@@ -15,6 +15,7 @@ from credit_monitoring.web.navigation import (
 )
 from credit_monitoring.web.preview_style import render_preview_style
 from credit_monitoring.web.source_watch import watch_application_sources
+from credit_monitoring.web.telemetry import with_web_session
 from credit_monitoring.web.user_guide import remember_navigation, render_user_guide
 
 PAGES = ["Portfolio", "Risk review", "Board report", "Documents & data"]
@@ -55,7 +56,7 @@ def render_sidebar() -> None:
             key="preview_navigation",
             format_func=lambda page: PAGE_LABELS.get(page, page),
             label_visibility="collapsed",
-            on_change=choose_navigation,
+            on_change=with_web_session(choose_navigation),
         )
         st.divider()
         if st.button("Help", key="workspace_help", width="stretch"):
@@ -90,10 +91,13 @@ def render_settings() -> None:
         except Exception as error:
             st.error(f"Could not open maintenance ({type(error).__name__}).")
     with st.expander("Navigation"):
-        st.button("Reset navigation", key="preview_reset", on_click=reset_navigation)
+        st.button(
+            "Reset navigation", key="preview_reset", on_click=with_web_session(reset_navigation)
+        )
         st.caption("Saved assessments, flags, requests and reports are retained.")
 
 
+@with_web_session
 def main() -> None:
     watch_application_sources()
     st.set_page_config(

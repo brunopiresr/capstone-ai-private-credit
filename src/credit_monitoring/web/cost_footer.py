@@ -8,6 +8,7 @@ import streamlit as st
 from credit_monitoring.observability.activity import ACTIVITY_LABELS
 from credit_monitoring.observability.costs import CostTrackingService, SessionCostSummary
 from credit_monitoring.observability.session import SessionContext
+from credit_monitoring.web.telemetry import with_web_session
 
 RETRY_TIMES = (0, 2, 5, 10, 20, 30)
 
@@ -73,6 +74,7 @@ def _amount(value) -> str:
 
 
 @st.fragment(run_every=1)
+@with_web_session
 def render_cost_footer(session: SessionContext | None, *, key: str) -> None:
     """The timer redraws only this footer; network reads stop after reconciliation."""
     st.markdown("**Estimated session cost**")
@@ -138,5 +140,5 @@ def render_cost_footer(session: SessionContext | None, *, key: str) -> None:
     st.button(
         "Refresh cost", key=f"{key}_refresh",
         disabled=monotonic() < state.blocked_until,
-        on_click=request_cost_refresh, args=(session,), kwargs={"key": key},
+        on_click=with_web_session(request_cost_refresh), args=(session,), kwargs={"key": key},
     )

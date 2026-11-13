@@ -4,6 +4,21 @@ Implementation reference: [Logfire implementation plan](../../archive/logfire_im
 This record documents implementation choices and validation limits. It does not expand
 the plan's scope.
 
+Updated 2026-11-13: session scopes now provide correlation without an `agent.session`
+anchor. Independent turns/workflows create separate traces. Web entrypoints, callbacks,
+and fragments share a UUID through `session.id` baggage; `gen_ai.conversation.id` remains
+the conversation key. The earlier acceptance evidence below describes the historical
+anchor implementation. See the [current plan](../logfire_session_trace_improvement_plan.md)
+and [setup guide](../../guides/logfire_setup.md) for the revised contract.
+
+Current offline validation passed with 1,046 in-memory records: five conversation turns
+had five distinct trace IDs and one shared web-session UUID. Exported standard logs,
+direct Logfire logs, native agents, tools, threaded assessments, reviews, and document
+operations retained that UUID. Nested parents, content policy, and secret scrubbing were
+verified. The affected unit/conversation and web/telemetry suites passed 244 tests; Ruff
+and diff checks passed. This update did not run live telemetry transport or inspect the
+cloud UI.
+
 ## Scope and ownership
 
 - The existing repository has no `TracingSession` implementation. The plan's instruction
@@ -25,9 +40,13 @@ the plan's scope.
 
 - A conversation retains the caller-supplied session, otherwise the active session,
   otherwise a newly generated session. It exposes a read-only session ID.
-- Session propagation uses an ended anchor's SDK context carrier. No manually decoded
-  trace IDs, retained root spans, counters, mutable session status, or token totals are
-  added. A nested scope for the active session preserves the current parent.
+- Session propagation uses scoped conversation-ID baggage and does not retain a trace
+  carrier. A nested scope preserves the current parent, including when the caller changes
+  conversation identity. Independent top-level calls get independent traces.
+- Web-session UUIDs live in Streamlit session state and are bound through scoped baggage,
+  including callbacks and fragment reruns. A narrow scrub callback preserves the exact
+  `session.id` attribute only when its value is a canonical UUID. Cached services retain
+  no browser identity. Clearing chat does not rotate the web-session ID.
 - `_stream_question()` owns the session and turn scopes around execution and callbacks.
   `run_stream()` retains graph execution and only reads the active session ID for native
   PydanticAI invocation metadata. Internal async-generator consumers retain `aclosing()`.

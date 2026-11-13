@@ -27,6 +27,7 @@ from user_events import UserEvents
 
 from credit_monitoring.observability import SessionContext, configure_observability
 from credit_monitoring.observability.session import get_active_session
+from credit_monitoring.web.telemetry import web_session_scope
 
 
 def parent(record):
@@ -107,12 +108,14 @@ def main():
     logfire.force_flush(timeout_millis=2000)
     records = exporter.exported_spans_as_dict()
     traces = {record["context"]["trace_id"] for record in records}
-    assert len(traces) == 1
+    assert not any(r["name"] == "agent.session" for r in records)
+    assert all(
+        r["attributes"].get("session.id") == logfire.get_baggage()["session.id"] for r in records
+    )
     assert all(
         record["attributes"].get("gen_ai.conversation.id") == chat.session.session_id
         for record in records
     )
-    anchor = next(r for r in records if r["name"] == "agent.session")
     user_records = [r for r in records if "event_name" in r["attributes"]]
     assert {r["attributes"]["event_name"] for r in user_records} >= {
         "user.started",
@@ -129,7 +132,7 @@ def main():
         assert record["name"] == event_name
         assert record["attributes"]["logfire.msg_template"] == event_name
         assert record["attributes"]["logfire.msg"] == event_name
-    assert all(parent(r) == anchor["context"]["span_id"] for r in user_records)
+    assert all(parent(r) is None for r in user_records)
     assert all(r["attributes"]["chat_id"] == chat.session.session_id for r in user_records)
     assert all(isinstance(r["attributes"]["elapsed_seconds"], (int, float)) for r in user_records)
     assert all(isinstance(r["attributes"]["active_seconds"], (int, float)) for r in user_records)
@@ -138,7 +141,8 @@ def main():
     )
     assert "PRIVATE USER COMMENT" not in json.dumps(records)
     turns = [r for r in records if r["name"] == "chat.interaction"]
-    assert len(turns) == 5 and all(parent(r) == anchor["context"]["span_id"] for r in turns)
+    assert len(turns) == 5 and all(parent(r) is None for r in turns)
+    assert len({r["context"]["trace_id"] for r in turns}) == 5
     interactions = {record["context"]["span_id"]: record for record in turns}
     for record in turns:
         attributes = record["attributes"]
@@ -190,7 +194,6 @@ def main():
         )
     tool = next(r for r in records if r["name"].startswith("execute_tool run_credit_review"))
     assert parent(review) == tool["context"]["span_id"]
-    previous = next(iter(traces))
     chat.close()
     fresh = ChatBackend(model=ScriptedModel(response=text_response()))
     fresh_events = UserEvents(fresh.session)
@@ -200,7 +203,7 @@ def main():
     fresh_turn = next(
         r
         for r in exporter.exported_spans_as_dict()
-        if r["name"] == "chat.interaction" and r["context"]["trace_id"] != previous
+        if r["name"] == "chat.interaction" and r["context"]["trace_id"] not in traces
     )
     assert fresh_turn["attributes"]["chat_id"] == fresh.session.session_id
     assert fresh.session.session_id in fresh_turn["attributes"]["logfire.msg"]
@@ -218,7 +221,7 @@ def main():
             {
                 "interactions": len(turns),
                 "records": len(records),
-                "trace_id": f"{previous:032x}",
+                "trace_ids": [f"{r['context']['trace_id']:032x}" for r in turns],
                 "isolated_reset": True,
             }
         )
@@ -226,4 +229,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with patch("credit_monitoring.web.telemetry.st.session_state", {}), web_session_scope():
+        main()

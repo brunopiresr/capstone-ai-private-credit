@@ -1,5 +1,6 @@
 """Connected source inventory, processing controls, and local database recreation."""
 
+import hashlib
 import os
 from datetime import date
 
@@ -87,6 +88,12 @@ def execute_documents(workspace: DocumentWorkspace, kind: str, ids: list[str], *
     st.rerun()
 
 
+def document_table_key(prefix: str, scope: str, identities: list[str]) -> str:
+    """Reset positional selections whenever the visible documents or search change."""
+    fingerprint = hashlib.sha256(repr((scope, identities)).encode()).hexdigest()[:16]
+    return f"documents_{prefix}_{fingerprint}"
+
+
 def render_inventory(workspace: DocumentWorkspace, borrower_id: str) -> None:
     view = st.radio(
         "Show sources",
@@ -111,7 +118,8 @@ def render_inventory(workspace: DocumentWorkspace, borrower_id: str) -> None:
     if not rows:
         st.info("No sources in this view. Register a source or link an existing catalog document.")
         return
-    st.dataframe(
+    st.caption("Use the row checkboxes to select documents for processing and inspection.")
+    selection = st.dataframe(
         pd.DataFrame(
             [
                 {
@@ -133,14 +141,15 @@ def render_inventory(workspace: DocumentWorkspace, borrower_id: str) -> None:
         ),
         hide_index=True,
         width="stretch",
+        key=document_table_key(
+            "inventory", f"{borrower_id}:{view}", [r["document_id"] for r in rows]
+        ),
+        selection_mode="multi-row",
+        on_select="rerun",
     )
-    choices = {r["document_id"]: r.get("title") or r["document_id"] for r in rows}
-    ids = st.multiselect(
-        "Select documents",
-        list(choices),
-        format_func=choices.get,
-        key=f"documents_selected_{borrower_id}",
-    )
+    selected_rows = [rows[i] for i in selection.selection.rows if 0 <= i < len(rows)]
+    ids = [r["document_id"] for r in selected_rows]
+    st.caption(f"{len(ids)} document(s) selected")
     with st.expander("Advanced processing options"):
         user_agent = st.text_input(
             "Download identity (name / organization and email)",
@@ -205,39 +214,139 @@ def render_inventory(workspace: DocumentWorkspace, borrower_id: str) -> None:
         st.dataframe(
             pd.DataFrame(st.session_state.documents_outcomes), hide_index=True, width="stretch"
         )
-    with st.expander("Inspect extracted facts and source text"):
-        selected = st.selectbox(
-            "Source document",
-            list(choices),
-            format_func=choices.get,
-            key=f"documents_inspect_{borrower_id}",
-        )
-        record = next(r for r in rows if r["document_id"] == selected)
-        st.link_button("Open source URL", record["source_url"])
-        extraction = workspace.processor.get_document_extraction(selected)
-        st.caption(
-            f"State: {extraction.status} · Cache reuse: {extraction.cache_hit} · "
-            f"Sections: {extraction.completed_sections}/{extraction.total_sections}"
-        )
-        if extraction.error:
-            st.info(extraction.error)
-        if record["format_issue"]:
-            st.warning(record["format_issue"])
-        if extraction.result:
+    for record in selected_rows:
+        with st.expander(
+            f"Extracted facts and source text · {record.get('title') or record['document_id']}",
+            expanded=len(selected_rows) == 1,
+        ):
+            render_document_extraction(workspace, record, key_prefix="inventory")
+
+
+def render_document_extraction(
+    workspace: DocumentWorkspace, record: dict, *, key_prefix: str
+) -> None:
+    """Inspect saved results without downloading or starting extraction."""
+    selected = record["document_id"]
+    st.subheader(record.get("title") or selected)
+    st.caption(f"Document ID: {selected}")
+    st.link_button("Open source URL", record["source_url"])
+    extraction = workspace.processor.get_document_extraction(selected)
+    st.caption(
+        f"State: {extraction.status} · Cache reuse: {extraction.cache_hit} · "
+        f"Sections: {extraction.completed_sections}/{extraction.total_sections}"
+    )
+    if extraction.error:
+        st.info(extraction.error)
+    if record["format_issue"]:
+        st.warning(record["format_issue"])
+    if extraction.result:
+        facts = extraction.result.extraction
+        for issue in [*facts.gaps, *facts.conflicts, *facts.extraction_warnings]:
+            st.warning(issue)
+        for covenant in facts.covenants:
+            with st.container(border=True):
+                st.write(f"**{covenant.covenant_name}**")
+                st.write(covenant.metric or "Metric not stated")
+                st.caption(covenant.evidence.citation)
+                st.text(covenant.evidence.evidence_quote)
+        if facts.reported_financial_values:
+            st.dataframe(
+                [
+                    {
+                        "Metric": value.metric_name,
+                        "Reported value": value.reported_value,
+                        "Period": str(value.period_end or "Not stated"),
+                        "Source": value.evidence.citation,
+                    }
+                    for value in facts.reported_financial_values
+                ],
+                hide_index=True,
+                width="stretch",
+            )
+        if not facts.covenants and not facts.reported_financial_values:
+            st.info("No covenant terms or reported financial values were extracted.")
+        with st.expander("Complete extraction results"):
             st.json(extraction.result.model_dump(mode="json"), expanded=False)
-        if record["markdown_available"]:
-            text = workspace.processor.read_source_text(selected)
-            st.text_area(
-                "Local source excerpt",
-                text[:12000],
-                height=180,
-                disabled=True,
-                key=f"documents_excerpt_{selected}",
-            )
-            st.caption(
-                f"Showing up to 12,000 of {len(text):,} characters. "
-                "Extraction uses the full source."
-            )
+    else:
+        st.info(
+            "No complete extraction is available. Select this document in Inventory & processing."
+        )
+    if record["markdown_available"]:
+        text = workspace.processor.read_source_text(selected)
+        st.text_area(
+            "Local source excerpt",
+            text[:12000],
+            height=180,
+            disabled=True,
+            key=f"documents_excerpt_{key_prefix}_{selected}",
+        )
+        st.caption(
+            f"Showing up to 12,000 of {len(text):,} characters. Extraction uses the full source."
+        )
+
+
+def render_evidence_index(workspace: DocumentWorkspace) -> None:
+    st.subheader("Evidence index")
+    st.caption(
+        "Browse documents or search all locally available source text, including unlinked sources. "
+        "Select a row to see its passage and saved extraction results."
+    )
+    records = {r["document_id"]: r for r in workspace.inventory()}
+    with st.form("documents_index_search"):
+        query = st.text_input("Search evidence index", key="documents_index_query")
+        submitted = st.form_submit_button("Search index", disabled=workspace.busy)
+    if submitted:
+        st.session_state.documents_index_search_term = query.strip()
+    query = st.session_state.get("documents_index_search_term", "")
+    hits = workspace.processor.search_evidence(query) if query else []
+    if query:
+        st.caption(f"Search results for: {query}")
+        if not hits:
+            st.info("No matching local passages. Try another term or fetch and process a source.")
+            return
+        table_rows = [
+            {
+                "Document": records[h["document_id"]].get("title") or h["document_id"],
+                "ID": h["document_id"],
+                "Citation": h["citation"],
+                "Passage": h["content"],
+            }
+            for h in hits
+        ]
+        identities = [f"{h['document_id']}:{h['source_start']}:{h['source_end']}" for h in hits]
+    else:
+        table_rows = [
+            {
+                "Document": r.get("title") or r["document_id"],
+                "ID": r["document_id"],
+                "Issuer": r["company"],
+                "Local text": r["markdown_available"],
+                "Extraction": r["status"],
+            }
+            for r in records.values()
+        ]
+        identities = list(records)
+    if not table_rows:
+        st.info("No documents registered. Add a source in Register & link.")
+        return
+    selected = st.dataframe(
+        pd.DataFrame(table_rows),
+        hide_index=True,
+        width="stretch",
+        key=document_table_key("index", query, identities),
+        selection_mode="single-row",
+        on_select="rerun",
+    )
+    if not selected.selection.rows:
+        st.info("Select a row above to inspect the document extraction results.")
+        return
+    index = selected.selection.rows[0]
+    if not 0 <= index < len(table_rows):
+        return
+    if query:
+        st.caption(hits[index]["citation"])
+        st.text(hits[index]["content"])
+    render_document_extraction(workspace, records[table_rows[index]["ID"]], key_prefix="index")
 
 
 def render_catalog_forms(workspace: DocumentWorkspace, borrower_id: str) -> None:
@@ -424,15 +533,16 @@ def render_documents_page() -> None:
     if workspace.busy:
         st.info("Another document or maintenance operation is running.")
     if main_workspace:
-        inventory, catalog, history = st.tabs(
-            ["Inventory & processing", "Register & link", "Operation history"]
+        inventory, evidence, catalog, history = st.tabs(
+            ["Inventory & processing", "Evidence index", "Register & link", "Operation history"]
         )
         rebuild = None
     else:
         # The separate V2 app still exposes maintenance through its document view.
-        inventory, catalog, rebuild, history = st.tabs(
+        inventory, evidence, catalog, rebuild, history = st.tabs(
             [
                 "Inventory & processing",
+                "Evidence index",
                 "Register & link",
                 "Rebuild working data",
                 "Operation history",
@@ -443,6 +553,8 @@ def render_documents_page() -> None:
             render_maintenance(workspace)
     with inventory:
         render_inventory(workspace, borrower)
+    with evidence:
+        render_evidence_index(workspace)
     with catalog:
         render_catalog_forms(workspace, borrower)
     with history:

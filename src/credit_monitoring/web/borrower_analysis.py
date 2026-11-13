@@ -31,6 +31,7 @@ from credit_monitoring.web.borrower_views import (
     render_summary_metrics,
 )
 from credit_monitoring.web.navigation import navigate
+from credit_monitoring.web.telemetry import with_web_session
 from credit_monitoring.web.user_guide import TOPICS
 from credit_monitoring.web.workspace import ask_about_assessment
 
@@ -323,7 +324,9 @@ def _render_question_controls(
         state["draft"] = st.session_state[draft_key]
         state["draft_origin"] = None
 
-    draft = st.text_area("Question draft", key=draft_key, on_change=remember_draft, height=90)
+    draft = st.text_area(
+        "Question draft", key=draft_key, on_change=with_web_session(remember_draft), height=90
+    )
     if st.button(
         "Send question",
         key=f"analysis_send_{scope}",
@@ -435,7 +438,7 @@ def close_chat() -> None:
 @st.dialog("Credit assistant", width="large", on_dismiss=close_chat)
 def expanded_chat(workflow: BorrowerWorkflow, assessment: RiskAssessment, mode: str) -> None:
     render_chat(workflow, assessment, mode, expanded=True)
-    if st.button("Back to analysis", on_click=close_chat):
+    if st.button("Back to analysis", on_click=with_web_session(close_chat)):
         st.rerun()
 
 
@@ -470,7 +473,7 @@ def render_borrower_analysis() -> None:
         list(names),
         format_func=names.get,
         key="analysis_borrower",
-        on_change=select_borrower,
+        on_change=with_web_session(select_borrower),
     )
     title.markdown(
         f'<div class="preview-eyebrow">Credit analyst / {escape(borrower_id)}</div>',
@@ -582,7 +585,7 @@ def render_borrower_analysis() -> None:
                 "Review and submit",
                 type="primary",
                 key="analysis_handoff",
-                on_click=select_review_section,
+                on_click=with_web_session(select_review_section),
             )
         if st.button("Source documents", key="analysis_documents"):
             st.session_state._documents_open_borrower = borrower_id

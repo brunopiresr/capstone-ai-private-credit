@@ -1,11 +1,13 @@
 """Connected Documents & data interactions with real SQLite, conversion and extraction graphs."""
 
+import json
 from pathlib import Path
 
 import pytest
 from document_workspace_helpers import document_inputs, local_markdown
 from model_helpers import ScriptedModel, model_response
-from streamlit.testing.v1 import AppTest
+from streamlit.proto.WidgetStates_pb2 import WidgetState
+from streamlit.testing.v1 import AppTest, element_tree
 from workspace_ui_helpers import page
 
 from credit_monitoring.domain import CovenantExtraction
@@ -19,8 +21,36 @@ def click(app, label):
     assert not app.exception
 
 
+def select_documents(app, document_ids, *, table="inventory"):
+    frame = next(d for d in app.dataframe if f"documents_{table}_" in d.proto.id)
+    rows = [i for i, did in enumerate(frame.value["ID"]) if did in document_ids]
+    states = app._tree.get_widget_states()
+    for i in range(len(states.widgets) - 1, -1, -1):
+        if states.widgets[i].id == frame.proto.id:
+            del states.widgets[i]
+    states.widgets.add(
+        id=frame.proto.id,
+        string_value=json.dumps({"selection": {"rows": rows, "columns": []}}),
+    )
+    app._run(states)
+    assert not app.exception
+
+
 @pytest.fixture
 def connected(tmp_path, monkeypatch):
+    # AppTest renders dataframes but does not serialize their selections on later
+    # button/input events. Forward the selection state just as the browser does.
+    original_widget_state = element_tree.get_widget_state
+
+    def widget_state(node):
+        if isinstance(node, element_tree.Dataframe) and node.proto.id:
+            return WidgetState(
+                id=node.proto.id,
+                string_value=json.dumps(node.root.session_state[node.proto.id]),
+            )
+        return original_widget_state(node)
+
+    monkeypatch.setattr(element_tree, "get_widget_state", widget_state)
     root = document_inputs(tmp_path)
     monkeypatch.setattr(portfolio, "DEFAULT_DATA_ROOT", root)
     monkeypatch.setattr(portfolio, "DEFAULT_WORKING_DIR", tmp_path / "working")
@@ -75,8 +105,7 @@ def test_opening_inventory_runs_nothing_and_registration_survives_reload(connect
 
 def test_fetch_process_cache_force_and_history_are_real(connected, monkeypatch):
     app, model, downloaded = connected
-    borrower = app.selectbox(key="documents_borrower").value
-    app.multiselect(key=f"documents_selected_{borrower}").set_value(["DOC_ONE"]).run()
+    select_documents(app, ["DOC_ONE"])
     assert next(b for b in app.button if b.label == "Process selected").disabled
     click(app, "Fetch selected")
     assert len(downloaded) == 1
@@ -121,8 +150,7 @@ def test_bulk_process_uses_isolated_workers_and_publishes_complete_archive(conne
     monkeypatch.setattr(documents, "create_document_service", create)
     monkeypatch.setenv("OPENAI_API_KEY", "offline-test")
     app.run()
-    borrower = app.selectbox(key="documents_borrower").value
-    app.multiselect(key=f"documents_selected_{borrower}").set_value(["DOC_ONE", "DOC_TWO"]).run()
+    select_documents(app, ["DOC_ONE", "DOC_TWO"])
     assert app.number_input(key="documents_workers").value == 4
     click(app, "Process selected")
     assert model.respond.call_count == 2 and len(downloaded) == 2
@@ -145,7 +173,7 @@ def test_explicit_link_reassessment_warning_and_financial_recreation(connected):
     rid = app.selectbox(key="analysis_version").value
     click(app, "Source documents")
     assert app.selectbox(key="documents_borrower").value == "SYN001"
-    app.multiselect(key="documents_selected_SYN001").set_value(["DOC_ONE"]).run()
+    select_documents(app, ["DOC_ONE"])
     click(app, "Fetch selected")
     page(app, "Borrower analysis")
     assert any("Sources changed" in item.value for item in app.warning)
@@ -174,3 +202,53 @@ def test_index_rebuild_search_and_failed_recreation_show_actual_outcomes(connect
     click(app, "Rebuild selected target")
     assert any("Extraction archive is missing" in item.value for item in app.error)
     assert documents.get_document_workspace().repository.operations()[0]["state"] == "failed"
+
+
+def test_table_selection_controls_actions_and_resets_with_scope(connected):
+    app, model, downloaded = connected
+    assert not any(w.label in {"Select documents", "Source document"} for w in app.multiselect)
+    assert next(b for b in app.button if b.label == "Fetch selected").disabled
+    select_documents(app, ["DOC_ONE", "DOC_TWO"])
+    assert not next(b for b in app.button if b.label == "Fetch selected").disabled
+    select_documents(app, [])
+    assert next(b for b in app.button if b.label == "Fetch selected").disabled
+    select_documents(app, ["DOC_TWO"])
+    click(app, "Fetch selected")
+    assert downloaded == ["https://example.invalid/two.html"]
+    app.radio(key="documents_view").set_value("All catalog sources").run()
+    assert next(b for b in app.button if b.label == "Fetch selected").disabled
+    assert model.respond.call_count == 0
+
+
+def test_evidence_index_browse_search_and_saved_extraction(connected, monkeypatch):
+    app, model, downloaded = connected
+    assert "Evidence index" in [tab.label for tab in app.tabs]
+    select_documents(app, ["DOC_ONE"], table="index")
+    assert any("No complete extraction" in item.value for item in app.info)
+    assert model.respond.call_count == len(downloaded) == 0
+
+    model.respond.return_value = model_response(
+        extraction=CovenantExtraction(gaps=["Saved extraction gap for document two"])
+    )
+    monkeypatch.setenv("OPENAI_API_KEY", "offline-test")
+    select_documents(app, ["DOC_TWO"])
+    click(app, "Process selected")
+    assert model.respond.call_count == len(downloaded) == 1
+    app.text_input(key="documents_index_query").set_value("leverage")
+    click(app, "Search index")
+    select_documents(app, ["DOC_TWO"], table="index")
+    assert any("Maximum leverage covenant" in item.value for item in app.text)
+    assert any("Saved extraction gap for document two" in item.value for item in app.warning)
+    assert any("DOC_TWO" in item.value for item in app.caption)
+    assert len(app.json) >= 1
+    app.run()
+    assert any("Saved extraction gap for document two" in item.value for item in app.warning)
+    assert model.respond.call_count == len(downloaded) == 1
+
+    app.text_input(key="documents_index_query").set_value("nonexistentword")
+    click(app, "Search index")
+    assert any("No matching local passages" in item.value for item in app.info)
+    app.text_input(key="documents_index_query").set_value("")
+    click(app, "Search index")
+    index = next(d for d in app.dataframe if "documents_index_" in d.proto.id)
+    assert index.value["ID"].tolist() == ["DOC_ONE", "DOC_TWO"]

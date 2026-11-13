@@ -5,12 +5,24 @@ import os
 from contextlib import nullcontext
 from threading import Lock
 from typing import Any
+from uuid import UUID
 
 import logfire
 
 _configured = False
 _capture_content = False
 _configuration_lock = Lock()
+
+
+def _scrub_session_id(match: logfire.ScrubMatch) -> str | None:
+    """Keep only the UUID correlation attribute; redact all other matches normally."""
+    if match.path == ("attributes", "session.id") and isinstance(match.value, str):
+        try:
+            if str(UUID(match.value)) == match.value:
+                return match.value
+        except ValueError:
+            pass
+    return None
 
 
 def _parse_capture_content(value: str) -> bool:
@@ -40,6 +52,7 @@ def configure_observability() -> None:
             send_to_logfire=None if "LOGFIRE_SEND_TO_LOGFIRE" in os.environ else "if-token-present",
             service_name=os.getenv("LOGFIRE_SERVICE_NAME", "credit-monitoring"),
             console=False,
+            scrubbing=logfire.ScrubbingOptions(callback=_scrub_session_id),
         )
         logfire.instrument_pydantic_ai(
             include_content=capture_content,

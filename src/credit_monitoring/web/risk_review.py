@@ -14,6 +14,7 @@ from credit_monitoring.web.borrower_analysis import get_workflow
 from credit_monitoring.web.navigation import context
 from credit_monitoring.web.portfolio import formatted_time, render_agent_result
 from credit_monitoring.web.review_requests import render_requests, run_action
+from credit_monitoring.web.telemetry import with_web_session
 
 
 def get_manager() -> ManagerWorkflow:
@@ -425,7 +426,7 @@ def render_risk_review_page() -> None:
         list(names),
         format_func=names.get,
         key="risk_borrower",
-        on_change=change_borrower,
+        on_change=with_web_session(change_borrower),
     )
     st.header(names[borrower_id])
     render_case(manager, borrower_id, scope_period, cutoff)

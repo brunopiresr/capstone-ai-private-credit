@@ -25,9 +25,12 @@ tools, citations, calculations, and review results. Follow-ups reuse completed r
 changed inputs or an explicit refresh can request a new one. Ordinary reruns do not.
 Missing inputs, failed reviews, and unavailable forecasts remain visible.
 
-Both modes share one telemetry session but keep separate chat histories. **Reset session**
-clears histories, cached reviews, and drafts, then starts a new session. Exported traces
-and local diagnostic files remain. Runtime databases live in `data/runtime/monitoring/`.
+Both modes share one conversation telemetry ID but keep separate chat histories. Each
+interaction has its own trace. All web-session records also share `session.id` across
+reruns and navigation. **Reset session** clears histories, cached reviews, and drafts,
+then starts a new conversation identity; the web-session UUID lasts until the Streamlit
+session ends. Exported traces and local diagnostic files remain. Runtime databases live
+in `data/runtime/monitoring/`.
 
 ## User events
 
@@ -53,8 +56,8 @@ exception messages are not copied into user events.
 Timing fields are cumulative: use the latest/max snapshot per chat, never sum them.
 `elapsed_seconds` is wall time; `observed_duration_seconds` ends at the latest action.
 `active_seconds` sums action gaps up to five minutes, excluding longer gaps and agent
-wait time. Tab closure may not emit an end event. Session-anchor duration is unrelated
-to engagement. Clicks, follow-ups, and duration alone do not establish answer quality.
+wait time. Tab closure may not emit an end event. Trace durations measure execution,
+not engagement. Clicks, follow-ups, and duration alone do not establish answer quality.
 
 Use negative feedback, corrections, repeated retries, and resets as candidates for
 reviewed evaluation cases. Credit inputs and the trained model are synthetic; they are

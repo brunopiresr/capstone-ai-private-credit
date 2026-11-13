@@ -9,6 +9,7 @@ import streamlit as st
 from credit_monitoring.observability import configure_observability
 from credit_monitoring.paths import ROOT
 from credit_monitoring.web.source_watch import watch_application_sources
+from credit_monitoring.web.telemetry import with_web_session
 from credit_monitoring.web_v3.services import get_services
 from credit_monitoring.web_v3.state import go, remember, restore
 from credit_monitoring.web_v3.style import render_style
@@ -16,6 +17,7 @@ from credit_monitoring.web_v3.style import render_style
 NAVIGATION = ["Analyst queue", "Risk manager", "Documents", "Board reports", "Settings", "Help"]
 
 
+@with_web_session
 def main() -> None:
     watch_application_sources()
     st.set_page_config(page_title="Credit Monitor · V3", page_icon="◈", layout="wide")
@@ -62,7 +64,7 @@ def main() -> None:
                 st.session_state.v3_document_return = st.session_state.v3_page
             st.session_state.v3_page = st.session_state.v3_nav
 
-        st.radio("Workspace", NAVIGATION, key="v3_nav", on_change=choose_page)
+        st.radio("Workspace", NAVIGATION, key="v3_nav", on_change=with_web_session(choose_page))
         st.divider()
         st.selectbox(
             "Reporting period",

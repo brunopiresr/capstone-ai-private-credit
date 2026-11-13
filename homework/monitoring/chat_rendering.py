@@ -7,6 +7,7 @@ from monitoring_backend import ChatTurn
 
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.web.assessment import render_prediction, render_results, render_verification
+from credit_monitoring.web.telemetry import with_web_session
 
 
 def live_response(turn: ChatTurn):
@@ -62,7 +63,7 @@ def response_details(
                 st.button(
                     f"View citation {index + 1}",
                     key=f"{key}_button",
-                    on_click=_toggle_source,
+                    on_click=with_web_session(_toggle_source),
                     args=(key, index, on_source_open),
                 )
                 if st.session_state.get(key, False):

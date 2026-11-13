@@ -23,6 +23,7 @@ from logfire.testing import SimpleSpanProcessor, TestExporter
 from credit_monitoring.domain.agent import AgentAnswer
 from credit_monitoring.observability import configure_observability
 from credit_monitoring.observability.session import get_active_session
+from credit_monitoring.web.telemetry import web_session_scope
 
 PRIVATE_COMMENT = "PRIVATE EVALUATION COMMENT"
 
@@ -89,6 +90,10 @@ def main():
         assert logfire.force_flush(timeout_millis=2000)
 
     records = exporter.exported_spans_as_dict()
+    assert not any(r["name"] == "agent.session" for r in records)
+    assert all(
+        r["attributes"].get("session.id") == logfire.get_baggage()["session.id"] for r in records
+    )
     requests = {
         record["attributes"]["interaction_id"]: record
         for record in records
@@ -125,7 +130,7 @@ def main():
     )
     assert (
         requests[first.interaction_id]["context"]["trace_id"]
-        == requests[second.interaction_id]["context"]["trace_id"]
+        != requests[second.interaction_id]["context"]["trace_id"]
     )
     assert (
         requests[first.interaction_id]["context"]["trace_id"]
@@ -140,4 +145,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with patch("credit_monitoring.web.telemetry.st.session_state", {}), web_session_scope():
+        main()

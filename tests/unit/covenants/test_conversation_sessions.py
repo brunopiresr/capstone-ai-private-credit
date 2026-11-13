@@ -80,10 +80,7 @@ def test_five_synchronous_turns_share_retained_session_and_leave_idle_context_cl
     conversation.close()
     conversation.close()
     if conversation_logfire:
-        assert retained.carrier is not None
         assert logfire.get_context() == idle_context
-    else:
-        assert retained.carrier is None
     assert conversation.session_id == retained.session_id
     with pytest.raises(RuntimeError, match="Conversation is closed"):
         conversation.ask("Later")

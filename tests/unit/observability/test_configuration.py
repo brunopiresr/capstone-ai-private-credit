@@ -60,7 +60,8 @@ def test_configuration_is_idempotent_and_preserves_external_handlers(configurati
     with ThreadPoolExecutor(max_workers=4) as executor:
         list(executor.map(lambda _: configuration.configure_observability(), range(8)))
     configure.assert_called_once_with(
-        send_to_logfire=None, service_name="credit-monitoring", console=False
+        send_to_logfire=None, service_name="credit-monitoring", console=False,
+        scrubbing=configuration.logfire.ScrubbingOptions(callback=configuration._scrub_session_id)
     )
     instrument.assert_called_once_with(include_content=False, include_binary_content=False)
     assert configuration.is_observability_configured()

@@ -86,7 +86,8 @@ async def test_async_matches_sync_and_paginates_without_double_counting(query_ap
     query_api["rows"] = [
         request_row("1"), request_row("1"),
         request_row("2", activity="bullish_review"),
-        request_row("3", activity="bearish_review"),
+        # Span IDs may repeat across the conversation's independent traces.
+        request_row("1", trace_id="another-trace", activity="bearish_review"),
         request_row("4", activity="recommendation"),
         request_row("5", activity="credit_coordinator"),
     ]

@@ -12,6 +12,7 @@ from credit_monitoring.paths import ROOT
 from credit_monitoring.persistence.workflow_repository import WorkflowRepository
 from credit_monitoring.web import portfolio as portfolio_page
 from credit_monitoring.web.source_watch import watch_application_sources
+from credit_monitoring.web.telemetry import with_web_session
 from credit_monitoring.web_v2.components.header import render_header
 from credit_monitoring.web_v2.style import render_v2_style
 from credit_monitoring.web_v2.views.analyst import render_credit_analyst_view
@@ -33,6 +34,7 @@ def get_workflow() -> BorrowerWorkflow:
     )
 
 
+@with_web_session
 def main() -> None:
     watch_application_sources()
     st.set_page_config(

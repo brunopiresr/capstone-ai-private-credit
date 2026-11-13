@@ -10,6 +10,7 @@ from evaluation_backend import RESPONSE_CATEGORIES, EvaluationRound
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.observability import configure_observability
 from credit_monitoring.paths import ROOT
+from credit_monitoring.web.telemetry import with_web_session
 
 PREFIX = "evaluation_ui_"
 
@@ -107,6 +108,7 @@ def evaluation_summary(current: EvaluationRound) -> None:
             st.rerun()
 
 
+@with_web_session
 def main() -> None:
     st.set_page_config(page_title="Evaluate agent responses", page_icon="📝")
     st.html("""

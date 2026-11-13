@@ -1,21 +1,46 @@
 """Integration tests for the modern role-based Credit Monitor V2 interface."""
 
 import json
+import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 from unittest.mock import Mock
 from uuid import uuid4
 
+import logfire
 import pytest
 from portfolio_helpers import portfolio_inputs, review_model
 from streamlit.runtime.scriptrunner_utils.script_run_context import ScriptRunContext
 from streamlit.testing.v1 import AppTest
 
 from credit_monitoring.application.bootstrap import create_portfolio_service
+from credit_monitoring.application.borrower_workflow import BorrowerWorkflow
 from credit_monitoring.web import portfolio as portfolio_page
+from credit_monitoring.web.telemetry import WEB_SESSION_KEY
 from credit_monitoring.web_v2.components import chat as chat_ui
 
 APP_V2 = Path(__file__).resolve().parents[3] / "src/credit_monitoring/web_v2/app.py"
+
+
+@pytest.mark.parametrize("capture_content", ["false", "true"])
+def test_v2_feedback_links_to_original_response(capture_content):
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(Path(__file__).with_name("v2_feedback_telemetry_probe.py")),
+            capture_content,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout.strip().splitlines()[-1]) == {
+        "agent_spans": 2,
+        "fallback_spans": 1,
+        "feedback_events": 6,
+    }
 
 
 @pytest.fixture
@@ -55,6 +80,39 @@ def test_v2_default_view_is_credit_analyst(app_v2):
     df = app.dataframe[0].value
     assert "Borrower" in df.columns
     assert len(df) == 37
+
+
+def test_v2_web_identity_covers_work_callbacks_and_isolates_browsers(app_v2, monkeypatch):
+    app = app_v2
+    session_id = app.session_state[WEB_SESSION_KEY]
+    seen = []
+    assess = BorrowerWorkflow.assess
+    render_chips = chat_ui.render_prompt_chips
+
+    def assess_with_identity(self, *args, **kwargs):
+        seen.append(("assessment", logfire.get_baggage().get("session.id")))
+        return assess(self, *args, **kwargs)
+
+    def render_with_callback(prompts, on_select, *args, **kwargs):
+        def select(prompt):
+            seen.append(("callback", logfire.get_baggage().get("session.id")))
+            on_select(prompt)
+
+        return render_chips(prompts, select, *args, **kwargs)
+
+    monkeypatch.setattr(BorrowerWorkflow, "assess", assess_with_identity)
+    monkeypatch.setattr(chat_ui, "render_prompt_chips", render_with_callback)
+    next(b for b in app.button if "Run Full Assessment" in b.label).click().run()
+    assert not app.exception
+    next(b for b in app.button if "Interest Coverage" in b.label).click().run()
+    assert not app.exception
+    assert seen == [("assessment", session_id), ("callback", session_id)]
+    next(b for b in app.button if b.label == "Clear Chat").click().run()
+    app.segmented_control(key="v2_active_role").set_value("🛡️ Risk Manager").run()
+    assert not app.exception and app.session_state[WEB_SESSION_KEY] == session_id
+    other = AppTest.from_file(str(APP_V2), default_timeout=20).run()
+    assert not other.exception and other.session_state[WEB_SESSION_KEY] != session_id
+    assert "session.id" not in logfire.get_baggage()
 
 
 def test_v2_loan_search_filter(app_v2):
@@ -203,6 +261,105 @@ def button(app, label):
 def assess(app):
     button(app, "Run Full Assessment").click().run()
     assert not app.exception
+
+
+@pytest.mark.parametrize("review_first", [False, True])
+def test_v2_answer_rating_is_visible_correlated_and_does_not_rerun_agent(
+    app_v2, monkeypatch, review_first
+):
+    app = app_v2
+    assess(app)
+    events = []
+    executed = []
+
+    def answer(*args, **kwargs):
+        executed.append(logfire.get_baggage()["interaction_id"])
+        return {
+            "role": "assistant",
+            "content": "A completed answer.",
+            "conversation_id": "conversation-under-review",
+            "response_origin": "agent",
+            "model": "synthetic-model",
+        }
+
+    logger = Mock()
+    logger.emit.side_effect = lambda **event: events.append(event)
+
+    backend = Mock(side_effect=answer)
+    monkeypatch.setattr(chat_ui, "_answer_question", backend)
+    monkeypatch.setattr(chat_ui, "is_observability_configured", lambda: True)
+    monkeypatch.setattr(chat_ui, "get_logger", lambda _: logger)
+    app.chat_input[0].set_value("Explain covenant headroom").run()
+    assert not app.exception and len(app.feedback) == 1
+    assert any(m.value == "**Rate this answer**" for m in app.markdown)
+    button(app, "Send feedback").click().run()
+    assert any("Choose a valid rating" in i.value for i in app.info)
+    assert not events
+
+    def quick_rating():
+        app.feedback[0].set_value(1)
+        button(app, "Send feedback").click().run()
+        assert not app.exception
+        assert app.feedback[0].disabled and button(app, "Send feedback").disabled
+
+    def detailed_review():
+        button(app, "Submit review").click().run()
+        assert any("Choose a valid rating" in i.value for i in app.info)
+        next(s for s in app.selectbox if s.label == "Review score (1–5)").set_value(5)
+        button(app, "Submit review").click().run()
+        assert any("Choose a review category" in i.value for i in app.info)
+        next(s for s in app.selectbox if s.label == "Review category").set_value("Helpful")
+        if not review_first:
+            next(t for t in app.text_area if t.label == "Review message (optional)").set_value(
+                "  Useful explanation.  "
+            )
+        button(app, "Submit review").click().run()
+        assert not app.exception and button(app, "Submit review").disabled
+        assert next(s for s in app.selectbox if s.label == "Review category").value == "Helpful"
+
+    actions = (detailed_review, quick_rating) if review_first else (quick_rating, detailed_review)
+    for action in actions:
+        action()
+
+    assert backend.call_count == 1 and len(events) == 2
+    by_name = {event["attributes"]["gen_ai.evaluation.name"]: event for event in events}
+    quick = by_name["user_helpfulness"]["attributes"]
+    review = by_name["user_review_score"]["attributes"]
+    for event in events:
+        attributes = event["attributes"]
+        assert event["event_name"] == "gen_ai.evaluation.result"
+        assert attributes["session.id"] == app.session_state[WEB_SESSION_KEY]
+        assert attributes["interaction_id"] == executed[0]
+        assert attributes["gen_ai.conversation.id"] == "conversation-under-review"
+        assert attributes["borrower_id"] == app.session_state.v2_selected_borrower
+        assert attributes["mode"] == "analyst"
+        assert attributes["gen_ai.request.model"] == "synthetic-model"
+    assert quick["rating"] == "positive" and quick["gen_ai.evaluation.score.value"] == 1.0
+    assert review["category"] == "Helpful" and review["gen_ai.evaluation.score.value"] == 5.0
+    assert review["comment"] == ("" if review_first else "Useful explanation.")
+
+    app.run()
+    assert button(app, "Send feedback").disabled and button(app, "Submit review").disabled
+    assert backend.call_count == 1 and len(events) == 2
+    app.chat_input[0].set_value("Explain the risks").run()
+    assert not app.exception and len(app.feedback) == 2
+    assert app.feedback[0].value == 1 and app.feedback[1].value is None
+    assert executed[0] != executed[1]
+    web_id = app.session_state[WEB_SESSION_KEY]
+    button(app, "Clear Chat").click().run()
+    assert not app.feedback and app.session_state[WEB_SESSION_KEY] == web_id
+
+
+def test_v2_error_messages_do_not_offer_ratings(app_v2, monkeypatch):
+    app = app_v2
+    assess(app)
+    failure = Mock(side_effect=RuntimeError("Unavailable"))
+    monkeypatch.setattr(chat_ui, "_answer_question", failure)
+    monkeypatch.setattr(chat_ui, "generate_structured_fallback", failure)
+    app.chat_input[0].set_value("Explain the risks").run()
+    assert not app.exception and len(app.chat_message) == 2
+    assert not app.feedback
+    assert not any(b.label == "Submit review" for b in app.button)
 
 
 def test_v2_shared_borrower_selection_is_independent_of_table_filters(app_v2):
@@ -493,11 +650,14 @@ def test_v2_risk_copilot_keeps_default_layout_and_separate_history(app_v2):
     app.chat_input[0].set_value("Explain the covenant headroom").run()
     assert not app.exception
     assert len(app.chat_message) == 2
+    assert len(app.feedback) == 1
+    risk_rating_key = app.feedback[0].key
     assert len(app.session_state[f"risk_copilot_chat_history_{run_id}"]) == 2
     assert len(app.session_state[f"analyst_chat_history_{run_id}"]) == 2
     app.segmented_control(key="v2_active_role").set_value("👤 Credit Analyst").run()
     assert not app.exception
     assert len(app.chat_message) == 2
+    assert len(app.feedback) == 1 and app.feedback[0].key != risk_rating_key
 
 
 @pytest.fixture

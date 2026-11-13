@@ -45,6 +45,7 @@ from credit_monitoring.observability.configuration import span
 from credit_monitoring.observability.logging import configure_logging
 from credit_monitoring.observability.session import get_active_session
 from credit_monitoring.retrieval.lexical.sec import build_index
+from credit_monitoring.web.telemetry import web_session_scope
 
 ROOT = Path(__file__).resolve().parents[1]
 PERIOD = date(2025, 9, 30)
@@ -75,7 +76,7 @@ def conversation_model() -> FunctionModel:
             {"period_end": PERIOD.isoformat(), "information_cutoff": PERIOD.isoformat()}
             if tool
             else {
-                "answer": "Synthetic assessment completed.",
+                "summary": "Synthetic assessment completed.",
                 "confidence": "medium",
                 "confidence_explanation": "Synthetic inputs only.",
             }
@@ -265,21 +266,20 @@ async def async_checks(conversation, session, service):
     assert attempts == 2
 
 
-def scenario(exporter: TestExporter) -> dict:
-    # SDK gate: anchor has ended before either native run begins (separate loops).
+def scenario(exporter: TestExporter, web_session_id: str) -> dict:
+    # Separate synchronous calls retain correlation without retaining a trace parent.
     gate = SessionContext()
     for index in range(2):
         with session_scope(gate), span("validation.turn"):
-            Agent(TestModel(), name=f"Carrier proof {index}").run_sync(
+            Agent(TestModel(), name=f"Trace proof {index}").run_sync(
                 CONTENT_MARKER, conversation_id=gate.session_id
             )
     records = exporter.exported_spans_as_dict()
-    anchor = next(record for record in records if record["name"] == "agent.session")
-    assert anchor["attributes"]["logfire.msg"] == "Credit assessment"
-    for turn in (record for record in records if record["name"] == "validation.turn"):
-        assert parent_id(turn) == anchor["context"]["span_id"]
-        assert turn["context"]["trace_id"] == anchor["context"]["trace_id"]
-        assert turn["start_time"] >= anchor["end_time"]
+    gate_turns = [record for record in records if record["name"] == "validation.turn"]
+    assert len(gate_turns) == 2
+    assert len({record["context"]["trace_id"] for record in gate_turns}) == 2
+    for turn in gate_turns:
+        assert parent_id(turn) is None
         assert any(
             parent_id(record) == turn["context"]["span_id"]
             and record["name"].startswith("invoke_agent")
@@ -298,8 +298,6 @@ def scenario(exporter: TestExporter) -> dict:
         five_turns = exporter.exported_spans_as_dict()[start:]
         turns = [record for record in five_turns if record["name"] == "agent.turn"]
         assert len(turns) == 5
-        session_anchor = next(record for record in five_turns if record["name"] == "agent.session")
-        assert session_anchor["attributes"]["logfire.msg"] == "Quarterly review — SYN002"
         for turn in turns:
             assert turn["attributes"]["logfire.msg"] == (
                 f"Agent turn: {agent.name} — {session.name} [chat {session.session_id}]"
@@ -307,13 +305,18 @@ def scenario(exporter: TestExporter) -> dict:
             assert turn["attributes"]["agent_name"] == agent.name
             assert turn["attributes"]["chat_name"] == session.name
             assert turn["attributes"]["chat_id"] == session.session_id
-            assert parent_id(turn) == session_anchor["context"]["span_id"]
+            assert parent_id(turn) is None
             assert any(
                 record["name"].startswith("invoke_agent")
                 and parent_id(record) == turn["context"]["span_id"]
                 for record in five_turns
             )
-        assert len({record["context"]["trace_id"] for record in five_turns}) == 1
+        assert len({record["context"]["trace_id"] for record in five_turns}) == 5
+        roots = {record["context"]["trace_id"]: record for record in turns}
+        for record in five_turns:
+            root = roots[record["context"]["trace_id"]]
+            if record["context"]["span_id"] != root["context"]["span_id"]:
+                assert_descendant(record, root, five_turns)
         assert all(
             record["attributes"].get("gen_ai.conversation.id") == conversation.session_id
             for record in five_turns
@@ -342,7 +345,7 @@ def scenario(exporter: TestExporter) -> dict:
         conversation.close()
         conversation.close()
 
-    # Preserve nested parents; independent sessions created under a trace stay isolated.
+    # Changing correlation identity inside an operation must preserve execution parents.
     with span("validation.outer"):
         outer = logfire.get_context()
         with session_scope(gate):
@@ -384,32 +387,27 @@ def scenario(exporter: TestExporter) -> dict:
     )
     assert (
         find("validation.independent")["context"]["trace_id"]
-        != find("validation.parent")["context"]["trace_id"]
+        == find("validation.parent")["context"]["trace_id"]
     )
     assert (
         find("validation.outer")["context"]["trace_id"]
-        != find("validation.independent")["context"]["trace_id"]
+        == find("validation.independent")["context"]["trace_id"]
     )
-    anchor = next(record for record in five_turns if record["name"] == "agent.session")
     assert (
-        sum(
-            record["name"] == "agent.session"
-            and record["context"]["trace_id"] == anchor["context"]["trace_id"]
-            for record in records
-        )
-        == 1
+        parent_id(find("validation.independent"))
+        == find("validation.parent")["context"]["span_id"]
     )
+    assert not any(record["name"] == "agent.session" for record in records)
+    assert all(record["attributes"].get("session.id") == web_session_id for record in records)
     descendants = [
-        record
-        for record in records
-        if record["context"]["trace_id"] == anchor["context"]["trace_id"] and record is not anchor
+        record for record in records
+        if record["attributes"].get("gen_ai.conversation.id") == conversation.session_id
     ]
-    for record in descendants:
-        if record["context"]["span_id"] != anchor["context"]["span_id"]:
-            assert_descendant(record, anchor, records)
     reviews = [record for record in records if record["name"] == "credit.review"]
     assert len(reviews) == 2
     for review in reviews:
+        assert parent_id(review) is None
+        assert review["context"]["trace_id"] not in roots
         roles = [
             record
             for record in records
@@ -417,6 +415,12 @@ def scenario(exporter: TestExporter) -> dict:
             and parent_id(record) == review["context"]["span_id"]
         ]
         assert len(roles) == 3
+    assert any(
+        record["name"] == "credit.assessment"
+        and parent_id(record) is None
+        and record["context"]["trace_id"] not in roots
+        for record in records
+    )
     retry = find("invoke_agent Synthetic retry")
     requests = [
         record
@@ -447,7 +451,7 @@ def scenario(exporter: TestExporter) -> dict:
         and parent_id(record) == find("Extract section")["context"]["span_id"]
     )
     assert_descendant(extraction_span, process, records)
-    assert_descendant(process, anchor, records)
+    assert parent_id(process) is None
     batch = find("Process all documents")
     assert any(
         record["name"] == "Process document" and parent_id(record) == batch["context"]["span_id"]
@@ -469,7 +473,8 @@ def scenario(exporter: TestExporter) -> dict:
         "spans": len(records),
         "questions": len(turns),
         "session_id": conversation.session_id,
-        "trace_id": f"{anchor['context']['trace_id']:032x}",
+        "web_session_id": web_session_id,
+        "trace_ids": [f"{turn['context']['trace_id']:032x}" for turn in turns],
         "request_input_tokens": sum(
             record["attributes"].get("gen_ai.usage.input_tokens", 0)
             for record in descendants
@@ -539,7 +544,17 @@ def main() -> None:
         assert sum(handler.name == "credit_monitoring_logfire" for handler in logger.handlers) == 1
         configure_logging(logging.WARNING)
         assert logger.level == logging.DEBUG
-        result = scenario(exporter)
+        with (
+            patch("credit_monitoring.web.telemetry.st.session_state", {}),
+            web_session_scope() as web_id,
+        ):
+            logfire.info("Synthetic user action", password="synthetic-secret-value")
+            logging.getLogger("credit_monitoring.validation").info("Synthetic standard logging")
+            result = scenario(exporter, web_id)
+            exported = exporter.exported_spans_as_dict()
+            assert "synthetic-secret-value" not in json.dumps(exported)
+            assert any(r["name"] == "Synthetic user action" for r in exported)
+            assert any(r["name"] == "Synthetic standard logging" for r in exported)
         assert logfire.force_flush(timeout_millis=3000), "Telemetry flush did not complete"
         if args.live:
             assert accepted_batches and all(200 <= code < 300 for code in accepted_batches), (

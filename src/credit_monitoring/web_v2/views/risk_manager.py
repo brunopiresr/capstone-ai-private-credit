@@ -10,6 +10,7 @@ from credit_monitoring.application.borrower_workflow import BorrowerWorkflow
 from credit_monitoring.application.manager_workflow import ManagerWorkflow
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.web.portfolio import formatted_time
+from credit_monitoring.web.telemetry import with_web_session
 from credit_monitoring.web_v2.components.chat import render_chat_widget
 from credit_monitoring.web_v2.components.metrics import render_kpi_card
 
@@ -102,7 +103,7 @@ def render_flagged_queue_table(
                 pinned=True,
                 help="Open this borrower's review and sign-off.",
                 key="v2_risk_review_click",
-                on_click=_open_queue_review,
+                on_click=with_web_session(_open_queue_review),
                 args=(tuple(df["ID"]),),
             ),
         },

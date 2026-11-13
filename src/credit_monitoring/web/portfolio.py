@@ -20,6 +20,7 @@ from credit_monitoring.domain.credit_review import CreditReviewResult, ExposureD
 from credit_monitoring.paths import DATA_ROOT, RUNTIME_DIR
 from credit_monitoring.persistence.workflow_repository import WorkflowRepository
 from credit_monitoring.web.navigation import context, navigate
+from credit_monitoring.web.telemetry import with_web_session
 
 DEFAULT_DATA_ROOT = DATA_ROOT
 DEFAULT_WORKING_DIR = RUNTIME_DIR / "portfolio"
@@ -383,7 +384,7 @@ def render_portfolio_page() -> None:
         list(names),
         format_func=names.get,
         key="portfolio_borrower",
-        on_change=change_borrower,
+        on_change=with_web_session(change_borrower),
     )
     selected = next(entry for entry in entries if entry.borrower_id == selected_id)
     if open_action.button(

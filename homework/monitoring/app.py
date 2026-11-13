@@ -20,6 +20,7 @@ from credit_monitoring.observability import configure_observability
 from credit_monitoring.observability.configuration import capture_content_enabled
 from credit_monitoring.paths import ROOT
 from credit_monitoring.web.cost_footer import render_cost_footer, request_cost_refresh
+from credit_monitoring.web.telemetry import with_web_session
 
 MODES = ("Evidence Search", "Credit Analysis")
 MODE_DESCRIPTIONS = {
@@ -260,6 +261,7 @@ def render_message(message: dict, pending: dict | None = None) -> None:
             render_feedback(turn, mode)
 
 
+@with_web_session
 def main() -> None:
     st.set_page_config(page_title="Agent playground", page_icon="💬", layout="wide")
     load_dotenv(ROOT / ".env", override=False)
@@ -277,7 +279,10 @@ def main() -> None:
     with session_column:
         st.caption(f"Session: {st.session_state[f'{PREFIX}session_id']}")
     with reset_column:
-        st.button("Reset session", on_click=reset_session, disabled=busy, use_container_width=True)
+        st.button(
+            "Reset session", on_click=with_web_session(reset_session),
+            disabled=busy, use_container_width=True,
+        )
 
     mode = st.session_state[f"{PREFIX}mode"]
     st.subheader("Choose a mode")
@@ -291,7 +296,7 @@ def main() -> None:
                     icon=(
                         ":material/check_circle:" if mode == option else ":material/arrow_forward:"
                     ),
-                    on_click=select_mode,
+                    on_click=with_web_session(select_mode),
                     args=(option,),
                     disabled=busy,
                     use_container_width=True,
@@ -308,7 +313,7 @@ def main() -> None:
                     title,
                     key=f"{PREFIX}sample_{mode}_{index}",
                     help=sample,
-                    on_click=copy_question,
+                    on_click=with_web_session(copy_question),
                     args=(mode, sample, index),
                     disabled=busy,
                     icon=":material/arrow_outward:",
@@ -362,7 +367,7 @@ def main() -> None:
                 st.button(
                     "Retry question",
                     key=f"{PREFIX}retry_{previous.interaction_id}",
-                    on_click=retry_question,
+                    on_click=with_web_session(retry_question),
                     args=(mode, messages[-2]["content"], previous.interaction_id),
                     disabled=busy or not bool(os.getenv("OPENAI_API_KEY", "").strip()),
                 )

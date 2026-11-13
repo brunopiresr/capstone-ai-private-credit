@@ -23,17 +23,12 @@ def test_session_defaults_are_independent_and_do_not_capture_context():
     first, second = sessions.SessionContext(), sessions.SessionContext()
     assert UUID(first.session_id)
     assert first.session_id != second.session_id
-    assert first.carrier is None and second.carrier is None
     assert first.name == second.name == "Credit assessment"
 
 
-def test_session_name_is_trimmed_and_preserves_positional_constructor_arguments():
-    carrier = {"traceparent": "existing-context"}
-    session = sessions.SessionContext(
-        "existing-session", carrier, name="  Quarterly review — AAPL\t"
-    )
+def test_session_name_is_trimmed_and_preserves_positional_identifier():
+    session = sessions.SessionContext("existing-session", name="  Quarterly review — AAPL\t")
     assert session.session_id == "existing-session"
-    assert session.carrier is carrier
     assert session.name == "Quarterly review — AAPL"
 
 
@@ -44,8 +39,8 @@ def test_blank_session_name_is_rejected(name):
 
 
 def test_unconfigured_scope_reuses_nested_session_without_sdk_calls(monkeypatch):
-    capture = Mock(side_effect=AssertionError("Unconfigured session must stay quiet"))
-    monkeypatch.setattr(sessions, "_capture_session_trace", capture)
+    baggage = Mock(side_effect=AssertionError("Unconfigured session must stay quiet"))
+    monkeypatch.setattr(sessions.logfire, "set_baggage", baggage)
     with sessions.session_scope() as outer:
         assert sessions.get_active_session() is outer
         with sessions.session_scope() as nested:
@@ -53,8 +48,7 @@ def test_unconfigured_scope_reuses_nested_session_without_sdk_calls(monkeypatch)
         with sessions.session_scope(outer) as explicit:
             assert explicit is outer
         assert sessions.get_active_session() is outer
-    assert outer.carrier is None
-    capture.assert_not_called()
+    baggage.assert_not_called()
 
 
 def test_independent_scope_restores_outer_session_after_failure():
@@ -69,28 +63,18 @@ def test_independent_scope_restores_outer_session_after_failure():
 
 
 @pytest.mark.parametrize("name", ["Credit assessment", "Quarterly review — AAPL"])
-def test_configured_scope_captures_once_and_does_not_reattach_nested_scope(monkeypatch, name):
+def test_configured_scope_binds_identity_without_changing_parent(monkeypatch, name):
     monkeypatch.setattr(sessions, "is_observability_configured", lambda: True)
-    carrier = {"traceparent": "opaque-context-carrier"}
-    capture = Mock(return_value=carrier)
-    monkeypatch.setattr(sessions, "_capture_session_trace", capture)
+    attach = Mock(side_effect=AssertionError("Session identity must not replace trace parents"))
+    monkeypatch.setattr(sessions.logfire, "attach_context", attach)
     events = []
 
     @contextmanager
     def baggage(**attributes):
-        events.append(("baggage", attributes))
+        events.append(attributes)
         yield
 
-    @contextmanager
-    def attach(actual):
-        events.append(("attach", actual))
-        try:
-            yield
-        finally:
-            events.append(("detach", actual))
-
     monkeypatch.setattr(sessions.logfire, "set_baggage", baggage)
-    monkeypatch.setattr(sessions.logfire, "attach_context", attach)
     retained = sessions.SessionContext(name=name)
     for _ in range(2):
         with sessions.session_scope(retained):
@@ -100,35 +84,18 @@ def test_configured_scope_captures_once_and_does_not_reattach_nested_scope(monke
             with sessions.session_scope(retained):
                 assert sessions.get_active_session() is retained
             assert events == before_nested
-    capture.assert_called_once_with(name)
-    assert retained.carrier is carrier
-    assert events == [
-        event
-        for _ in range(2)
-        for event in (
-            ("baggage", {"gen_ai.conversation.id": retained.session_id}),
-            ("attach", carrier),
-            ("detach", carrier),
-        )
-    ]
+    assert events == [{"gen_ai.conversation.id": retained.session_id}] * 2
+    attach.assert_not_called()
 
 
-def test_session_context_is_restored_if_carrier_capture_fails(monkeypatch):
+def test_session_context_is_restored_if_baggage_binding_fails(monkeypatch):
     monkeypatch.setattr(sessions, "is_observability_configured", lambda: True)
-
-    @contextmanager
-    def baggage(**attributes):
-        yield
-
-    monkeypatch.setattr(sessions.logfire, "set_baggage", baggage)
     monkeypatch.setattr(
-        sessions, "_capture_session_trace", Mock(side_effect=RuntimeError("Capture failed"))
+        sessions.logfire, "set_baggage", Mock(side_effect=RuntimeError("Capture failed"))
     )
-    retained = sessions.SessionContext()
     with pytest.raises(RuntimeError, match="Capture failed"):
-        with sessions.session_scope(retained):
-            pytest.fail("Work must not start after capture failure")
-    assert retained.carrier is None
+        with sessions.session_scope():
+            pytest.fail("Work must not start after binding failure")
 
 
 def test_tasks_and_worker_threads_inherit_session_without_leaking():
