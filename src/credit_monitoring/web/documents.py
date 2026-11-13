@@ -288,65 +288,41 @@ def render_document_extraction(
 def render_evidence_index(workspace: DocumentWorkspace) -> None:
     st.subheader("Evidence index")
     st.caption(
-        "Browse documents or search all locally available source text, including unlinked sources. "
-        "Select a row to see its passage and saved extraction results."
+        "Search all indexed local source text, including sources linked to other borrowers "
+        "and unlinked sources."
     )
-    records = {r["document_id"]: r for r in workspace.inventory()}
     with st.form("documents_index_search"):
-        query = st.text_input("Search evidence index", key="documents_index_query")
+        query = st.text_input(
+            "Search evidence",
+            key="documents_index_query",
+            placeholder="Enter a term or phrase, e.g. maximum leverage",
+        )
         submitted = st.form_submit_button("Search index", disabled=workspace.busy)
     if submitted:
         st.session_state.documents_index_search_term = query.strip()
+        st.session_state.documents_index_hits = []
+        if query.strip():
+            try:
+                st.session_state.documents_index_hits = workspace.processor.search_evidence(
+                    query.strip()
+                )
+            except Exception as error:
+                st.error(f"Evidence search failed ({type(error).__name__}): {error}")
+                return
     query = st.session_state.get("documents_index_search_term", "")
-    hits = workspace.processor.search_evidence(query) if query else []
-    if query:
-        st.caption(f"Search results for: {query}")
-        if not hits:
-            st.info("No matching local passages. Try another term or fetch and process a source.")
-            return
-        table_rows = [
-            {
-                "Document": records[h["document_id"]].get("title") or h["document_id"],
-                "ID": h["document_id"],
-                "Citation": h["citation"],
-                "Passage": h["content"],
-            }
-            for h in hits
-        ]
-        identities = [f"{h['document_id']}:{h['source_start']}:{h['source_end']}" for h in hits]
-    else:
-        table_rows = [
-            {
-                "Document": r.get("title") or r["document_id"],
-                "ID": r["document_id"],
-                "Issuer": r["company"],
-                "Local text": r["markdown_available"],
-                "Extraction": r["status"],
-            }
-            for r in records.values()
-        ]
-        identities = list(records)
-    if not table_rows:
-        st.info("No documents registered. Add a source in Register & link.")
+    if not query:
+        st.info("Enter a term or phrase to search the evidence index.")
         return
-    selected = st.dataframe(
-        pd.DataFrame(table_rows),
-        hide_index=True,
-        width="stretch",
-        key=document_table_key("index", query, identities),
-        selection_mode="single-row",
-        on_select="rerun",
-    )
-    if not selected.selection.rows:
-        st.info("Select a row above to inspect the document extraction results.")
+    hits = st.session_state.get("documents_index_hits", [])
+    st.caption(f"Search results for: {query}")
+    if not hits:
+        st.info("No matching local passages. Try another term or fetch a source to add local text.")
         return
-    index = selected.selection.rows[0]
-    if not 0 <= index < len(table_rows):
-        return
-    if query:
-        st.caption(hits[index]["citation"])
-        st.text(hits[index]["content"])
-    render_document_extraction(workspace, records[table_rows[index]["ID"]], key_prefix="index")
+    st.caption(f"{len(hits)} matching passage(s)")
+    for hit in hits:
+        with st.container(border=True):
+            st.caption(hit["citation"])
+            st.text(hit["content"])
 
 
 def render_catalog_forms(workspace: DocumentWorkspace, borrower_id: str) -> None:

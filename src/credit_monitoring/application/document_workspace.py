@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import logging
 import re
 import threading
 from collections.abc import Callable, Iterator
@@ -21,11 +22,13 @@ from credit_monitoring.ingestion.loaders.sec import (
     load_sec_html,
     validate_document_id,
 )
+from credit_monitoring.observability.logging import log_event, log_step
 from credit_monitoring.persistence.database import open_database
 from credit_monitoring.persistence.document_workspace_repository import DocumentWorkspaceRepository
 from credit_monitoring.persistence.workflow_repository import WorkflowRepository
 
 PROCESS_ID = new_identifier()
+logger = logging.getLogger(__name__)
 MAINTENANCE_LOCK = threading.Lock()
 type Progress = Callable[[DocumentBatchProgress], None]
 CATALOG_FIELDS = (
@@ -362,7 +365,10 @@ class DocumentWorkspace:
         ]
 
     def rebuild_index(self, *, progress: Callable[[str], None] | None = None) -> dict:
-        with self.operation("Rebuild retrieval index", ["All local Markdown"]) as outcomes:
+        with (
+            log_step(logger, "Rebuild retrieval index"),
+            self.operation("Rebuild retrieval index", ["All local Markdown"]) as outcomes,
+        ):
             if progress:
                 progress("Reading local document text")
             documents = self.local_documents()
@@ -386,4 +392,5 @@ class DocumentWorkspace:
                 "verification_hits": len(hits),
             }
             outcomes.append(summary)
+            log_event(logger, "evidence.index.rebuilt", outputs=summary)
         return summary

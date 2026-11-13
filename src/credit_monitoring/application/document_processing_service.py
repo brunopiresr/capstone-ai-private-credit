@@ -38,7 +38,7 @@ from credit_monitoring.ingestion.loaders.sec import (
     load_catalog,
 )
 from credit_monitoring.observability import session_scope
-from credit_monitoring.observability.logging import log_step
+from credit_monitoring.observability.logging import log_event, log_step
 from credit_monitoring.persistence.locking import resource_lock
 from credit_monitoring.retrieval.lexical.local import LocalEvidenceSearch
 
@@ -436,10 +436,17 @@ class DocumentProcessingService:
 
     def search_evidence(self, query: str, ticker: str | None = None) -> list[dict]:
         """Search complete local Markdown chunks; return passages, not a generated answer."""
-        documents = [
-            document
-            for record in self._catalog().values()
-            if (document := self._local_document(record)) is not None
-            and document["content"].strip()
-        ]
-        return self.evidence_search.search(documents, query, ticker)
+        with log_step(logger, "Search evidence", query_length=len(query), ticker=ticker):
+            documents = [
+                document
+                for record in self._catalog().values()
+                if (document := self._local_document(record)) is not None
+                and document["content"].strip()
+            ]
+            hits = self.evidence_search.search(documents, query, ticker)
+            log_event(
+                logger,
+                "evidence.search.results",
+                outputs={"documents": len(documents), "passages": len(hits)},
+            )
+            return hits

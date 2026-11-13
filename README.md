@@ -151,6 +151,50 @@ The task-focused V3 interface is available with `make preview-v3`. It adds analy
 work queues, editable document checklists, a wide assistant, and separate risk-manager
 case pages while sharing existing saved work. See the [V3 walkthrough](docs/guides/ui_v3.md).
 
+### Search evidence
+
+In the main workspace (`make preview`), open **Documents → Evidence index**. Enter
+a term or phrase in **Search evidence**, such as `maximum leverage` or
+`interest coverage`, then choose **Search index**. Results show matching source
+passages and citations for inspection.
+
+Search covers all cataloged sources with local Markdown text, including unlinked
+sources and sources linked to other borrowers. The selected borrower does not
+filter this search, and no document selection is required. MinSearch ranks matches
+using lexical retrieval and returns up to ten passages, with at most two per filing.
+
+Searching existing local text requires no API key, model call, or download. If no
+passages match, try different terms or use **Inventory & processing** to process a
+source into local Markdown (processing requires `OPENAI_API_KEY`; uncached SEC
+downloads also require `SEC_USER_AGENT`). Search results persist across page
+reruns until another search replaces them. Retrieved passages are excerpts; inspect
+the source and stored extraction for complete covenant schedules. See
+[document processing and search](docs/guides/document_processing.md#process-and-search-documents)
+for the Python API and optional ticker filtering.
+
+### User feedback
+
+The V2 analyst and risk-manager assistants let users rate individual answers. Start
+V2 with `make preview-v2`, open an assistant, and ask a question. Under its answer:
+
+- **Rate this answer:** choose thumbs up or thumbs down, then **Send feedback**.
+- **Add detailed review:** choose a **Review score (1–5)** and **Review category**,
+  optionally enter a message of up to 2,000 characters, then **Submit review**.
+  Categories are Helpful, Accuracy, Relevance, Completeness, Clarity,
+  Evidence/citations, and Other.
+
+Each answer accepts one thumbs rating and one detailed review, in either order.
+Submitted controls become disabled without running the assistant again. Feedback
+stays in the current chat transcript; **Clear Chat** removes that local state.
+Rule-based fallback answers can also be rated; errors and status messages cannot.
+
+With Logfire configured, feedback is exported as evaluation events linked to the
+original response, with borrower, assessment, and session context. Written review
+messages are included even when `LOGFIRE_CAPTURE_CONTENT=false`. Submission works
+without telemetry, but there is no durable feedback queue or retry, and the thank-you
+message does not confirm cloud delivery. See [Logfire response feedback](docs/guides/logfire_setup.md#v2-response-feedback)
+for setup, event fields, and queries.
+
 ## Run with Docker Compose
 
 Requires Docker Engine or Docker Desktop with Compose 2.24 or newer. From the

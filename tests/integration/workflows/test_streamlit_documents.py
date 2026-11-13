@@ -1,6 +1,7 @@
 """Connected Documents & data interactions with real SQLite, conversion and extraction graphs."""
 
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -220,35 +221,39 @@ def test_table_selection_controls_actions_and_resets_with_scope(connected):
     assert model.respond.call_count == 0
 
 
-def test_evidence_index_browse_search_and_saved_extraction(connected, monkeypatch):
+def test_evidence_index_search_shows_passages_without_document_selection(connected, caplog):
+    caplog.set_level(
+        logging.INFO, logger="credit_monitoring.application.document_processing_service"
+    )
     app, model, downloaded = connected
     assert "Evidence index" in [tab.label for tab in app.tabs]
-    select_documents(app, ["DOC_ONE"], table="index")
-    assert any("No complete extraction" in item.value for item in app.info)
+    assert app.text_input(key="documents_index_query").label == "Search evidence"
+    assert not any("documents_index_" in d.proto.id for d in app.dataframe)
     assert model.respond.call_count == len(downloaded) == 0
 
-    model.respond.return_value = model_response(
-        extraction=CovenantExtraction(gaps=["Saved extraction gap for document two"])
+    workspace = documents.get_document_workspace()
+    workspace.link("DOC_ONE", ["SYN002"])
+    local_markdown(workspace, "DOC_ONE", "Maximum leverage covenant is 4.0x.")
+    local_markdown(
+        workspace, "DOC_TWO", "Maximum leverage covenant is 5.0x for this unlinked source."
     )
-    monkeypatch.setenv("OPENAI_API_KEY", "offline-test")
-    select_documents(app, ["DOC_TWO"])
-    click(app, "Process selected")
-    assert model.respond.call_count == len(downloaded) == 1
-    app.text_input(key="documents_index_query").set_value("leverage")
+    app.selectbox(key="documents_borrower").select("SYN001").run()
+    app.text_input(key="documents_index_query").set_value("  leverage  ")
     click(app, "Search index")
-    select_documents(app, ["DOC_TWO"], table="index")
-    assert any("Maximum leverage covenant" in item.value for item in app.text)
-    assert any("Saved extraction gap for document two" in item.value for item in app.warning)
+    assert any("Maximum leverage covenant is 4.0x" in item.value for item in app.text)
+    assert any("Maximum leverage covenant is 5.0x" in item.value for item in app.text)
+    assert any("DOC_ONE" in item.value for item in app.caption)
     assert any("DOC_TWO" in item.value for item in app.caption)
-    assert len(app.json) >= 1
     app.run()
-    assert any("Saved extraction gap for document two" in item.value for item in app.warning)
-    assert model.respond.call_count == len(downloaded) == 1
+    assert any("Maximum leverage covenant is 4.0x" in item.value for item in app.text)
+    assert any("Maximum leverage covenant is 5.0x" in item.value for item in app.text)
+    assert model.respond.call_count == len(downloaded) == 0
+    assert sum("Search evidence started" in message for message in caplog.messages) == 1
 
     app.text_input(key="documents_index_query").set_value("nonexistentword")
     click(app, "Search index")
     assert any("No matching local passages" in item.value for item in app.info)
-    app.text_input(key="documents_index_query").set_value("")
+    app.text_input(key="documents_index_query").set_value("   ")
     click(app, "Search index")
-    index = next(d for d in app.dataframe if "documents_index_" in d.proto.id)
-    assert index.value["ID"].tolist() == ["DOC_ONE", "DOC_TWO"]
+    assert any("Enter a term or phrase" in item.value for item in app.info)
+    assert not any("Maximum leverage covenant" in item.value for item in app.text)

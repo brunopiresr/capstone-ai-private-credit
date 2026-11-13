@@ -1,6 +1,7 @@
 """Back up, build, validate and atomically replace only the requested working database."""
 
 import json
+import logging
 import sqlite3
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -11,6 +12,7 @@ from credit_monitoring.domain import ExtractionResult
 from credit_monitoring.domain.analytics_base import new_identifier
 from credit_monitoring.financials.repositories import FinancialRepository
 from credit_monitoring.ingestion.loaders.financials import load_financials
+from credit_monitoring.observability.logging import log_event, log_step
 from credit_monitoring.persistence.analytics_repositories import (
     CovenantResultRepository,
     RiskFeatureSnapshotRepository,
@@ -18,6 +20,8 @@ from credit_monitoring.persistence.analytics_repositories import (
     initialize_analytics,
 )
 from credit_monitoring.persistence.database import open_database
+
+logger = logging.getLogger(__name__)
 
 
 def check_database(path: Path) -> None:
@@ -37,9 +41,13 @@ def recreate_database(workspace: DocumentWorkspace, target: str, *, progress=Non
     if target not in destinations:
         raise ValueError("Choose a supported working database.")
     path = destinations[target]
-    with workspace.operation(f"Recreate {target.lower()}", [str(path)]) as outcomes:
+    with (
+        log_step(logger, "Recreate database", target=target),
+        workspace.operation(f"Recreate {target.lower()}", [str(path)]) as outcomes,
+    ):
 
         def stage(message):
+            log_event(logger, "database.rebuild.stage", inputs={"target": target, "stage": message})
             if progress:
                 progress(message)
 
@@ -97,6 +105,7 @@ def recreate_database(workspace: DocumentWorkspace, target: str, *, progress=Non
             "backup": str(backup) if backup else None,
         }
         outcomes.append(summary)
+        log_event(logger, "database.rebuilt", inputs={"target": target}, outputs=summary)
     return summary
 
 
