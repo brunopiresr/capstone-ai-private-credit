@@ -1,25 +1,75 @@
 # AI Credit Monitoring
 
-Private-credit analysts check whether borrowers meet the financial conditions in
-their loan agreements. A review means finding the right terms, checking financial
-inputs, calculating ratios, and explaining exceptions to a risk manager. Amendments,
-waivers, missing figures, and scattered evidence make this work difficult to verify.
+Private-credit teams need to understand whether each borrower can continue to
+service its debt, meet its loan obligations, and withstand deteriorating financial
+conditions. Checking the financial conditions in a loan agreement, known as
+**covenants**, is one part of that responsibility. For every borrower and reporting
+period, analysts must piece together financial statements, borrower reports, loan
+agreements, amendments, and prior reviews to form a current view of credit risk.
+The problem is that evidence is scattered and each agreement can define its own
+calculations, limits, and exceptions. Repeating this work across a portfolio makes
+it difficult to keep reviews timely, spot emerging risks, and give managers a
+consistent, traceable basis for action.
 
-This proof of concept applies the **From RAG to Agents** course to that problem.
-It combines evidence retrieval, deterministic calculations, AI interpretations, and
-a saved analyst-to-manager handoff. People remain responsible for the conclusions.
+**The calculations are the starting point for credit judgment.** An analyst must
+interpret what the results mean for each borrower: why headroom is changing,
+whether apparent improvements are sustainable, which risks or mitigating factors
+matter, and what evidence is still missing. A borrower can remain compliant while
+its financial cushion deteriorates. This analysis drives borrower-specific action
+items, such as requesting more information, increasing monitoring, or escalating
+a concern to the risk manager, with a clear rationale for each proposed action.
+
+A recurring borrower review requires the analyst to:
+
+1. **Gather the evidence:** collect financial statements, compliance certificates,
+   supporting schedules, and relevant business or public information for the period.
+2. **Establish the applicable terms:** read the agreement and account for amendments,
+   waivers, reporting obligations, covenant definitions, limits, and testing dates.
+3. **Reconcile the inputs:** check debt, cash, earnings, interest, and contractual
+   adjustments against their sources; resolve missing or conflicting figures.
+4. **Calculate compliance and headroom:** apply the contractual formulas, determine
+   which tests are active, and measure the remaining room before a breach.
+5. **Interpret the results and assess the wider credit picture:** explain trends
+   in performance, liquidity, and headroom; weigh signs of resilience against
+   downside risks, test assumptions, and identify what could change the conclusion.
+6. **Turn the analysis into action:** investigate breaches, waived failures, and
+   evidence gaps; recommend borrower-specific follow-up and explain how the
+   evidence, risks, and uncertainties justify each action, even where tests pass.
+7. **Submit and maintain the review:** present supporting evidence to the risk
+   manager, answer challenges, track outstanding actions, and contribute to
+   portfolio and credit-committee reporting before repeating the cycle.
+
+The long-term vision is a continuous credit-monitoring platform that brings legal
+terms, private financials, public information, portfolio history, and analyst
+feedback into a connected workflow. For the industry, this could reduce repetitive
+document review and reconciliation, help teams identify deterioration earlier,
+and let analysts focus more time on judgment and borrower engagement. Consistent
+evidence and review records could also make oversight easier as portfolios grow.
+These are potential benefits to validate, rather than measured outcomes of this project.
+
+This proof of concept applies the **From RAG to Agents** course to a focused part
+of that problem: **covenant assessment and review**. The scope was narrowed from
+the broader vision to demonstrate evidence retrieval, deterministic calculations,
+an initial analytical review, and a saved analyst-to-manager handoff. The first
+version of that analytical step uses **bullish and bearish AI reviews** of the same
+saved assessment: one develops the strongest supported case for resilience, while
+the other examines deterioration, downside risks, and evidence gaps. A recommendation
+agent weighs both perspectives against the original evidence and the analyst's
+criteria to produce an explained, advisory action. This connects calculated results
+to proposed borrower actions and follow-up questions. These are building blocks for
+the longer-term workflow; analysts and managers remain responsible for deciding
+which conclusions and actions are justified.
 
 | Reader or user | What to look for |
 | --- | --- |
-| Credit analyst | Evidence, covenant calculations, remaining headroom, and findings to submit. |
+| Credit analyst | Evidence, covenant calculations, headroom trends, bullish/bearish analysis, and proposed actions to review and submit. |
 | Risk manager | The analyst's submission, unresolved flags, and a recorded review decision. |
 | Board or credit committee | A saved report of exceptions, pending work, and manager recommendations. |
 | Project reviewer | Guided notebooks, prompts, tests, saved evaluation answers, and monitoring evidence. |
 
-The broader ambition is continuous credit monitoring across legal terms, private
-financials, public information, and portfolio history. This POC demonstrates one
-part: **covenant assessment and review**. It does not establish better credit decisions
-or measured time savings. See the [POC overview](docs/poc-overview.md).
+The POC does not implement the full borrower-review lifecycle or establish better
+credit decisions or measured time savings. See the [POC overview](docs/poc-overview.md)
+for its capabilities and boundaries.
 
 ## See the case
 
@@ -35,6 +85,12 @@ Limit        = 5.5000x
 Headroom     = 0.3077x
 Result       = compliant, with less cushion than in the prior quarters
 ```
+
+The analytical question is what that shrinking cushion means for the borrower
+and what action it warrants. The bullish and bearish reviews weigh the supported
+case for resilience against the risk of further deterioration, then recommendation
+synthesis identifies a proposed action and remaining diligence questions for the
+analyst to consider.
 
 The [worked example](docs/worked-example.md) follows this case from inputs through
 analyst findings, risk-manager review, and board reporting. It includes an actual
@@ -56,7 +112,7 @@ automatically supply the fictional borrowers' calculation inputs.
 | RAG and lexical retrieval | Find filing passages and answer with source references. | [RAG notebook](notebooks/02-rag.ipynb), [document processing](docs/guides/document-processing.md) |
 | Structured extraction | Save covenant terms, schedules, and reported facts for reuse. | [Extraction prompt](src/credit_monitoring/agents/prompts/extraction.py) |
 | Agent tools | Discover sources and periods, read inputs, calculate covenants, and request forecasts. | [Agents notebook](notebooks/03-agents.ipynb), [tool reference](docs/reference/agent-tools.md) |
-| Multi-agent review | Compare favorable and cautious interpretations of the same assessment, then synthesize a recommendation. | [Credit-review notebook](notebooks/04-credit-review.ipynb), [agents guide](docs/guides/agents.md) |
+| Multi-agent review | Weigh bullish and bearish interpretations of the same assessment, then connect the evidence to an advisory action, rationale, and diligence questions. | [Credit-review notebook](notebooks/04-credit-review.ipynb), [agents guide](docs/guides/agents.md) |
 | Synthetic ML baseline | Demonstrate a next-quarter covenant-breach forecast alongside current calculations. | [Assessment and ML](docs/guides/covenant-assessment.md#synthetic-ml-baseline) |
 | Evaluation and LLM judges | Separate software checks from observed answer quality and judge agreement. | [Evaluation](docs/evaluation/README.md), [results](docs/evaluation/results.md) |
 | Monitoring and feedback | Trace work, inspect failures and usage, and rate individual V2 answers. | [Monitoring](docs/guides/monitoring.md) |
