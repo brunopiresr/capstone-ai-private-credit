@@ -6,6 +6,7 @@ from pathlib import Path
 
 from credit_monitoring.agents.conversation import AgentConversation
 from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
+from credit_monitoring.agents.events import EventStreamHandler
 from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.application.assessment_service import AssessmentService
 from credit_monitoring.application.bootstrap import create_assessment_service
@@ -82,6 +83,7 @@ def ask_about_assessment(
     assessment: RiskAssessment,
     *,
     review: CreditReviewResult | None = None,
+    event_stream_handler: EventStreamHandler | None = None,
 ) -> AgentAnswer | None:
     """Supply selected dates explicitly; the agent obtains facts through its tools."""
     if question.strip().casefold() in {"close", "done", "quit"}:
@@ -104,4 +106,5 @@ def ask_about_assessment(
         question,
         selected_dates=(assessment.period_end, assessment.information_cutoff),
         supplemental_context=context,
+        event_stream_handler=event_stream_handler,
     )

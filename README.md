@@ -134,8 +134,10 @@ make lint
 
 [CI](.github/workflows/ci.yml) runs locked offline checks without API keys, with a
 separate Python 3.13 job for optional Evidently judges. [Monitoring instructions](docs/guides/monitoring.md)
-cover traces, dashboard navigation, and V2 feedback. A [local trace capture](docs/assets/README.md#monitoring-evidence)
-is available without hosted-project access.
+cover the [Credit Monitor dashboard](docs/guides/monitoring.md#credit-monitor-dashboard),
+traces, and V2 feedback. [Hosted Logfire screenshots](docs/assets/README.md#hosted-logfire-screenshots)
+and a [local trace capture](docs/assets/README.md#monitoring-evidence) are available
+without hosted-project access.
 
 ## Repository map
 
@@ -147,7 +149,6 @@ is available without hosted-project access.
 | [data](data/README.md) | Bundled inputs, evaluation evidence, training data, and model |
 | [docs](docs/README.md) | Current POC documentation |
 | [homework](homework/README.md) | Course exercises and evaluation tools |
-| [v2-plan](v2-plan/README.md) | Historical records and future proposals |
 
 ## Self-evaluation
 
@@ -157,7 +158,7 @@ is available without hosted-project access.
 | Retrieval and agents | Working notebooks, scoped tools, and inspectable prompts; no measured full-corpus retrieval winner. |
 | Testing | Offline checks and CI; passing tests do not establish live answer quality. |
 | Evaluation | Saved answers, traces, judges, and failures; independent human calibration and a final held-out evaluation remain open. |
-| Monitoring | Instrumentation, V2 feedback, and local exported traces; hosted-dashboard inspection is separate. |
+| Monitoring | Instrumentation, V2 feedback, local exported traces, and supplied hosted dashboard/extraction screenshots. |
 | Reproducibility | Locked dependencies, bundled data/model, no-key path, and Docker; live work needs credentials. |
 
 This is an evidence-based self-review. The Module 5 project scorer was unavailable

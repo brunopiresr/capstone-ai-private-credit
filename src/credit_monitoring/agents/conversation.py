@@ -17,7 +17,7 @@ from credit_monitoring.domain.agent import AgentAnswer, EvidenceEntry, SourceRef
 from credit_monitoring.domain.assessment import RiskAssessment
 from credit_monitoring.domain.credit_review import CreditReviewResult
 from credit_monitoring.observability import SessionContext
-from credit_monitoring.observability.session import get_active_session
+from credit_monitoring.observability.session import conversation_scope, get_active_session
 
 if TYPE_CHECKING:
     from credit_monitoring.agents.credit_assessment import CreditAssessmentAgent
@@ -45,6 +45,7 @@ class AgentConversation:
         self._borrower_id = borrower_id
         self._session = session if session is not None else get_active_session() or SessionContext()
         self._history: list[ModelMessage] = []
+        self._trace_parent: dict[str, str] = {}
         self._sources: list[SourceReference] = []
         self._evidence: list[EvidenceEntry] = []
         self._closed = False
@@ -71,6 +72,7 @@ class AgentConversation:
         self._history.clear()
         self._sources.clear()
         self._evidence.clear()
+        self._trace_parent.clear()
 
     def prime_evidence(
         self, assessment: RiskAssessment, review: CreditReviewResult | None = None
@@ -162,25 +164,28 @@ class AgentConversation:
         )
         state.evidence.retain(self._evidence)
         try:
-            async with aclosing(
-                self._agent._stream_question(
-                    question,
-                    state,
-                    self._ticker,
-                    borrower_id=self._borrower_id,
-                    event_stream_handler=event_stream_handler,
-                    history=deepcopy(self._history),
-                    session=self._session,
-                    selected_dates=selected_dates,
-                    supplemental_context=supplemental_context,
-                )
-            ) as stream:
-                async for event in stream:
-                    if event.kind == "run_end" and not self.closed:
-                        self._history = deepcopy(state.history)
-                        if event.answer.complete:
-                            self._evidence = list(state.evidence.entries)
-                            self._sources = [s.model_copy(deep=True) for s in event.answer.sources]
-                    yield event
+            with conversation_scope(self._session, self._trace_parent):
+                async with aclosing(
+                    self._agent._stream_question(
+                        question,
+                        state,
+                        self._ticker,
+                        borrower_id=self._borrower_id,
+                        event_stream_handler=event_stream_handler,
+                        history=deepcopy(self._history),
+                        session=self._session,
+                        selected_dates=selected_dates,
+                        supplemental_context=supplemental_context,
+                    )
+                ) as stream:
+                    async for event in stream:
+                        if event.kind == "run_end" and not self.closed:
+                            self._history = deepcopy(state.history)
+                            if event.answer.complete:
+                                self._evidence = list(state.evidence.entries)
+                                self._sources = [
+                                    s.model_copy(deep=True) for s in event.answer.sources
+                                ]
+                        yield event
         finally:
             self._in_progress = False

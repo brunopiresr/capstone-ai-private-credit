@@ -70,8 +70,9 @@ does not verify that a generated claim is supported.
 Web V2 stores assessments, AI reviews, flags, analyst submissions, manager decisions,
 and report versions under `data/runtime/portfolio/`. Submitted cases and finalized
 reports retain frozen snapshots. Browser-session chat transcripts are separate from
-these durable records; V2 model calls are created per question, with selected saved
-analysis supplied as context. See [V2 workflow](guides/web-v2-workflow.md).
+these durable records. V2 retains one agent conversation per assessment and chat
+panel, with selected saved analysis supplied on each turn. Clearing chat releases
+that conversation. See [V2 workflow](guides/web-v2-workflow.md).
 
 SQLite and local files are sufficient for the small, single-process demonstration.
 There is no separate API server or database service. Docker volumes preserve runtime
@@ -87,6 +88,9 @@ the truth of generated prose. V2 submission also automatically records its three
 validation checks; this is not proof of independent human verification.
 
 Optional Logfire instrumentation links application work and native model/tool spans
-to `session.id`. Independent interactions have separate traces. Tests use scripted
+to `session.id`. Turns in one chat share a trace under `agent.session`; independent
+workflows have separate traces. The [dashboard](guides/monitoring.md#credit-monitor-dashboard)
+summarizes activity, while the [document extraction trace](guides/document-processing.md#inspect-the-extraction-trace)
+shows the processing stages and parallel document workers. Tests use scripted
 models; [live evaluation](evaluation/README.md) measures a different concern.
 See [results](evaluation/results.md) and [monitoring](guides/monitoring.md).

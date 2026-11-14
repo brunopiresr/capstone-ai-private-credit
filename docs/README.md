@@ -16,7 +16,7 @@ Start with the [project README](../README.md). The documented application is **W
 
 ## Inspect how it works
 
-- [Document processing](guides/document-processing.md): HTML extraction, local search, and reuse.
+- [Document processing](guides/document-processing.md): HTML extraction, local search, reuse, and an illustrated Logfire trace.
 - [Covenant assessment and ML](guides/covenant-assessment.md): formulas, interpretation, and synthetic forecasts.
 - [Agents and credit reviews](guides/agents.md): responsibilities, orchestration, and Python examples.
 - [Agent tools](reference/agent-tools.md): arguments, results, scope, and saved-data effects.
@@ -28,7 +28,7 @@ Start with the [project README](../README.md). The documented application is **W
 - [Evaluation](evaluation/README.md): what each check measures and how to repeat it.
 - [Results](evaluation/results.md): dated measurements, known failures, and saved answers.
 - [LLM judges](evaluation/llm-judges.md): snapshot capture, scoring, and judge limitations.
-- [Monitoring](guides/monitoring.md): trace inspection and V2 answer feedback.
+- [Monitoring](guides/monitoring.md): the Credit Monitor dashboard, trace inspection, and V2 answer feedback.
 
 Past implementation records and future proposals live in [v2-plan](../v2-plan/README.md).
 They are not instructions for running the current POC.

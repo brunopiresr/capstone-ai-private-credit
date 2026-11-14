@@ -1,10 +1,13 @@
 """Render authoritative assessment records and completed agent outputs."""
 
+from collections.abc import Callable
+
 import pandas as pd
 import streamlit as st
 
+from credit_monitoring.agents.answer_contract import render_content
 from credit_monitoring.calculations.definitions import describe_formula
-from credit_monitoring.domain.agent import AgentAnswer
+from credit_monitoring.domain.agent import AgentAnswer, AnswerDraft
 from credit_monitoring.domain.assessment import FinancialPeriod, RiskAssessment
 
 
@@ -207,11 +210,32 @@ def render_evidence(assessment: RiskAssessment) -> None:
             st.json(result.evidence)
 
 
-def render_answer(answer: AgentAnswer) -> None:
+def render_answer(
+    answer: AgentAnswer,
+    *,
+    on_follow_up: Callable[[str], None] | None = None,
+    key_prefix: str = "answer",
+    disabled: bool = False,
+) -> None:
     if not answer.complete:
         st.error(f"Assistant could not complete the response: {answer.error or 'unknown error'}")
-    if answer.answer.strip():
-        st.markdown(answer.answer)
+    # Structured model fields are authoritative for current answers. Older saved
+    # responses may contain only the rendered answer string.
+    structured = any((answer.summary, answer.findings, answer.tables, answer.gaps))
+    questions = render_content(AnswerDraft(diligence_questions=answer.diligence_questions)).answer
+    content = (
+        render_content(
+            AnswerDraft(
+                **{field: getattr(answer, field) for field in AnswerDraft.model_fields}
+            ).model_copy(update={"diligence_questions": []})
+        ).answer
+        if structured
+        else answer.answer
+    )
+    if questions and content.endswith(questions):
+        content = content[: -len(questions)].rstrip()
+    if content.strip():
+        st.markdown(content)
     if answer.complete:
         st.caption(f"Evidence confidence: {answer.confidence} · {answer.confidence_explanation}")
     used = {key for claim in answer.claims for key in claim.evidence_ids}
@@ -230,3 +254,16 @@ def render_answer(answer: AgentAnswer) -> None:
             for execution in answer.tool_trace:
                 st.write(execution.name)
                 st.json(execution.model_dump(mode="json"))
+    if answer.diligence_questions:
+        if on_follow_up is None:
+            st.markdown(questions)
+        else:
+            st.markdown("**Follow-up questions**")
+            for index, question in enumerate(answer.diligence_questions):
+                st.button(
+                    question,
+                    key=f"{key_prefix}_follow_up_{index}",
+                    disabled=disabled,
+                    on_click=on_follow_up,
+                    args=(question,),
+                )

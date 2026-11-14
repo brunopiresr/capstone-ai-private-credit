@@ -308,15 +308,32 @@ def _fallback_message(
         }
 
 
-def _answer_question(workflow: BorrowerWorkflow, assessment: RiskAssessment, question: str) -> dict:
-    """Answer from one immutable assessment using the existing agent or offline fallback."""
+def _answer_question(
+    workflow: BorrowerWorkflow,
+    assessment: RiskAssessment,
+    question: str,
+    *,
+    chat_state: dict | None = None,
+) -> dict:
+    """Answer using assessment-scoped conversation memory or the offline fallback."""
     if not os.getenv("OPENAI_API_KEY", "").strip():
         return _fallback_message(assessment, question)
     review = workflow.portfolio.repository.latest_review(assessment.assessment_run_id)
-    adapter = SavedAssessmentChat(workflow, assessment)
-    adapter.allow_recalculation = False
-    adapter.reason = f"Chat query: {question}"
-    adapter.prediction_mode = "Logistic Regression"
+    chat_state = chat_state if chat_state is not None else {}
+    conversation = chat_state.get("conversation")
+    if conversation is None or conversation.closed:
+        adapter = SavedAssessmentChat(workflow, assessment)
+        adapter.allow_recalculation = False
+        adapter.prediction_mode = "Logistic Regression"
+        conversation = CreditAssessmentAgent(
+            assessment_service=adapter,
+            model=os.getenv("LLM_MODEL") or DEFAULT_MODEL,
+        ).start_conversation(
+            borrower_id=assessment.borrower_id,
+            session=SessionContext() if conversation is not None else None,
+        )
+        chat_state.update(conversation=conversation, adapter=adapter)
+    chat_state["adapter"].reason = f"Chat query: {question}"
     agent_context = None
 
     async def remember_agent_span(event: AgentEvent) -> None:
@@ -326,12 +343,13 @@ def _answer_question(workflow: BorrowerWorkflow, assessment: RiskAssessment, que
         if event.kind == "model_start" and agent_context is None and is_observability_configured():
             agent_context = logfire.get_context()
 
-    conversation = CreditAssessmentAgent(
-        assessment_service=adapter,
-        model=os.getenv("LLM_MODEL") or DEFAULT_MODEL,
+    answer = ask_about_assessment(
+        conversation,
+        question,
+        assessment,
+        review=review,
         event_stream_handler=remember_agent_span,
-    ).start_conversation(borrower_id=assessment.borrower_id)
-    answer = ask_about_assessment(conversation, question, assessment, review=review)
+    )
     if answer:
         return {
             "role": "assistant",
@@ -343,7 +361,7 @@ def _answer_question(workflow: BorrowerWorkflow, assessment: RiskAssessment, que
         }
     return {
         "role": "assistant",
-        "content": "Assistant completed conversation turn.",
+        "content": "Conversation closed.",
         "rateable": False,
     }
 
@@ -380,6 +398,7 @@ def render_chat_widget(
         pending_key = f"{scope}_pending_question"
         busy_key = f"{scope}_chat_busy"
         session_key = f"{scope}_conversation_session"
+        conversation_key = f"{scope}_conversation"
         input_key = f"{key_prefix}_input_{assessment.assessment_run_id}"
         st.session_state.setdefault(state_key, [])
         # A consumed request cannot be replayed after an interrupted Streamlit run.
@@ -400,6 +419,9 @@ def render_chat_widget(
 
         def clear_history() -> None:
             if not st.session_state.get(busy_key):
+                chat_state = st.session_state.pop(conversation_key, {})
+                if conversation := chat_state.get("conversation"):
+                    conversation.close()
                 st.session_state[state_key] = []
                 st.session_state.pop(session_key, None)
 
@@ -409,10 +431,15 @@ def render_chat_widget(
                 st.caption(
                     "Ask any question regarding covenant calculations, evidence, or credit risks."
                 )
-            for message in st.session_state[state_key]:
+            for index, message in enumerate(st.session_state[state_key]):
                 with st.chat_message(message["role"]):
                     if "answer" in message:
-                        render_answer(message["answer"])
+                        render_answer(
+                            message["answer"],
+                            on_follow_up=with_web_session(enqueue_question),
+                            key_prefix=f"{scope}_{index}",
+                            disabled=busy,
+                        )
                     else:
                         st.markdown(message["content"])
                     if message["role"] == "assistant" and message.get("rateable", True):
@@ -443,7 +470,12 @@ def render_chat_widget(
                     st.spinner("Answering…"),
                 ):
                     try:
-                        message = _answer_question(workflow, assessment, question)
+                        message = _answer_question(
+                            workflow,
+                            assessment,
+                            question,
+                            chat_state=st.session_state.setdefault(conversation_key, {}),
+                        )
                     except Exception as error:
                         try:
                             message = _fallback_message(

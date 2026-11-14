@@ -1,6 +1,6 @@
 # Demonstration evidence
 
-Captured **13 November 2026** from the actual Web V2 interface using an isolated
+The application captures below were recorded **13 November 2026** from the actual Web V2 interface using an isolated
 copy of the bundled data. The selected case is **SYN002**, reporting period and
 information cutoff **2025-09-30**. Analyst/manager names and review notes are
 demonstration entries. Existing user workspaces were not used.
@@ -22,7 +22,7 @@ of the complete trend. Inspect [saved live answers](../evaluation/results.md#age
 for separate model-execution evidence.
 
 No live AI generation, SEC download, or cloud telemetry export was used for these
-captures. The assessment uses the included synthetic-trained Logistic Regression
+application captures. The assessment uses the included synthetic-trained Logistic Regression
 artifact. It does not establish real-world predictive accuracy.
 
 ## Evaluation evidence
@@ -53,6 +53,21 @@ hosted Logfire dashboard. The no-key run has no model requests or provider-token
 usage. [Monitoring instructions](../guides/monitoring.md) explain how to inspect
 real model/tool activity in an authorized hosted project. Hosted display was not
 verified in this capture.
+
+## Hosted Logfire screenshots
+
+These supplied screenshots are separate from the local `TestExporter` capture
+above and the 13 November application captures. The dashboard tooltip shows
+**14 November 2026**; the extraction trace shows a batch still in progress.
+
+| Capture | What it shows | Documentation |
+| --- | --- | --- |
+| [Credit Monitor dashboard](credit-monitoring-dashboard.png) | The hosted dashboard's six panels for agent activity, cache hits, section extraction, category reviews, and the aggregate rating gauge. | [Panel definitions and interpretation](../guides/monitoring.md#credit-monitor-dashboard); [exported dashboard JSON](../../logfire/dashboard.json). |
+| [Document extraction flow](document-extraction-flow.png) | A five-document batch with four workers and one expanded document's loading, caching, extraction, and save stages. | [Trace walkthrough](../guides/document-processing.md#inspect-the-extraction-trace). |
+
+The files preserve the supplied screenshots without alteration. They show the
+hosted interface at capture time; the ongoing batch image does not show a final
+batch outcome. They are not part of the older [capture manifest](capture-manifest.json).
 
 ## Verification
 

@@ -297,6 +297,7 @@ def scenario(exporter: TestExporter, web_session_id: str) -> dict:
             assert get_active_session() is None
         five_turns = exporter.exported_spans_as_dict()[start:]
         turns = [record for record in five_turns if record["name"] == "agent.turn"]
+        anchor = next(record for record in five_turns if record["name"] == "agent.session")
         assert len(turns) == 5
         for turn in turns:
             assert turn["attributes"]["logfire.msg"] == (
@@ -305,14 +306,14 @@ def scenario(exporter: TestExporter, web_session_id: str) -> dict:
             assert turn["attributes"]["agent_name"] == agent.name
             assert turn["attributes"]["chat_name"] == session.name
             assert turn["attributes"]["chat_id"] == session.session_id
-            assert parent_id(turn) is None
+            assert parent_id(turn) == anchor["context"]["span_id"]
             assert any(
                 record["name"].startswith("invoke_agent")
                 and parent_id(record) == turn["context"]["span_id"]
                 for record in five_turns
             )
-        assert len({record["context"]["trace_id"] for record in five_turns}) == 5
-        roots = {record["context"]["trace_id"]: record for record in turns}
+        assert len({record["context"]["trace_id"] for record in five_turns}) == 1
+        roots = {anchor["context"]["trace_id"]: anchor}
         for record in five_turns:
             root = roots[record["context"]["trace_id"]]
             if record["context"]["span_id"] != root["context"]["span_id"]:
@@ -394,13 +395,13 @@ def scenario(exporter: TestExporter, web_session_id: str) -> dict:
         == find("validation.independent")["context"]["trace_id"]
     )
     assert (
-        parent_id(find("validation.independent"))
-        == find("validation.parent")["context"]["span_id"]
+        parent_id(find("validation.independent")) == find("validation.parent")["context"]["span_id"]
     )
-    assert not any(record["name"] == "agent.session" for record in records)
+    assert any(record["name"] == "agent.session" for record in records)
     assert all(record["attributes"].get("session.id") == web_session_id for record in records)
     descendants = [
-        record for record in records
+        record
+        for record in records
         if record["attributes"].get("gen_ai.conversation.id") == conversation.session_id
     ]
     reviews = [record for record in records if record["name"] == "credit.review"]

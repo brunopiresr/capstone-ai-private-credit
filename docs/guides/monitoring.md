@@ -47,11 +47,43 @@ separately by `configure_logging()` or CLI `--log-level`.
 5. Use **Evals: Live Monitoring**, selecting **Credit assessment agent** or
    **Structured fallback**, to inspect V2 answer feedback separately.
 
-The hosted UI has not been verified by this documentation capture. The
-[local monitoring evidence](../assets/README.md#monitoring-evidence) shows actual
-in-memory exported spans with cloud export disabled; it is not a screenshot of
-the hosted Logfire project. A successful transport request alone does not prove
-dashboard display.
+The supplied [hosted dashboard](#credit-monitor-dashboard) and
+[document-processing trace](document-processing.md#inspect-the-extraction-trace)
+show the Logfire interface. Separate [local monitoring evidence](../assets/README.md#monitoring-evidence)
+contains in-memory exported spans with cloud export disabled.
+
+## Credit Monitor dashboard
+
+Open **Dashboards → Credit Monitor** in the Logfire project receiving the
+application's telemetry. Select the time range before comparing activity. The
+saved [dashboard definition](../../logfire/dashboard.json) contains the panel SQL
+and layout, with a seven-day default range and a 60-second refresh interval.
+
+![Hosted Credit Monitor dashboard showing agent activity, cache hits, extraction records, and user ratings](../assets/credit-monitoring-dashboard.png)
+
+The supplied screenshot shows a seven-day view with **10 assistant turns**,
+**5 HTML cache hits**, and a displayed average rating of **3.86**. These are
+observations from that capture, not fixed targets or current production totals.
+
+| Panel | What the saved query measures | How to interpret it |
+| --- | --- | --- |
+| Agent Invocations | Records with `gen_ai.operation.name = 'invoke_agent'`, grouped by agent name in hourly buckets. | Shows activity across document extraction, the assessment assistant, credit-review roles, and analysis follow-up generation. An invocation is not a chat session or a unique user. |
+| Agent Turns | Completed `agent.turn` span records, grouped by `agent_name`. | Counts assistant turns, including failed turns; use the trace to inspect the outcome. Several turns can belong to one conversation. |
+| User Review - Category Avg Score | Mean numeric `gen_ai.evaluation.score.value` on `gen_ai.evaluation.result` log records, grouped by `category`. | Shows category ratings such as Accuracy, Clarity, and Evidence/citations. The query does not filter by feedback type; quick ratings have no review category. |
+| Cache Hits | Log records whose span name begins with `HTML cache hit`, bucketed by date. | Counts reuse of downloaded HTML. This is neither an extraction-cache count nor a cache-hit rate. |
+| Document Sections Extractions | Records named `Extract section`, grouped into time buckets. | Shows section-extraction activity rather than distinct documents or successfully completed documents. The query has no record-kind or success filter. |
+| Vag Answer Rating | Mean numeric evaluation score across the selected records, displayed on a gauge with a maximum of 5. | The exported title is preserved here. The query includes both 0–1 thumbs ratings and 1–5 detailed-review scores, so its current value is a mixed-scale average. |
+
+For a review-only 1–5 average, restrict evaluation records to
+`event_name = 'user.feedback'` and `feedback_type = 'review'` before averaging.
+Use `feedback_type = 'quick'` separately for the mean of 0–1 thumbs ratings.
+These fields are emitted as attributes. The saved dashboard queries are documented
+as supplied; their definition has not been changed.
+
+Use the dashboard to locate activity, then open **Live** to inspect the relevant
+trace and its errors, timings, and model/tool calls. Filter by `session.id` for a
+browser session or `gen_ai.conversation.id` for a chat. Activity counts and user
+ratings do not establish extraction accuracy or independently verified answer quality.
 
 ## Sessions and traces
 
@@ -59,11 +91,14 @@ dashboard display.
 | --- | --- |
 | `session.id` | One Streamlit browser session across roles, reruns, borrower changes, and chat clears |
 | `gen_ai.conversation.id` | Agent-conversation identity |
-| `trace_id` | One independent interaction or workflow, including its nested work |
+| `trace_id` | One chat conversation or independent workflow, including its nested work |
 
-Independent turns do not share a persistent root span. Scoped context preserves
-nested parents and propagates to worker threads. New browser sessions have new
-UUIDs; this is not persistent cross-tab or cross-process identity. Cached services
+Chat turns share an `agent.session` parent and trace ID. This anchor spans the first
+turn; later turns reattach its saved trace context. Its duration is not total chat
+duration. Each turn retains its own model/tool spans and interaction ID. Clearing
+chat starts a new conversation and trace. No context stays attached between turns.
+Other workflows preserve nested parents and propagate to worker threads. New browser
+sessions have new UUIDs; this is not persistent cross-tab or cross-process identity. Cached services
 do not own browser identity. Filter one web session with:
 
 ```sql

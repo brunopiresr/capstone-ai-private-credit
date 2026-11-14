@@ -345,6 +345,7 @@ def test_assistant_suggestions_retain_draft_and_recalculation_is_explicit(
             return AgentAnswer(
                 answer="Saved evidence is limited; inspect the source references.",
                 confidence="medium",
+                diligence_questions=["Which source should I inspect?"],
             )
 
         def close(self):
@@ -366,6 +367,16 @@ def test_assistant_suggestions_retain_draft_and_recalculation_is_explicit(
     click(app, "v3btn_chat_send")
     assert conversations[0].questions == ["My edited question."]
     assert len(portfolio.repository.assessment_history("SYN002")) == 1
+    app.text_area(key=f"v3_chat_draft_{rid}").set_value("Keep my unsent draft.").run()
+    assert any(b.label == "Which source should I inspect?" for b in app.button), [
+        (b.key, b.label) for b in app.button
+    ]
+    next(b for b in app.button if b.label == "Which source should I inspect?").click().run()
+    assert not app.exception
+    assert conversations[0].questions == ["My edited question.", "Which source should I inspect?"]
+    assert app.text_area(key=f"v3_chat_draft_{rid}").value == "Keep my unsent draft."
+    app.run()
+    assert len(conversations[0].questions) == 2
     app.text_area(key=f"v3_chat_draft_{rid}").set_value("Recalculate this version.")
     app.checkbox(key=f"v3_chat_recalc_{rid}").check().run()
     click(app, "v3btn_chat_send")

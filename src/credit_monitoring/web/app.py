@@ -18,7 +18,7 @@ from credit_monitoring.web.assessment import (
 from credit_monitoring.web.cost_footer import render_cost_footer, request_cost_refresh
 from credit_monitoring.web.source_watch import watch_application_sources
 from credit_monitoring.web.style import render_style
-from credit_monitoring.web.telemetry import web_session_scope
+from credit_monitoring.web.telemetry import web_session_scope, with_web_session
 from credit_monitoring.web.workspace import (
     DEFAULT_DATA_ROOT,
     DEFAULT_WORKSPACE_DIR,
@@ -43,6 +43,7 @@ def clear_conversation() -> None:
         conversation.close()
     st.session_state.chat_messages = []
     st.session_state.pop("analyst_cost_state", None)
+    st.session_state.pop("pending_follow_up", None)
 
 
 def render_assistant(assessment: RiskAssessment, *, pending: bool) -> None:
@@ -58,10 +59,19 @@ def render_assistant(assessment: RiskAssessment, *, pending: bool) -> None:
         st.info("Run the selected assessment successfully before asking a follow-up.")
     if "chat_messages" not in st.session_state:
         st.session_state.chat_messages = []
-    for message in st.session_state.chat_messages:
+
+    def enqueue_follow_up(question: str) -> None:
+        st.session_state.pending_follow_up = question
+
+    for index, message in enumerate(st.session_state.chat_messages):
         with st.chat_message(message["role"]):
             if "answer" in message:
-                render_answer(message["answer"])
+                render_answer(
+                    message["answer"],
+                    on_follow_up=with_web_session(enqueue_follow_up),
+                    key_prefix=f"workspace_{assessment.assessment_run_id}_{index}",
+                    disabled=pending or not credentials_available,
+                )
             elif "error" in message:
                 st.error(message["error"])
             else:
@@ -70,6 +80,7 @@ def render_assistant(assessment: RiskAssessment, *, pending: bool) -> None:
         "Ask about compliance, inputs, evidence, or forecasts",
         disabled=pending or not credentials_available,
     )
+    question = st.session_state.pop("pending_follow_up", None) or question
     if question:
         st.session_state.chat_messages.append({"role": "user", "content": question})
         try:

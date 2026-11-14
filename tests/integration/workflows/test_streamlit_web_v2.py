@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import logfire
 import pytest
+from model_helpers import ScriptedModel, model_response
 from portfolio_helpers import portfolio_inputs, review_model
 from streamlit.runtime.scriptrunner_utils.script_run_context import ScriptRunContext
 from streamlit.testing.v1 import AppTest
@@ -362,6 +363,48 @@ def test_v2_error_messages_do_not_offer_ratings(app_v2, monkeypatch):
     assert not any(b.label == "Submit review" for b in app.button)
 
 
+def test_v2_follow_up_buttons_send_once_in_the_same_conversation(app_v2, monkeypatch):
+    app = app_v2
+    assess(app)
+    model = ScriptedModel()
+    question = "Which evidence supports this conclusion?"
+    model.respond.return_value = model_response(
+        answer="The saved assessment is available.", diligence_questions=[question, question]
+    )
+    monkeypatch.setenv("OPENAI_API_KEY", "offline-test")
+    monkeypatch.setattr("credit_monitoring.agents.credit_assessment.resolve_model", lambda _: model)
+
+    app.chat_input[0].set_value("Explain covenant headroom").run()
+    assert not app.exception and model.respond.call_count == 1
+    run_id = app.chat_input[0].key.removeprefix("analyst_input_")
+    conversation_key = f"analyst_{run_id}_conversation"
+    conversation = app.session_state[conversation_key]["conversation"]
+    assert len([b for b in app.button if b.label == question]) == 2
+    first_message = list(app.chat_message[1])
+    assert next(i for i, node in enumerate(first_message) if node.type == "button") > next(
+        i for i, node in enumerate(first_message) if node.type == "caption"
+    )
+    assert not any(question in item.value for item in app.markdown)
+
+    button(app, question).click().run()
+    assert not app.exception and model.respond.call_count == 2
+    assert app.session_state[conversation_key]["conversation"] is conversation
+    history = app.session_state[f"analyst_chat_history_{run_id}"]
+    assert history[-2] == {"role": "user", "content": question}
+    messages = repr(model.respond.call_args.kwargs["messages"])
+    assert "Explain covenant headroom" in messages and question in messages
+    assert len(app.chat_message) == 4
+    app.run()
+    assert model.respond.call_count == 2
+
+    button(app, "Clear Chat").click().run()
+    assert conversation.closed and not app.chat_message
+    app.chat_input[0].set_value("Start again").run()
+    replacement = app.session_state[conversation_key]["conversation"]
+    assert not app.exception and replacement.session_id != conversation.session_id
+    assert "Explain covenant headroom" not in repr(model.respond.call_args.kwargs["messages"])
+
+
 def test_v2_shared_borrower_selection_is_independent_of_table_filters(app_v2):
     app = app_v2
     borrowers = app.dataframe[0].value
@@ -556,7 +599,7 @@ def test_v2_chat_controls_lock_before_answer_and_restore(
     monkeypatch.setattr(ScriptRunContext, "enqueue", capture)
     original_answer = chat_ui._answer_question
 
-    def answer(workflow, assessment, question):
+    def answer(workflow, assessment, question, **kwargs):
         import streamlit as st
 
         assert st.session_state[busy_key] is True
@@ -567,7 +610,7 @@ def test_v2_chat_controls_lock_before_answer_and_restore(
         if outcome == "failure":
             raise RuntimeError("private provider details")
         if outcome == "fallback":
-            return original_answer(workflow, assessment, question)
+            return original_answer(workflow, assessment, question, **kwargs)
         return {"role": "assistant", "content": "A completed answer with evidence."}
 
     backend = Mock(side_effect=answer)

@@ -42,6 +42,37 @@ converters need factories for parallel use. Sections inside each document remain
 sequential. SEC downloads retain shared pacing. Results preserve input order and
 individual failures. Choose one worker for sequential processing.
 
+## Inspect the extraction trace
+
+With [Logfire configured](monitoring.md#configure), open **Live** and locate
+**Process selected documents** for a batch, then expand a **Process document**
+span. The supplied screenshot shows a five-document batch configured with four
+workers. Overlapping document spans show the parallel work; sections within a
+document are processed sequentially.
+
+![Logfire document extraction trace showing a parallel batch and the expanded processing stages for one document](../assets/document-extraction-flow.png)
+
+| Stage in the trace | What happens |
+| --- | --- |
+| Load Markdown | Load the source HTML and convert it to Markdown, reusing available source caches. |
+| Check extraction cache | Compare the current document and processing configuration with the stored extraction. A matching complete result can return immediately. |
+| Split document | Divide Markdown into structural sections within the request budget when extraction is required. |
+| Prepare section cache | Initialize the extraction version and load reusable completed sections. |
+| Extract section | Run the extraction model for an uncached section. Expand this span to inspect its model activity and available usage. |
+| Save section | Persist each successful section so it can survive a later failure. |
+| Combine extractions | Assemble the completed section outputs into one document extraction. |
+| Save document result | Publish the complete extraction in SQLite after every section succeeds. |
+
+In this capture, one expanded document takes about **37.4 seconds**, including
+about **34 seconds** in **Extract section**. Other documents overlap, and the
+batch is still marked **ongoing**, so the screenshot does not establish its final
+duration or final success count. On reuse, **Extraction cache hit** or
+**Section cache hit** logs explain why extraction stages are skipped. Failures
+appear in the affected document's trace and batch outcome; expand them before retrying.
+
+The [Credit Monitor dashboard](monitoring.md#credit-monitor-dashboard) summarizes
+agent invocations, HTML cache hits, and section-extraction records across a time range.
+
 ## Retrieval and RAG
 
 Listing stored state and searching existing Markdown make no downloads or model

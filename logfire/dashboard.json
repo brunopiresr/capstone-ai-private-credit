@@ -1,0 +1,359 @@
+{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "Credit Monitor",
+    "createdAt": "2026-11-14T20:30:16.135679Z",
+    "updatedAt": "2026-11-14T21:07:04.966222Z",
+    "version": 10,
+    "project": "online-capstone"
+  },
+  "spec": {
+    "display": {
+      "name": "Credit Monitor",
+      "description": null
+    },
+    "panels": {
+      "Newpanel": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Cache Hits"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "yAxis": {},
+              "legend": {
+                "position": "bottom"
+              },
+              "visual": {
+                "display": "bar",
+                "connectNulls": false
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "LogfireTimeSeriesQuery",
+                  "spec": {
+                    "query": "SELECT\n  time_bucket($resolution, start_timestamp::date) AS x,\n  count(1) AS 'Cache Hits'\nFROM records\nWHERE kind IN ('log') AND span_name ILIKE 'HTML cache hit%'\nGROUP BY x"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Newpanel-1": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Agent Turns"
+          },
+          "plugin": {
+            "kind": "BarChart",
+            "spec": {
+              "mode": "value",
+              "sort": "desc",
+              "format": {
+                "unit": "decimal",
+                "shortValues": true
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "orderBy": "query",
+              "palette": {
+                "name": "default",
+                "order": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  0
+                ]
+              },
+              "showValues": true,
+              "calculation": "sum",
+              "orientation": "vertical"
+            }
+          },
+          "queries": [
+            {
+              "kind": "NonTimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "LogfireNonTimeSeriesQuery",
+                  "spec": {
+                    "query": "SELECT\n  attributes -> 'agent_name' AS agent,\n  count(*)::int as invocations\nFROM records\nWHERE kind IN ('span') AND span_name = 'agent.turn'\nGROUP BY 1"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Newpanel-2": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "User Review - Category Avg Score"
+          },
+          "plugin": {
+            "kind": "RadarChart",
+            "spec": {
+              "scale": "shared",
+              "legend": {
+                "position": "bottom"
+              },
+              "palette": {
+                "base": "#037400"
+              },
+              "showValues": true
+            }
+          },
+          "queries": [
+            {
+              "kind": "NonTimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "LogfireNonTimeSeriesQuery",
+                  "spec": {
+                    "query": "SELECT\n  attributes -> 'category' AS 'Category',\n  avg((attributes -> 'gen_ai.evaluation.score.value')::decimal) as 'AVG Category Score'\nFROM records\nWHERE kind IN ('log')\n  and span_name = 'gen_ai.evaluation.result'\n  and attributes->'gen_ai.evaluation.score.value' is not null\ngroup by 1"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Newpanel-3": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Document Sections Extractions"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "yAxis": {},
+              "legend": {
+                "position": "bottom"
+              },
+              "visual": {
+                "display": "bar",
+                "connectNulls": false
+              },
+              "palette": {
+                "name": "default",
+                "order": [
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  0,
+                  1
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "LogfireTimeSeriesQuery",
+                  "spec": {
+                    "query": "SELECT\n  time_bucket($resolution, start_timestamp) AS x,\n  count(1) AS count\nFROM records\nWHERE span_name = 'Extract section'\nGROUP BY x"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Newpanel-4": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Agent Invocations"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "yAxis": {},
+              "legend": {
+                "position": "bottom"
+              },
+              "visual": {
+                "display": "bar",
+                "connectNulls": false
+              },
+              "palette": {
+                "name": "default",
+                "order": [
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  0,
+                  1,
+                  2
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "LogfireTimeSeriesQuery",
+                  "spec": {
+                    "query": "SELECT\n  time_bucket('1 hour', start_timestamp) AS x,\n  attributes->>'gen_ai.agent.name' AS agent_name,\n  count(1) as invocations\nFROM records\nWHERE attributes->>'gen_ai.operation.name' = 'invoke_agent'\nGROUP BY x, agent_name;",
+                    "groupBy": "agent_name",
+                    "metrics": [
+                      "invocations"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Newpanel-5": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Vag Answer Rating"
+          },
+          "plugin": {
+            "kind": "GaugeChart",
+            "spec": {
+              "max": 5,
+              "format": {
+                "unit": "decimal",
+                "shortValues": true
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "name": "Critical",
+                    "color": "critical",
+                    "value": 2
+                  },
+                  {
+                    "name": "Warning",
+                    "color": "warning",
+                    "value": 3
+                  }
+                ],
+                "defaultValue": 4
+              },
+              "calculation": "last-number"
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "LogfireTimeSeriesQuery",
+                  "spec": {
+                    "query": "SELECT  max(start_timestamp) AS x,\navg((attributes -> 'gen_ai.evaluation.score.value')::decimal) as 'AVG Category Score'\nFROM records\nWHERE kind IN ('log')\n  and span_name = 'gen_ai.evaluation.result'\n  and attributes->'gen_ai.evaluation.score.value' is not null"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 8,
+              "width": 8,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/Newpanel"
+              }
+            },
+            {
+              "x": 8,
+              "y": 0,
+              "width": 9,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/Newpanel-1"
+              }
+            },
+            {
+              "x": 17,
+              "y": 0,
+              "width": 7,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/Newpanel-2"
+              }
+            },
+            {
+              "x": 8,
+              "y": 8,
+              "width": 9,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/Newpanel-3"
+              }
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "width": 8,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/Newpanel-4"
+              }
+            },
+            {
+              "x": 17,
+              "y": 8,
+              "width": 7,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/Newpanel-5"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "variables": [],
+    "annotations": [],
+    "duration": "7d",
+    "refreshInterval": "60s",
+    "datasources": {},
+    "links": []
+  }
+}

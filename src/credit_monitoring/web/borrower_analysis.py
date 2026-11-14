@@ -365,11 +365,20 @@ def render_chat(
     st.caption("Questions read saved results. Enable recalculation to create a new version.")
     if not credentials:
         st.info("Set OPENAI_API_KEY to enable the assistant.")
+
+    def enqueue_follow_up(question: str) -> None:
+        state["pending_question"] = question
+
     with st.container(height=450):
-        for message in state["messages"]:
+        for index, message in enumerate(state["messages"]):
             with st.chat_message(message["role"]):
                 if "answer" in message:
-                    render_answer(message["answer"])
+                    render_answer(
+                        message["answer"],
+                        on_follow_up=with_web_session(enqueue_follow_up),
+                        key_prefix=f"analysis_{assessment.assessment_run_id}_{expanded}_{index}",
+                        disabled=not credentials,
+                    )
                 else:
                     st.write(message["content"])
     scope = f"{'expanded' if expanded else 'panel'}_{assessment.assessment_run_id}"
@@ -382,6 +391,7 @@ def render_chat(
     question = st.chat_input(
         "Ask about this borrower…", key=f"analysis_chat_input_{scope}", disabled=not credentials
     )
+    question = state.pop("pending_question", None) or question
     if question or drafted_question:
         latest_review = workflow.portfolio.repository.latest_review(assessment.assessment_run_id)
         if (latest_review.review_id if latest_review else None) != (

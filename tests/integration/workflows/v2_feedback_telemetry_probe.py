@@ -76,10 +76,13 @@ def main():
         configure_observability()
         idle = logfire.get_context()
         messages = []
+        chat_state = {}
         for number in range(2):
             interaction_id = f"interaction-{number}"
             with logfire.set_baggage(interaction_id=interaction_id):
-                message = chat._answer_question(workflow, assessment, PRIVATE_QUESTION)
+                message = chat._answer_question(
+                    workflow, assessment, PRIVATE_QUESTION, chat_state=chat_state
+                )
             assert message["answer"].complete and message["agent_context"]
             message["interaction_id"] = interaction_id
             messages.append(deepcopy(message))  # Retained message after a UI rerun.
@@ -130,7 +133,8 @@ def main():
         if log.log_record.event_name == "gen_ai.evaluation.result"
     ]
     assert len(feedback) == 6
-    assert len({r["context"]["trace_id"] for r in agents.values()}) == 2
+    assert len({r["context"]["trace_id"] for r in agents.values()}) == 1
+    assert len({r["attributes"]["gen_ai.conversation.id"] for r in agents.values()}) == 1
     assert len({record.attributes["feedback_id"] for record in feedback}) == 6
     for record in feedback:
         attributes = record.attributes

@@ -322,7 +322,9 @@ def test_generated_suggestions_edit_send_and_review_context_without_extra_genera
         def ask(self, question, **kwargs):
             questions.append(question + kwargs.get("supplemental_context", ""))
             return AgentAnswer(
-                answer="The recommendation qualifies both perspectives.", confidence="medium"
+                answer="The recommendation qualifies both perspectives.",
+                confidence="medium",
+                diligence_questions=["Which finding needs more support?"],
             )
 
     monkeypatch.setattr(
@@ -337,6 +339,11 @@ def test_generated_suggestions_edit_send_and_review_context_without_extra_genera
     assert review.recommendation.rationale in questions[0]
     assert app.text_area(key=key).value == ""
     assert model.respond.call_count == 4
+    click(app, "Which finding needs more support?")
+    assert len(questions) == 2
+    assert questions[-1].startswith("Which finding needs more support?")
+    app.run()
+    assert len(questions) == 2
     page(app, "User guide")
     click(app, "Back to previous page")
     assert model.respond.call_count == 4

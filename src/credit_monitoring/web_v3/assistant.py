@@ -9,6 +9,7 @@ from credit_monitoring.agents.models import DEFAULT_MODEL
 from credit_monitoring.application.borrower_workflow import SavedAssessmentChat
 from credit_monitoring.config.settings import DEFAULT_APP_PREDICTION_MODE
 from credit_monitoring.web.assessment import render_answer
+from credit_monitoring.web.telemetry import with_web_session
 from credit_monitoring.web.workspace import ask_about_assessment
 from credit_monitoring.web_v3.analyst import credentials
 from credit_monitoring.web_v3.state import go
@@ -34,10 +35,19 @@ def render_assistant(services, assessment) -> None:
             "AI analysis changed since the previous turn. New questions use "
             "the current saved analysis."
         )
-    for message in state["messages"]:
+
+    def enqueue_follow_up(question: str) -> None:
+        state["pending_question"] = question
+
+    for index, message in enumerate(state["messages"]):
         with st.chat_message(message["role"]):
             if "answer" in message:
-                render_answer(message["answer"])
+                render_answer(
+                    message["answer"],
+                    on_follow_up=with_web_session(enqueue_follow_up),
+                    key_prefix=f"v3btn_{rid}_{index}",
+                    disabled=not credentials(),
+                )
             else:
                 st.markdown(message["content"])
     if not state["messages"]:
@@ -90,12 +100,17 @@ def render_assistant(services, assessment) -> None:
         "Otherwise, questions only read saved results."
     )
     send, clear = st.columns([1, 1])
-    if send.button(
-        "Send question",
-        key="v3btn_chat_send",
-        type="primary",
-        disabled=not credentials() or not question.strip(),
+    pending_question = state.pop("pending_question", None)
+    if (
+        send.button(
+            "Send question",
+            key="v3btn_chat_send",
+            type="primary",
+            disabled=not credentials() or not question.strip(),
+        )
+        or pending_question
     ):
+        question = pending_question or question
         state["messages"].append({"role": "user", "content": question.strip()})
         adapter = state.get("adapter")
         try:
@@ -121,7 +136,7 @@ def render_assistant(services, assessment) -> None:
                 else {"role": "assistant", "content": "Conversation closed."}
             )
             state["review_id"] = review_id
-            state["clear_draft"] = True
+            state["clear_draft"] = not bool(pending_question)
         except Exception as error:
             state["messages"].append(
                 {

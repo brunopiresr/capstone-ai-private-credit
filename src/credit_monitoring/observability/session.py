@@ -1,4 +1,4 @@
-"""Correlate conversation activity without retaining a trace parent between calls."""
+"""Correlate sessions and chat traces without leaving context attached while idle."""
 
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -37,6 +37,35 @@ _current_session: ContextVar[SessionContext | None] = ContextVar(
 def get_active_session() -> SessionContext | None:
     """Read active application identity without altering trace parentage."""
     return _current_session.get()
+
+
+@contextmanager
+def conversation_scope(session: SessionContext, parent: dict[str, str]) -> Iterator[None]:
+    """Group turns under one chat anchor without keeping context attached while idle.
+
+    The anchor covers the first turn. Later turns attach its serialized trace context,
+    as with distributed requests; no live span or ContextVar token survives a turn.
+    Only trace headers are retained so each turn keeps its current interaction baggage.
+    """
+    with session_scope(session):
+        if not is_observability_configured():
+            yield
+        elif parent:
+            with logfire.attach_context({**logfire.get_context(), **parent}):
+                yield
+        else:
+            with logfire.span(
+                "Chat session: {chat_name} [chat {chat_id}]",
+                _span_name="agent.session",
+                chat_name=session.name,
+                chat_id=session.session_id,
+            ):
+                parent.update(
+                    (key, value)
+                    for key, value in logfire.get_context().items()
+                    if key in {"traceparent", "tracestate"}
+                )
+                yield
 
 
 @contextmanager
