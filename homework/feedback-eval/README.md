@@ -28,6 +28,56 @@ waiver interpretation, leverage headroom, missing forecasts and a springing-test
 boundary. They are not production observations or independent human ground truth.
 Review/approval works without credentials. Evaluation uses paid model requests.
 
+## What do dev and holdout mean?
+
+They divide your reviewed cases into a practice set and a final check:
+
+| Split | When to use it | What you do with the results |
+| --- | --- | --- |
+| **Development (`dev`)** | While improving prompts or choosing models | Run repeatedly, inspect failures, change one parameter, and compare again. |
+| **Holdout** | After choosing the final configuration | Check whether it also works on cases you kept aside during tuning. |
+
+For example, with ten independent cases, you might use seven for development and
+reserve three for holdout. Assign the split in **Review cases** before tuning. Keep
+related conversation turns and similar questions in the same split. These are labels
+for selecting evaluation examples; running them does not train model weights.
+
+Start with **Development (improve prompts)** in the Evaluate tab. When you are happy
+with a candidate, keep its prompt/model settings fixed, choose **Holdout (final
+check)**, and run the comparison. If you use a holdout failure to change your prompt,
+that case has become part of development; use fresh cases for a later final check.
+
+## First walkthrough
+
+1. Open **Import** and click **Load 4 demo cases**.
+2. Open **Review cases** and select a case. Read its captured answer and evidence.
+3. Check or correct **Expected answer / required behavior** against the evidence.
+   This is the answer the judge will use as ground truth. For the waiver example,
+   it should say that a waived test does not establish compliance, even though the
+   original answer incorrectly claimed compliance.
+4. Enter your name in **Reviewer**, choose **approved** under Status, and click
+   **Save review**. Approval confirms your reference is ready; it does not mark the
+   original answer as correct. Repeat for the cases you want to evaluate. Pending
+   and excluded cases are skipped.
+5. Open **Evaluate** and select **Development (improve prompts)**. Keep the initial
+   baseline and candidate settings for a first comparison. The candidate prompt
+   already includes additional instructions about citations, missing facts and waivers.
+6. Click **Run evaluation**. Both configurations generate fresh answers from the
+   same question and evidence; their expected answers are visible only to the judge.
+7. Read each answer and judge reason. Save your preferred configuration and the
+   reason for choosing it. For another experiment, change only the candidate prompt
+   or model and run again. Use holdout cases after settling on a configuration.
+
+Choose **Grade captured answers only** when you want to score the original logged
+answers. Leave it unchecked when measuring a prompt/model change. The first option
+judges existing text; the second generates new text before judging it.
+
+In the results, **pass** means the answer meets the reviewed reference, **fail**
+means the judge found a material error or omission, **insufficient evidence** means
+the judge could not decide, and **error** means generation or judging failed.
+Pass rate includes every selected case. Inspect the reasons and actual answers
+before choosing a configuration.
+
 ## Credentials and Logfire import
 
 The root `.env` is loaded without overriding exported environment variables:

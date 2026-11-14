@@ -21,6 +21,37 @@ st.caption(
 
 dataset = be.DATA / "cases.jsonl"
 cases = be.load_cases(dataset)
+SPLIT_LABELS = {"dev": "Development (improve prompts)", "holdout": "Holdout (final check)"}
+SPLIT_HELP = (
+    "Development: use these cases repeatedly to improve prompts or choose a model. "
+    "Holdout: reserve these cases until you have chosen your final configuration."
+)
+
+with st.expander("How to use this tool", expanded=not any(c.status == "approved" for c in cases)):
+    st.markdown("""
+1. **Import cases.** Load the demo cases, upload an export, or fetch from Logfire.
+   Each case contains a question, the original answer, and any captured evidence/reviews.
+2. **Review a case.** Check the source evidence and write the answer you would accept in
+   **Expected answer / required behavior**. This becomes the reference for the judge.
+   For example, if the original answer says a waived test is compliant, the expected
+   answer should explain that the test was waived and no compliance result is established.
+3. **Approve the reference.** Enter your name, choose **approved**, and click **Save review**.
+   This approves your reference for evaluation; the original answer can still be wrong.
+   Pending and excluded cases are left out of evaluation.
+4. **Compare configurations.** In **Evaluate**, use the development split. Baseline is
+   your starting prompt/model; candidate is the version you want to try. Change one
+   thing at a time and keep the judge model the same. Click **Run evaluation**.
+5. **Read the results.** Compare the answers and judge reasons, then save your preferred
+   configuration and why. Once you have chosen it, use the holdout split for a final check.
+
+**Development (`dev`)** cases are your practice set: reuse them while improving the prompt.
+**Holdout** cases are your final check: set some aside before tuning and avoid using their
+results to revise the prompt. Keep related questions in the same split.
+
+To check the answers users originally received, select **Grade captured answers only**.
+To test your prompt/model changes, leave it unchecked so the tool generates fresh answers.
+Reviewing is free; running evaluations makes paid model requests.
+""")
 
 
 def merge(incoming):
@@ -130,7 +161,11 @@ with review:
             a, b, c = st.columns(3)
             reviewer = a.text_input("Reviewer", chosen.reviewer)
             split = b.selectbox(
-                "Split", ["dev", "holdout"], index=["dev", "holdout"].index(chosen.split)
+                "Split",
+                ["dev", "holdout"],
+                index=["dev", "holdout"].index(chosen.split),
+                format_func=SPLIT_LABELS.get,
+                help=SPLIT_HELP,
             )
             status = c.selectbox(
                 "Status",
@@ -175,7 +210,9 @@ with evaluate:
     st.caption("This tests answers using captured evidence. It does not replay application tools.")
     with st.form("experiment"):
         captured = st.checkbox("Grade captured answers only (diagnosis, no fresh generation)")
-        split = st.selectbox("Evaluate split", ["dev", "holdout"])
+        split = st.selectbox(
+            "Evaluate split", ["dev", "holdout"], format_func=SPLIT_LABELS.get, help=SPLIT_HELP
+        )
         a, b = st.columns(2)
         with a:
             st.write("**Baseline**")
@@ -224,6 +261,11 @@ with evaluate:
         )
         st.dataframe(
             json.loads((selected / "summary.json").read_text()), hide_index=True, width="stretch"
+        )
+        st.caption(
+            "Pass: meets the reference. Fail: an error or omission in the answer. "
+            "Insufficient evidence: the judge cannot decide. Error: generation or judging failed. "
+            "Pass rate counts all selected cases; inspect the reasons as well as the score."
         )
         results = [
             json.loads(line) for line in (selected / "results.jsonl").read_text().splitlines()
