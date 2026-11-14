@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 
-def test_modes_share_web_identity_with_separate_interaction_traces(data_root, tmp_path):
+def test_modes_share_web_identity_and_evidence_conversation_trace(data_root, tmp_path):
     result = subprocess.run(
         [
             sys.executable,
@@ -19,3 +19,4 @@ def test_modes_share_web_identity_with_separate_interaction_traces(data_root, tm
     assert result.returncode == 0, result.stdout + result.stderr
     evidence = json.loads(result.stdout.strip().splitlines()[-1])
     assert evidence["interactions"] == 5 and evidence["isolated_reset"]
+    assert evidence["evidence_turns"] == 2 and evidence["evidence_traces"] == 1

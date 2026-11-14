@@ -91,11 +91,13 @@ def main():
             question,
             previous_interaction_id=previous.get(mode),
         )
+        idle_context = logfire.get_context()
         result = asyncio.run(chat.run_turn(mode, question, turn))
         events.answer_presented(mode, turn.interaction_id, result.error)
         previous[mode] = turn.interaction_id
         assert not result.error, result
         assert get_active_session() is None
+        assert logfire.get_context() == idle_context
     events.feedback("Credit Analysis", turn.interaction_id, 0, "Unclear", "PRIVATE USER COMMENT")
     events.source_opened("Evidence Search", previous["Evidence Search"], 0)
     events.reset_context(
@@ -108,7 +110,9 @@ def main():
     logfire.force_flush(timeout_millis=2000)
     records = exporter.exported_spans_as_dict()
     traces = {record["context"]["trace_id"] for record in records}
-    assert not any(r["name"] == "agent.session" for r in records)
+    sessions = [r for r in records if r["name"] == "agent.session"]
+    assert len(sessions) == 1
+    evidence_session = sessions[0]
     assert all(
         r["attributes"].get("session.id") == logfire.get_baggage()["session.id"] for r in records
     )
@@ -144,6 +148,8 @@ def main():
     assert len(turns) == 5 and all(parent(r) is None for r in turns)
     assert len({r["context"]["trace_id"] for r in turns}) == 5
     interactions = {record["context"]["span_id"]: record for record in turns}
+    assert interactions[parent(evidence_session)]["attributes"]["mode"] == "Evidence Search"
+    assert evidence_session["attributes"]["chat_id"] == chat.session.session_id
     for record in turns:
         attributes = record["attributes"]
         agent_name = CHAT_AGENT_NAMES[attributes["mode"]]
@@ -158,7 +164,8 @@ def main():
     assert len(agent_turns) == 2
     for record in agent_turns:
         attributes = record["attributes"]
-        assert interactions[parent(record)]["attributes"]["mode"] == "Evidence Search"
+        assert parent(record) == evidence_session["context"]["span_id"]
+        assert record["context"]["trace_id"] == evidence_session["context"]["trace_id"]
         assert attributes["agent_name"] == "Evidence search agent"
         assert attributes["chat_name"] == chat.session.name
         assert attributes["chat_id"] == chat.session.session_id
@@ -220,6 +227,8 @@ def main():
         json.dumps(
             {
                 "interactions": len(turns),
+                "evidence_turns": len(agent_turns),
+                "evidence_traces": len({r["context"]["trace_id"] for r in agent_turns}),
                 "records": len(records),
                 "trace_ids": [f"{r['context']['trace_id']:032x}" for r in turns],
                 "isolated_reset": True,
