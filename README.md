@@ -71,6 +71,10 @@ The POC does not implement the full borrower-review lifecycle or establish bette
 credit decisions or measured time savings. See the [POC overview](docs/poc-overview.md)
 for its capabilities and boundaries.
 
+**Try the app online:** [Open AI Credit Monitoring](https://bramos-capst.streamlit.app/).
+Test the app without installing anything locally. Follow the
+[Web V2 workflow guide](docs/guides/web-v2-workflow.md) for a guided walkthrough.
+
 ## See the case
 
 For fictional borrower **SYN002**, an analyst asks: “Is the borrower still compliant,
